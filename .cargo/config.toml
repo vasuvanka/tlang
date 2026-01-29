@@ -1,0 +1,12 @@
+# Cargo configuration for Tlang
+# This helps avoid MSVC linker issues on Windows
+
+[build]
+# Use explicit target directory to avoid path issues
+target-dir = "target"
+
+# On Windows, try to work around MSVC linker issues
+[target.x86_64-pc-windows-msvc]
+# If linker issues persist, you can uncomment and set a specific linker:
+# linker = "link.exe"
+# Or switch to GNU toolchain: rustup toolchain install stable-x86_64-pc-windows-gnu

@@ -1,0 +1,60 @@
+# Tlang Project Manifest (config.toml)
+# Similar to Cargo.toml, go.mod, or package.json
+
+[package]
+name = "myapp"
+version = "0.1.0"
+description = "My Tlang application"
+author = "Your Name"
+license = "MIT"
+repository = "https://github.com/user/myapp"
+
+[build]
+# Output directory for build artifacts
+output_dir = "target"
+
+# Name of the generated binary
+binary_name = "myapp"
+
+# Entry point file (optional - defaults to auto-detect: prarambham.tl, main.tl, or {package_name}.tl)
+entry_file = "src/main.tl"
+
+# Static linking: creates standalone binary (compile once, run anywhere)
+static_link = true
+
+# Optimization level: "none", "size", or "speed"
+optimize = "speed"
+
+# Include debug symbols (for GDB/LLDB debugging)
+debug = false
+
+# Additional compiler flags
+compiler_flags = ["-Wall", "-Wextra"]
+
+# Additional linker flags
+linker_flags = []
+
+# Dependencies (direct dependencies)
+# These will be resolved along with their transitive dependencies
+[dependencies]
+
+# Local path dependency
+utils = { path = "./libs/utils", version = "0.1.0" }
+
+# HTTP/HTTPS dependency
+# utils = { http = "https://example.com/packages/utils.zip", version = "1.0.0" }
+# utils = { http = "https://example.com/packages/utils.tar.gz" }
+
+# Git dependency (future)
+# http-client = { git = "https://github.com/user/tlang-http-client", branch = "main" }
+
+# Registry dependency (future)
+# json = { registry = "tlang", version = "1.0.0" }
+
+# Optional dependencies
+# [dev-dependencies]
+# test-helpers = { path = "./test-helpers", version = "0.1.0", optional = true }
+
+# Ignore packages (exclude from dependency resolution)
+# Useful for experimental packages or packages you want to exclude
+# ignore = ["experimental-pkg", "deprecated-lib"]

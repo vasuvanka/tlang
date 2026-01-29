@@ -1,0 +1,9 @@
+{
+    "tlang.languageServerPath": "c:/Users/vanka/github.com/vasuvanka/tlang/target/release/tlang-lsp.exe",
+    "tlang.enableLanguageServer": true,
+    "[tlang]": {
+        "editor.tabSize": 4,
+        "editor.insertSpaces": true,
+        "editor.formatOnSave": true
+    }
+}

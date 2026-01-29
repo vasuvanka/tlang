@@ -1,0 +1,304 @@
+// filepath - Path Manipulation library
+// Ported from Go's path/filepath package
+
+pub fn generate_filepath_lib() -> String {
+    let mut code = String::new();
+    
+    // Include necessary headers
+    code.push_str("#include <stdio.h>\n");
+    code.push_str("#include <stdlib.h>\n");
+    code.push_str("#include <string.h>\n");
+    code.push_str("#include <limits.h>\n");
+    
+    // Platform-specific includes
+    code.push_str("#ifdef _WIN32\n");
+    code.push_str("#include <windows.h>\n");
+    code.push_str("#include <direct.h>\n");
+    code.push_str("#define PATH_SEP '\\\\'\n");
+    code.push_str("#define PATH_SEP_STR \"\\\\\"\n");
+    code.push_str("#else\n");
+    code.push_str("#include <unistd.h>\n");
+    code.push_str("#define PATH_SEP '/'\n");
+    code.push_str("#define PATH_SEP_STR \"/\"\n");
+    code.push_str("#endif\n");
+    code.push_str("\n");
+    
+    // Helper function to normalize path separators
+    code.push_str("static void normalize_separators(char* path) {\n");
+    code.push_str("#ifdef _WIN32\n");
+    code.push_str("    // On Windows, convert forward slashes to backslashes\n");
+    code.push_str("    for (int i = 0; path[i]; i++) {\n");
+    code.push_str("        if (path[i] == '/') path[i] = '\\\\';\n");
+    code.push_str("    }\n");
+    code.push_str("#else\n");
+    code.push_str("    // On Unix, convert backslashes to forward slashes\n");
+    code.push_str("    for (int i = 0; path[i]; i++) {\n");
+    code.push_str("        if (path[i] == '\\\\') path[i] = '/';\n");
+    code.push_str("    }\n");
+    code.push_str("#endif\n");
+    code.push_str("}\n\n");
+    
+    // Join - Join path components (takes two strings, can be chained)
+    code.push_str("// filepath.Join - Join path components\n");
+    code.push_str("char* filepath_Join(const char* path1, const char* path2) {\n");
+    code.push_str("    static char result[1024];\n");
+    code.push_str("    result[0] = '\\0';\n");
+    code.push_str("    \n");
+    code.push_str("    if (!path1 || strlen(path1) == 0) {\n");
+    code.push_str("        strncpy(result, path2 ? path2 : \"\", sizeof(result) - 1);\n");
+    code.push_str("        result[sizeof(result) - 1] = '\\0';\n");
+    code.push_str("        normalize_separators(result);\n");
+    code.push_str("        return result;\n");
+    code.push_str("    }\n");
+    code.push_str("    if (!path2 || strlen(path2) == 0) {\n");
+    code.push_str("        strncpy(result, path1, sizeof(result) - 1);\n");
+    code.push_str("        result[sizeof(result) - 1] = '\\0';\n");
+    code.push_str("        normalize_separators(result);\n");
+    code.push_str("        return result;\n");
+    code.push_str("    }\n");
+    code.push_str("    \n");
+    code.push_str("    strncpy(result, path1, sizeof(result) - 1);\n");
+    code.push_str("    result[sizeof(result) - 1] = '\\0';\n");
+    code.push_str("    \n");
+    code.push_str("    // Remove trailing separator from path1\n");
+    code.push_str("    int len = strlen(result);\n");
+    code.push_str("    if (len > 0 && (result[len-1] == '/' || result[len-1] == '\\\\')) {\n");
+    code.push_str("        result[len-1] = '\\0';\n");
+    code.push_str("        len--;\n");
+    code.push_str("    }\n");
+    code.push_str("    \n");
+    code.push_str("    // Remove leading separator from path2\n");
+    code.push_str("    const char* path2_start = path2;\n");
+    code.push_str("    while (*path2_start == '/' || *path2_start == '\\\\') path2_start++;\n");
+    code.push_str("    \n");
+    code.push_str("    // Add separator and path2\n");
+    code.push_str("    if (len + strlen(path2_start) + 2 < sizeof(result)) {\n");
+    code.push_str("        result[len] = PATH_SEP;\n");
+    code.push_str("        strcpy(result + len + 1, path2_start);\n");
+    code.push_str("    }\n");
+    code.push_str("    \n");
+    code.push_str("    normalize_separators(result);\n");
+    code.push_str("    return result;\n");
+    code.push_str("}\n\n");
+    
+    // Base - Get filename from path
+    code.push_str("// filepath.Base - Get filename from path\n");
+    code.push_str("char* filepath_Base(const char* path) {\n");
+    code.push_str("    static char result[512];\n");
+    code.push_str("    if (!path || strlen(path) == 0) {\n");
+    code.push_str("        result[0] = '.';\n");
+    code.push_str("        result[1] = '\\0';\n");
+    code.push_str("        return result;\n");
+    code.push_str("    }\n");
+    code.push_str("    \n");
+    code.push_str("    // Find last separator\n");
+    code.push_str("    int last_sep = -1;\n");
+    code.push_str("    int len = strlen(path);\n");
+    code.push_str("    for (int i = len - 1; i >= 0; i--) {\n");
+    code.push_str("        if (path[i] == '/' || path[i] == '\\\\') {\n");
+    code.push_str("            last_sep = i;\n");
+    code.push_str("            break;\n");
+    code.push_str("        }\n");
+    code.push_str("    }\n");
+    code.push_str("    \n");
+    code.push_str("    const char* base = path + last_sep + 1;\n");
+    code.push_str("    if (strlen(base) == 0) {\n");
+    code.push_str("        // Path ends with separator, find previous component\n");
+    code.push_str("        if (last_sep > 0) {\n");
+    code.push_str("            for (int i = last_sep - 1; i >= 0; i--) {\n");
+    code.push_str("                if (path[i] == '/' || path[i] == '\\\\') {\n");
+    code.push_str("                    base = path + i + 1;\n");
+    code.push_str("                    break;\n");
+    code.push_str("                }\n");
+    code.push_str("            }\n");
+    code.push_str("        }\n");
+    code.push_str("        if (strlen(base) == 0) base = path;\n");
+    code.push_str("    }\n");
+    code.push_str("    \n");
+    code.push_str("    strncpy(result, base, sizeof(result) - 1);\n");
+    code.push_str("    result[sizeof(result) - 1] = '\\0';\n");
+    code.push_str("    return result;\n");
+    code.push_str("}\n\n");
+    
+    // Dir - Get directory from path
+    code.push_str("// filepath.Dir - Get directory from path\n");
+    code.push_str("char* filepath_Dir(const char* path) {\n");
+    code.push_str("    static char result[1024];\n");
+    code.push_str("    if (!path || strlen(path) == 0) {\n");
+    code.push_str("        result[0] = '.';\n");
+    code.push_str("        result[1] = '\\0';\n");
+    code.push_str("        return result;\n");
+    code.push_str("    }\n");
+    code.push_str("    \n");
+    code.push_str("    // Find last separator\n");
+    code.push_str("    int last_sep = -1;\n");
+    code.push_str("    int len = strlen(path);\n");
+    code.push_str("    for (int i = len - 1; i >= 0; i--) {\n");
+    code.push_str("        if (path[i] == '/' || path[i] == '\\\\') {\n");
+    code.push_str("            last_sep = i;\n");
+    code.push_str("            break;\n");
+    code.push_str("        }\n");
+    code.push_str("    }\n");
+    code.push_str("    \n");
+    code.push_str("    if (last_sep < 0) {\n");
+    code.push_str("        result[0] = '.';\n");
+    code.push_str("        result[1] = '\\0';\n");
+    code.push_str("    } else if (last_sep == 0) {\n");
+    code.push_str("        result[0] = PATH_SEP;\n");
+    code.push_str("        result[1] = '\\0';\n");
+    code.push_str("    } else {\n");
+    code.push_str("        strncpy(result, path, last_sep);\n");
+    code.push_str("        result[last_sep] = '\\0';\n");
+    code.push_str("    }\n");
+    code.push_str("    \n");
+    code.push_str("    normalize_separators(result);\n");
+    code.push_str("    return result;\n");
+    code.push_str("}\n\n");
+    
+    // Ext - Get file extension
+    code.push_str("// filepath.Ext - Get file extension\n");
+    code.push_str("char* filepath_Ext(const char* path) {\n");
+    code.push_str("    static char result[64];\n");
+    code.push_str("    result[0] = '\\0';\n");
+    code.push_str("    \n");
+    code.push_str("    if (!path) return result;\n");
+    code.push_str("    \n");
+    code.push_str("    // Find last dot after last separator\n");
+    code.push_str("    int last_sep = -1;\n");
+    code.push_str("    int last_dot = -1;\n");
+    code.push_str("    int len = strlen(path);\n");
+    code.push_str("    \n");
+    code.push_str("    for (int i = len - 1; i >= 0; i--) {\n");
+    code.push_str("        if (path[i] == '/' || path[i] == '\\\\') {\n");
+    code.push_str("            last_sep = i;\n");
+    code.push_str("            break;\n");
+    code.push_str("        }\n");
+    code.push_str("        if (path[i] == '.' && last_dot < 0) {\n");
+    code.push_str("            last_dot = i;\n");
+    code.push_str("        }\n");
+    code.push_str("    }\n");
+    code.push_str("    \n");
+    code.push_str("    if (last_dot > last_sep && last_dot < len - 1) {\n");
+    code.push_str("        strcpy(result, path + last_dot);\n");
+    code.push_str("    }\n");
+    code.push_str("    \n");
+    code.push_str("    return result;\n");
+    code.push_str("}\n\n");
+    
+    // Clean - Clean path (remove .., .)
+    code.push_str("// filepath.Clean - Clean path (remove .., .)\n");
+    code.push_str("char* filepath_Clean(const char* path) {\n");
+    code.push_str("    static char result[1024];\n");
+    code.push_str("    if (!path || strlen(path) == 0) {\n");
+    code.push_str("        result[0] = '.';\n");
+    code.push_str("        result[1] = '\\0';\n");
+    code.push_str("        return result;\n");
+    code.push_str("    }\n");
+    code.push_str("    \n");
+    code.push_str("    char temp[1024];\n");
+    code.push_str("    strncpy(temp, path, sizeof(temp) - 1);\n");
+    code.push_str("    temp[sizeof(temp) - 1] = '\\0';\n");
+    code.push_str("    normalize_separators(temp);\n");
+    code.push_str("    \n");
+    code.push_str("    // Split into components\n");
+    code.push_str("    char components[256][256];\n");
+    code.push_str("    int comp_count = 0;\n");
+    code.push_str("    int is_absolute = (temp[0] == '/' || temp[0] == '\\\\');\n");
+    code.push_str("    \n");
+    code.push_str("    char* token = strtok(temp, PATH_SEP_STR);\n");
+    code.push_str("    while (token && comp_count < 256) {\n");
+    code.push_str("        if (strcmp(token, \".\") != 0) {\n");
+    code.push_str("            if (strcmp(token, \"..\") == 0) {\n");
+    code.push_str("                if (comp_count > 0 && strcmp(components[comp_count - 1], \"..\") != 0) {\n");
+    code.push_str("                    comp_count--;\n");
+    code.push_str("                } else if (!is_absolute) {\n");
+    code.push_str("                    strncpy(components[comp_count], token, sizeof(components[0]) - 1);\n");
+    code.push_str("                    components[comp_count][sizeof(components[0]) - 1] = '\\0';\n");
+    code.push_str("                    comp_count++;\n");
+    code.push_str("                }\n");
+    code.push_str("            } else {\n");
+    code.push_str("                strncpy(components[comp_count], token, sizeof(components[0]) - 1);\n");
+    code.push_str("                components[comp_count][sizeof(components[0]) - 1] = '\\0';\n");
+    code.push_str("                comp_count++;\n");
+    code.push_str("            }\n");
+    code.push_str("        }\n");
+    code.push_str("        token = strtok(NULL, PATH_SEP_STR);\n");
+    code.push_str("    }\n");
+    code.push_str("    \n");
+    code.push_str("    // Reconstruct path\n");
+    code.push_str("    result[0] = '\\0';\n");
+    code.push_str("    if (is_absolute) {\n");
+    code.push_str("        strcpy(result, PATH_SEP_STR);\n");
+    code.push_str("    }\n");
+    code.push_str("    \n");
+    code.push_str("    for (int i = 0; i < comp_count; i++) {\n");
+    code.push_str("        if (i > 0 || is_absolute) strcat(result, PATH_SEP_STR);\n");
+    code.push_str("        strcat(result, components[i]);\n");
+    code.push_str("    }\n");
+    code.push_str("    \n");
+    code.push_str("    if (comp_count == 0 && !is_absolute) {\n");
+    code.push_str("        strcpy(result, \".\");\n");
+    code.push_str("    }\n");
+    code.push_str("    \n");
+    code.push_str("    return result;\n");
+    code.push_str("}\n\n");
+    
+    // Abs - Get absolute path
+    code.push_str("// filepath.Abs - Get absolute path\n");
+    code.push_str("char* filepath_Abs(const char* path) {\n");
+    code.push_str("    static char result[1024];\n");
+    code.push_str("    \n");
+    code.push_str("#ifdef _WIN32\n");
+    code.push_str("    char full_path[MAX_PATH];\n");
+    code.push_str("    if (GetFullPathNameA(path, MAX_PATH, full_path, NULL) != 0) {\n");
+    code.push_str("        strncpy(result, full_path, sizeof(result) - 1);\n");
+    code.push_str("        result[sizeof(result) - 1] = '\\0';\n");
+    code.push_str("    } else {\n");
+    code.push_str("        strncpy(result, path, sizeof(result) - 1);\n");
+    code.push_str("        result[sizeof(result) - 1] = '\\0';\n");
+    code.push_str("    }\n");
+    code.push_str("#else\n");
+    code.push_str("    char* resolved = realpath(path, NULL);\n");
+    code.push_str("    if (resolved) {\n");
+    code.push_str("        strncpy(result, resolved, sizeof(result) - 1);\n");
+    code.push_str("        result[sizeof(result) - 1] = '\\0';\n");
+    code.push_str("        free(resolved);\n");
+    code.push_str("    } else {\n");
+    code.push_str("        strncpy(result, path, sizeof(result) - 1);\n");
+    code.push_str("        result[sizeof(result) - 1] = '\\0';\n");
+    code.push_str("    }\n");
+    code.push_str("#endif\n");
+    code.push_str("    \n");
+    code.push_str("    return result;\n");
+    code.push_str("}\n\n");
+    
+    // Split - Split directory and file (returns "dir|file")
+    code.push_str("// filepath.Split - Split directory and file (returns \"dir|file\")\n");
+    code.push_str("char* filepath_Split(const char* path) {\n");
+    code.push_str("    static char result[1024];\n");
+    code.push_str("    \n");
+    code.push_str("    char* dir = filepath_Dir(path);\n");
+    code.push_str("    char* base = filepath_Base(path);\n");
+    code.push_str("    \n");
+    code.push_str("    snprintf(result, sizeof(result), \"%s|%s\", dir, base);\n");
+    code.push_str("    return result;\n");
+    code.push_str("}\n\n");
+    
+    // IsAbs - Check if path is absolute
+    code.push_str("// filepath.IsAbs - Check if path is absolute\n");
+    code.push_str("int filepath_IsAbs(const char* path) {\n");
+    code.push_str("    if (!path || strlen(path) == 0) return 0;\n");
+    code.push_str("    \n");
+    code.push_str("#ifdef _WIN32\n");
+    code.push_str("    // Windows: Check for drive letter (C:) or UNC path (\\\\server)\n");
+    code.push_str("    if (strlen(path) >= 2 && path[1] == ':') return 1;\n");
+    code.push_str("    if (strlen(path) >= 2 && (path[0] == '\\\\' || path[0] == '/') && (path[1] == '\\\\' || path[1] == '/')) return 1;\n");
+    code.push_str("    return 0;\n");
+    code.push_str("#else\n");
+    code.push_str("    // Unix: Check if starts with /\n");
+    code.push_str("    return (path[0] == '/') ? 1 : 0;\n");
+    code.push_str("#endif\n");
+    code.push_str("}\n\n");
+    
+    code
+}

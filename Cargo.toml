@@ -1,0 +1,55 @@
+[package]
+name = "tlang"
+version = "0.1.0"
+edition = "2021"
+description = "A compiled programming language for Telugu, inspired by Go"
+authors = ["vasuvanka"]
+license = "MIT"
+repository = "https://github.com/vasuvanka/tlang"
+keywords = ["language", "compiler", "telugu", "programming"]
+categories = ["development-tools", "compilers"]
+default-run = "tlangc"
+
+[[bin]]
+name = "tlangc"
+path = "src/main.rs"
+
+[[bin]]
+name = "tlang-lsp"
+path = "src/bin/tlang-lsp.rs"
+
+[[bin]]
+name = "tlang-build"
+path = "src/bin/tlang-build.rs"
+
+[[bin]]
+name = "tlang-port"
+path = "src/bin/tlang-port.rs"
+
+[lib]
+name = "tlang"
+path = "src/lib.rs"
+
+[dependencies]
+openssl = { version = "0.10", optional = true }
+tower-lsp = "0.20"
+lsp-types = "0.94"
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+tokio = { version = "1.0", features = ["full"] }
+toml = "0.8"
+sha2 = "0.10"
+reqwest = { version = "0.11", features = ["blocking", "native-tls"], default-features = false }
+flate2 = "1.0"
+tar = "0.4"
+zip = "0.6"
+regex = "1.10"
+
+[features]
+default = []
+tls = ["openssl"]
+
+# Pin base64ct to avoid edition2024 requirement (not available in Cargo 1.82.0)
+# base64ct 1.8.0+ requires edition2024, so we pin to 1.7.3 which uses edition 2021
+[dependencies.base64ct]
+version = "=1.7.3"

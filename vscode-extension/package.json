@@ -1,0 +1,81 @@
+{
+  "name": "tlang",
+  "displayName": "Tlang Language Support",
+  "description": "Language support for Tlang - A compiled programming language for Telugu, inspired by Go",
+  "version": "0.1.0",
+  "publisher": "vasuvanka",
+  "icon": "tlang.png",
+  "engines": {
+    "vscode": "^1.74.0"
+  },
+  "categories": [
+    "Programming Languages"
+  ],
+  "keywords": [
+    "tlang",
+    "telugu",
+    "language",
+    "lsp"
+  ],
+  "activationEvents": [
+    "onLanguage:tlang"
+  ],
+  "main": "./out/extension.js",
+  "contributes": {
+    "languages": [
+      {
+        "id": "tlang",
+        "aliases": [
+          "Tlang",
+          "tlang"
+        ],
+        "extensions": [
+          ".tl"
+        ],
+        "configuration": "./language-configuration.json"
+      }
+    ],
+    "grammars": [
+      {
+        "language": "tlang",
+        "scopeName": "source.tlang",
+        "path": "./syntaxes/tlang.tmLanguage.json"
+      }
+    ],
+    "configuration": {
+      "title": "Tlang",
+      "properties": {
+        "tlang.languageServerPath": {
+          "type": "string",
+          "default": "tlang-lsp",
+          "description": "Path to the tlang-lsp executable. Use 'tlang-lsp' if it's in your PATH, or provide the full path."
+        },
+        "tlang.enableLanguageServer": {
+          "type": "boolean",
+          "default": true,
+          "description": "Enable the Tlang Language Server for code completion, hover, and diagnostics."
+        }
+      }
+    }
+  },
+  "scripts": {
+    "vscode:prepublish": "npm run compile",
+    "compile": "tsc -p ./",
+    "watch": "tsc -watch -p ./",
+    "package": "vsce package"
+  },
+  "devDependencies": {
+    "@types/node": "^20.0.0",
+    "@types/vscode": "^1.74.0",
+    "typescript": "^5.0.0",
+    "@vscode/vsce": "^2.22.0"
+  },
+  "dependencies": {
+    "vscode-languageclient": "^9.0.0"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/vasuvanka/tlang.git"
+  },
+  "license": "MIT"
+}

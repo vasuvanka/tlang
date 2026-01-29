@@ -1,0 +1,392 @@
+{
+  "$schema": "https://raw.githubusercontent.com/martinring/tmlanguage/master/tmlanguage.json",
+  "name": "Tlang",
+  "patterns": [
+    { "include": "#comments" },
+    { "include": "#variables" },
+    { "include": "#functions" },
+    { "include": "#keywords" },
+    { "include": "#types" },
+    { "include": "#operators" },
+    { "include": "#strings" },
+    { "include": "#numbers" },
+    { "include": "#punctuation" }
+  ],
+  "repository": {
+    "comments": {
+      "patterns": [
+        {
+          "name": "comment.line.double-slash.tlang",
+          "match": "//.*$"
+        },
+        {
+          "name": "comment.block.tlang",
+          "begin": "/\\*",
+          "end": "\\*/"
+        }
+      ]
+    },
+    "keywords": {
+      "patterns": [
+        {
+          "comment": "Control flow - if/else",
+          "name": "keyword.control.conditional.tlang",
+          "match": "\\b(okavela|lekapothe)\\b"
+        },
+        {
+          "comment": "Control flow - loops",
+          "name": "keyword.control.loop.tlang",
+          "match": "\\b(malli|varasa)\\b"
+        },
+        {
+          "comment": "Control flow - break/continue",
+          "name": "keyword.control.flow.tlang",
+          "match": "\\b(agu|konasagu)\\b"
+        },
+        {
+          "comment": "Control flow - return",
+          "name": "keyword.control.return.tlang",
+          "match": "\\b(mallinchu)\\b"
+        },
+        {
+          "comment": "Package declaration",
+          "name": "keyword.control.package.tlang",
+          "match": "\\b(samooham)\\b"
+        },
+        {
+          "comment": "Import statement",
+          "name": "keyword.control.import.tlang",
+          "match": "\\b(dhimpu)\\b"
+        },
+        {
+          "comment": "Import alias",
+          "name": "keyword.control.as.tlang",
+          "match": "\\b(as)\\b"
+        },
+        {
+          "comment": "Struct definition",
+          "name": "keyword.declaration.struct.tlang",
+          "match": "\\b(nirmanam)\\b"
+        },
+        {
+          "comment": "Map type",
+          "name": "keyword.declaration.map.tlang",
+          "match": "\\b(jatha)\\b"
+        },
+        {
+          "comment": "Interface definition",
+          "name": "keyword.declaration.emaina.tlang",
+          "match": "\\b(emaina)\\b"
+        },
+        {
+          "comment": "Error keyword",
+          "name": "keyword.control.error.tlang",
+          "match": "\\b(thappu)\\b"
+        },
+        {
+          "comment": "Nil/null keyword",
+          "name": "constant.language.nil.tlang",
+          "match": "\\b(sunyam|nil)\\b"
+        },
+        {
+          "comment": "Boolean true",
+          "name": "constant.language.boolean.true.tlang",
+          "match": "\\b(true|nijam)\\b"
+        },
+        {
+          "comment": "Boolean false",
+          "name": "constant.language.boolean.false.tlang",
+          "match": "\\b(false|asathyam)\\b"
+        },
+        {
+          "comment": "Memory allocation - kotha keyword",
+          "name": "keyword.operator.kotha.tlang",
+          "match": "\\b(kotha)\\b"
+        },
+        {
+          "comment": "Memory - jarugu keyword",
+          "name": "keyword.operator.jarugu.tlang",
+          "match": "\\b(jarugu)\\b"
+        },
+        {
+          "comment": "Memory - mut keyword",
+          "name": "storage.modifier.mut.tlang",
+          "match": "\\b(mut)\\b"
+        }
+      ]
+    },
+    "variables": {
+      "patterns": [
+        {
+          "comment": "Mutable variable declaration @!",
+          "match": "(@!)(\\w+)",
+          "captures": {
+            "1": { "name": "storage.modifier.mutable.tlang" },
+            "2": { "name": "variable.other.tlang" }
+          }
+        },
+        {
+          "comment": "Variable declaration with @ followed by name and type",
+          "match": "(@)(\\w+)\\s+(int|float|string|bool|void|byte|rune|error)",
+          "captures": {
+            "1": { "name": "storage.modifier.tlang" },
+            "2": { "name": "variable.other.tlang" },
+            "3": { "name": "support.type.primitive.tlang" }
+          }
+        },
+        {
+          "comment": "Variable declaration with @",
+          "match": "(@)(\\w+)",
+          "captures": {
+            "1": { "name": "storage.modifier.tlang" },
+            "2": { "name": "variable.other.tlang" }
+          }
+        }
+      ]
+    },
+    "functions": {
+      "patterns": [
+        {
+          "comment": "Main function #adhi",
+          "match": "(#)(adhi)(\\s*\\()",
+          "captures": {
+            "1": { "name": "storage.type.function.tlang" },
+            "2": { "name": "entity.name.function.main.tlang" },
+            "3": { "name": "punctuation.definition.parameters.tlang" }
+          }
+        },
+        {
+          "comment": "Function definition with #",
+          "match": "(#)(\\w+)(\\s*\\()",
+          "captures": {
+            "1": { "name": "storage.type.function.tlang" },
+            "2": { "name": "entity.name.function.tlang" },
+            "3": { "name": "punctuation.definition.parameters.tlang" }
+          }
+        },
+        {
+          "comment": "Library function call (fmt.Printf, strings.Contains, json.Marshal)",
+          "match": "\\b(fmt|strings|strconv|math|os|io|filepath|time|regexp|rand|log|testing|args|flag|bytes|sort|json|unicode|csv|xml|url|neturl|bufio|benchmark|doc|reflect|crypto|hex|base64|http|errors|net|protobuf)\\s*\\.\\s*(\\w+)\\s*(\\()",
+          "captures": {
+            "1": { "name": "support.module.tlang" },
+            "2": { "name": "entity.name.function.method.tlang" },
+            "3": { "name": "punctuation.definition.arguments.tlang" }
+          }
+        },
+        {
+          "comment": "Method/function call on object",
+          "match": "(\\w+)\\s*\\.\\s*(\\w+)\\s*(\\()",
+          "captures": {
+            "1": { "name": "variable.other.object.tlang" },
+            "2": { "name": "entity.name.function.method.tlang" },
+            "3": { "name": "punctuation.definition.arguments.tlang" }
+          }
+        },
+        {
+          "comment": "Built-in functions",
+          "name": "support.function.builtin.tlang",
+          "match": "\\b(len|cap|append|delete|make|new|panic|print|println)\\b"
+        }
+      ]
+    },
+    "types": {
+      "patterns": [
+        {
+          "comment": "Built-in primitive types",
+          "name": "support.type.primitive.tlang",
+          "match": "\\b(int|float|string|bool|void|byte|rune|error)\\b"
+        },
+        {
+          "comment": "Pointer type modifier",
+          "name": "storage.modifier.pointer.tlang",
+          "match": "\\*(?=\\s*(int|float|string|bool|void|byte|rune|error|\\w))"
+        },
+        {
+          "comment": "Mutable borrow &mut",
+          "name": "storage.modifier.reference.mutable.tlang",
+          "match": "&mut\\b"
+        },
+        {
+          "comment": "Immutable borrow &",
+          "name": "storage.modifier.reference.tlang",
+          "match": "&(?!&)"
+        },
+        {
+          "comment": "Array type with size [N]",
+          "match": "\\[(\\d+)\\]",
+          "captures": {
+            "0": { "name": "meta.brackets.array.tlang" },
+            "1": { "name": "constant.numeric.array-size.tlang" }
+          }
+        },
+        {
+          "comment": "Slice type []",
+          "name": "meta.brackets.slice.tlang",
+          "match": "\\[\\]"
+        }
+      ]
+    },
+    "operators": {
+      "patterns": [
+        {
+          "comment": "Short variable declaration :=",
+          "name": "keyword.operator.assignment.short.tlang",
+          "match": ":="
+        },
+        {
+          "comment": "Compound assignment operators",
+          "name": "keyword.operator.assignment.compound.tlang",
+          "match": "(\\+=|\\-=|\\*=|/=|%=)"
+        },
+        {
+          "comment": "Assignment operator",
+          "name": "keyword.operator.assignment.tlang",
+          "match": "="
+        },
+        {
+          "comment": "Equality operators",
+          "name": "keyword.operator.comparison.equality.tlang",
+          "match": "(==|!=)"
+        },
+        {
+          "comment": "Relational operators",
+          "name": "keyword.operator.comparison.relational.tlang",
+          "match": "(<=|>=|<|>)"
+        },
+        {
+          "comment": "Logical AND",
+          "name": "keyword.operator.logical.and.tlang",
+          "match": "&&"
+        },
+        {
+          "comment": "Logical OR",
+          "name": "keyword.operator.logical.or.tlang",
+          "match": "\\|\\|"
+        },
+        {
+          "comment": "Logical NOT",
+          "name": "keyword.operator.logical.not.tlang",
+          "match": "!"
+        },
+        {
+          "comment": "Power operator",
+          "name": "keyword.operator.arithmetic.power.tlang",
+          "match": "\\^"
+        },
+        {
+          "comment": "Arithmetic operators",
+          "name": "keyword.operator.arithmetic.tlang",
+          "match": "(\\+|\\-|\\*|/|%)"
+        },
+        {
+          "comment": "Error propagation ?",
+          "name": "keyword.operator.error-propagation.tlang",
+          "match": "\\?"
+        }
+      ]
+    },
+    "strings": {
+      "patterns": [
+        {
+          "name": "string.quoted.double.tlang",
+          "begin": "\"",
+          "end": "\"",
+          "patterns": [
+            {
+              "name": "constant.character.escape.tlang",
+              "match": "\\\\(n|r|t|\\\\|\"|'|0|x[0-9a-fA-F]{2}|u[0-9a-fA-F]{4})"
+            },
+            {
+              "name": "constant.other.placeholder.tlang",
+              "match": "%[\\-\\+#0 ]*(\\d+|\\*)?(\\.(\\d+|\\*))?[diouxXeEfFgGscpvTq%]"
+            }
+          ]
+        },
+        {
+          "name": "string.quoted.single.tlang",
+          "begin": "'",
+          "end": "'",
+          "patterns": [
+            {
+              "name": "constant.character.escape.tlang",
+              "match": "\\\\."
+            }
+          ]
+        },
+        {
+          "comment": "Raw string / backtick (struct tags)",
+          "name": "string.quoted.raw.tlang",
+          "begin": "`",
+          "end": "`"
+        }
+      ]
+    },
+    "numbers": {
+      "patterns": [
+        {
+          "comment": "Hexadecimal number",
+          "name": "constant.numeric.hex.tlang",
+          "match": "\\b0[xX][0-9a-fA-F_]+\\b"
+        },
+        {
+          "comment": "Octal number",
+          "name": "constant.numeric.octal.tlang",
+          "match": "\\b0[oO][0-7_]+\\b"
+        },
+        {
+          "comment": "Binary number",
+          "name": "constant.numeric.binary.tlang",
+          "match": "\\b0[bB][01_]+\\b"
+        },
+        {
+          "comment": "Float number with exponent",
+          "name": "constant.numeric.float.tlang",
+          "match": "\\b\\d[\\d_]*\\.\\d[\\d_]*([eE][\\+\\-]?\\d[\\d_]*)?\\b"
+        },
+        {
+          "comment": "Float number without integer part",
+          "name": "constant.numeric.float.tlang",
+          "match": "\\.\\d[\\d_]*([eE][\\+\\-]?\\d[\\d_]*)?\\b"
+        },
+        {
+          "comment": "Integer number",
+          "name": "constant.numeric.integer.tlang",
+          "match": "\\b\\d[\\d_]*\\b"
+        }
+      ]
+    },
+    "punctuation": {
+      "patterns": [
+        {
+          "name": "punctuation.terminator.tlang",
+          "match": ";"
+        },
+        {
+          "name": "punctuation.separator.comma.tlang",
+          "match": ","
+        },
+        {
+          "name": "punctuation.accessor.tlang",
+          "match": "\\."
+        },
+        {
+          "name": "punctuation.colon.tlang",
+          "match": ":"
+        },
+        {
+          "name": "punctuation.bracket.round.tlang",
+          "match": "[\\(\\)]"
+        },
+        {
+          "name": "punctuation.bracket.curly.tlang",
+          "match": "[\\{\\}]"
+        },
+        {
+          "name": "punctuation.bracket.square.tlang",
+          "match": "[\\[\\]]"
+        }
+      ]
+    }
+  },
+  "scopeName": "source.tlang"
+}
