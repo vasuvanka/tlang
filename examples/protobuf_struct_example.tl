@@ -1,8 +1,8 @@
 // Protocol Buffers Struct Example
 // Demonstrates automatic struct marshaling/unmarshaling
 
-dhimpu "fmt" as fmt;
-dhimpu "protobuf" as protobuf;
+@fmt = #dhimpu("std/fmt");
+@protobuf = #dhimpu("std/protobuf");
 
 // Define a Person struct
 nirmanam Person {
@@ -53,7 +53,7 @@ nirmanam User {
         fmt.Printf("\n\n");
         
         // Unmarshal
-        Person* decoded = protobuf_unmarshal_person(data, size);
+        @decoded *Person = protobuf_unmarshal_person(data, size);
         okavela decoded != sunyam {
             fmt.Printf("Decoded Person:\n");
             fmt.Printf("  Name: %s\n", decoded->name);
@@ -94,7 +94,7 @@ nirmanam User {
         fmt.Printf("Encoded nested struct: %zu bytes\n", user_size);
         
         // Unmarshal
-        User* decoded_user = protobuf_unmarshal_user(user_data, user_size);
+        @decoded_user *User = protobuf_unmarshal_user(user_data, user_size);
         okavela decoded_user != sunyam {
             fmt.Printf("Decoded User:\n");
             fmt.Printf("  Name: %s\n", decoded_user->name);

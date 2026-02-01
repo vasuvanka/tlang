@@ -22,7 +22,7 @@ The following types of identifiers follow visibility rules:
 ### Exported Identifiers
 
 ```tl
-samooham utils;
+// Package utils (no explicit package keyword)
 
 // Exported function
 #Add(a int, b int) int {
@@ -50,7 +50,7 @@ interface Writer {
 ### Unexported Identifiers
 
 ```tl
-samooham utils;
+// Package utils (no explicit package keyword)
 
 // Unexported function (only available in this package)
 #subtract(a int, b int) int {
@@ -73,9 +73,8 @@ nirmanam point {
 ### Using Exported Identifiers from Another Package
 
 ```tl
-samooham adhi;
-
-dhimpu "./utils" as utils;
+@fmt = #dhimpu("std/fmt");
+@utils = #dhimpu("./utils");
 
 #prarambham() {
     // Can use exported function

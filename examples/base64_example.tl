@@ -1,8 +1,8 @@
 // encoding/base64 library example
 // Demonstrates base64 encoding and decoding
 
-dhimpu "fmt" as fmt;
-dhimpu "base64" as base64;
+@fmt = #dhimpu("std/fmt");
+@base64 = #dhimpu("std/base64");
 
 #prarambham() {
     fmt.Printf("=== encoding/base64 Library Examples ===\n\n");

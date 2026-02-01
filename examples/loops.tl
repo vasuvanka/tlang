@@ -1,7 +1,7 @@
 // Loop examples - Go-style
 // Go only has 'malli' loop (no while)
 
-dhimpu "fmt" as fmt;
+@fmt = #dhimpu("std/fmt");
 
 #prarambham() {
     fmt.Printf("Malli loop: ");

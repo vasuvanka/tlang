@@ -1,7 +1,7 @@
 // Example showing how to import and use exported identifiers from another package
 
-dhimpu "fmt" as fmt;
-dhimpu "./utils" as utils;
+@fmt = #dhimpu("std/fmt");
+@utils = #dhimpu("./utils");
 
 #prarambham() {
     fmt.Printf("=== Package Import Example ===\n\n");

@@ -1,6 +1,6 @@
 // Map iteration example
 
-dhimpu "fmt" as fmt;
+@fmt = #dhimpu("std/fmt");
 
 #prarambham() {
     fmt.Printf("=== Map Iteration Example ===\n\n");

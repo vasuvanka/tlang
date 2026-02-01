@@ -1,7 +1,7 @@
 // Borrow Checker Example
 // Demonstrates Tlang's ownership and borrowing system
 
-dhimpu "fmt" as fmt;
+@fmt = #dhimpu("std/fmt");
 
 // Helper function that borrows data immutably
 #printValue(value *int) {

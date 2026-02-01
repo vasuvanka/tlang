@@ -1,8 +1,8 @@
 // Benchmarking example
 // Demonstrates testing/benchmark library
 
-dhimpu "fmt" as fmt;
-dhimpu "benchmark" as benchmark;
+@fmt = #dhimpu("std/fmt");
+@benchmark = #dhimpu("std/benchmark");
 
 #fibonacci(n int) int {
     okavela n <= 1 {

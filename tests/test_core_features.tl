@@ -1,8 +1,8 @@
 // Comprehensive test suite for core Tlang language features
 // Tests: Keywords, Types, Variables, Basic Operations
 
-dhimpu "fmt" as fmt;
-dhimpu "testing" as testing;
+@fmt = #dhimpu("std/fmt");
+@testing = #dhimpu("std/testing");
 
 // ============================================
 // Test 1: Variable Declarations

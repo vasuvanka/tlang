@@ -1,8 +1,8 @@
 // encoding/hex library example
 // Demonstrates hexadecimal encoding and decoding
 
-dhimpu "fmt" as fmt;
-dhimpu "hex" as hex;
+@fmt = #dhimpu("std/fmt");
+@hex = #dhimpu("std/hex");
 
 #prarambham() {
     fmt.Printf("=== encoding/hex Library Examples ===\n\n");

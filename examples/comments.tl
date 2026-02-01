@@ -1,7 +1,7 @@
 // Comments example
 // Demonstrates single-line and multi-line comments
 
-dhimpu "fmt" as fmt;
+@fmt = #dhimpu("std/fmt");
 
 /* This is a multi-line comment
    that spans multiple lines

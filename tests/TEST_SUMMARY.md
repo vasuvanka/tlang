@@ -46,7 +46,7 @@ This document provides an overview of the comprehensive test suite for Tlang.
 ### ✅ Advanced Features (`test_advanced_features.tl`)
 - JSON serialization (`json.Marshal`)
 - JSON deserialization
-- Memory management (`kotha`)
+- Memory management (struct literals `Type{}` / `Type{ field: value }`; maps: `nirmanam(jatha[K]V)`)
 - Interfaces (`interface`)
 - Package system
 - Double pointers

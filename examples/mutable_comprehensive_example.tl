@@ -1,7 +1,7 @@
 // Comprehensive Mutable Variables Example
 // Demonstrates all aspects of @!(mutable variables) in Tlang
 
-dhimpu "fmt" as fmt;
+@fmt = #dhimpu("std/fmt");
 
 #prarambham() {
     fmt.Printf("=== Comprehensive Mutable Variables Example ===\n\n");

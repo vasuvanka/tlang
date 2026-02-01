@@ -1,8 +1,8 @@
 // JSON Struct Unmarshal Example
 // Demonstrates automatic struct unmarshaling from JSON
 
-dhimpu "fmt" as fmt;
-dhimpu "json" as json;
+@fmt = #dhimpu("std/fmt");
+@json = #dhimpu("std/json");
 
 // Define a Person struct
 nirmanam Person {
@@ -36,7 +36,7 @@ nirmanam User {
     @json1 string = "{\"name\": \"Alice\", \"age\": 30, \"email\": \"alice@example.com\", \"active\": 1}";
     fmt.Printf("JSON: %s\n", json1);
     
-    @person Person* = json_unmarshal_person(json1);
+    @person *Person = json_unmarshal_person(json1);
     okavela person != sunyam {
         fmt.Printf("Unmarshaled Person:\n");
         fmt.Printf("  Name: %s\n", person->name);
@@ -54,7 +54,7 @@ nirmanam User {
     @json2 string = "{\"name\": \"Bob\", \"age\": 25}";
     fmt.Printf("JSON: %s\n", json2);
     
-    @person2 Person* = json_unmarshal_person(json2);
+    @person2 *Person = json_unmarshal_person(json2);
     okavela person2 != sunyam {
         fmt.Printf("Unmarshaled Person (missing fields):\n");
         fmt.Printf("  Name: %s\n", person2->name);
@@ -72,7 +72,7 @@ nirmanam User {
     @json3 string = "{\"name\": \"Charlie\", \"age\": 35, \"address\": {\"street\": \"123 Main St\", \"city\": \"Springfield\", \"zip\": 12345}, \"scores\": [95, 87, 92]}";
     fmt.Printf("JSON: %s\n", json3);
     
-    @user User* = json_unmarshal_user(json3);
+    @user *User = json_unmarshal_user(json3);
     okavela user != sunyam {
         fmt.Printf("Unmarshaled User:\n");
         fmt.Printf("  Name: %s\n", user->name);

@@ -224,7 +224,7 @@ Process 12345 launched: './program' (x86_64)
 Process 12345 stopped
 * thread #1, stop reason = breakpoint 1.1
     frame #0: 0x0000000100001234 program`adhi at program.tl:5
-   2    dhimpu "fmt";
+   2    #dhimpu("std/fmt");
    3    
    4    #prarambham() {
 -> 5       @x int = 10;

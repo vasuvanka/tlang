@@ -1,7 +1,7 @@
 // JSON automatic map serialization example
 
-dhimpu "fmt" as fmt;
-dhimpu "json" as json;
+@fmt = #dhimpu("std/fmt");
+@json = #dhimpu("std/json");
 
 #prarambham() {
     fmt.Printf("=== JSON Automatic Map Serialization Example ===\n\n");

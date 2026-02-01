@@ -1,8 +1,8 @@
 // encoding/csv library example
 // Demonstrates CSV file reading and writing
 
-dhimpu "fmt" as fmt;
-dhimpu "csv" as csv;
+@fmt = #dhimpu("std/fmt");
+@csv = #dhimpu("std/csv");
 
 #prarambham() {
     fmt.Printf("=== encoding/csv Library Examples ===\n\n");

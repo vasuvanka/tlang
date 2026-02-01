@@ -1,6 +1,6 @@
 // Struct example - demonstrates struct definition and usage
 
-dhimpu "fmt" as fmt;
+@fmt = #dhimpu("std/fmt");
 
 // Define a Person struct
 nirmanam Person {

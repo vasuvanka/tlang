@@ -1,9 +1,9 @@
 // Real-World Example 1: REST API Server
 // A complete REST API server with JSON handling and routing
 
-dhimpu "fmt" as fmt;
-dhimpu "http" as http;
-dhimpu "json" as json;
+@fmt = #dhimpu("std/fmt");
+@http = #dhimpu("std/http");
+@json = #dhimpu("std/json");
 
 // Data models
 nirmanam User {
@@ -60,7 +60,7 @@ nirmanam CreateUserRequest {
     }
     
     // Parse JSON request - use automatic unmarshaling
-    @req CreateUserRequest* = json_unmarshal_create_user_request(body);
+    @req *CreateUserRequest = json_unmarshal_create_user_request(body);
     okavela req == sunyam {
         mallinchu jsonResponse(0, "Invalid request format", "null");
     }

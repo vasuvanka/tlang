@@ -1,7 +1,7 @@
 // Arithmetic operations example
 // Demonstrates all math operators with explicit types
 
-dhimpu "fmt" as fmt;
+@fmt = #dhimpu("std/fmt");
 
 #prarambham() {
     @a int = 10;

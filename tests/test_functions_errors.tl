@@ -1,8 +1,8 @@
 // Comprehensive test suite for functions and error handling
 // Tests: Functions, Return values, Error handling, Multiple returns
 
-dhimpu "fmt" as fmt;
-dhimpu "testing" as testing;
+@fmt = #dhimpu("std/fmt");
+@testing = #dhimpu("std/testing");
 
 // ============================================
 // Test 1: Simple Functions

@@ -25,10 +25,8 @@ Detects imports that are declared but never used in the code.
 
 **Example:**
 ```tl
-samooham adhi;
-
-dhimpu "fmt";
-dhimpu "math";  // W002: Unused import: 'math'
+@fmt = #dhimpu("std/fmt");
+@math = #dhimpu("std/math");  // W002: Unused import: 'math'
 
 #prarambham() {
     fmt.Printf("Hello\n");
@@ -42,9 +40,7 @@ Detects variables that are declared but never read.
 
 **Example:**
 ```tl
-samooham adhi;
-
-dhimpu "fmt";
+@fmt = #dhimpu("std/fmt");
 
 #prarambham() {
     @x int = 10;  // W007: Unused variable: 'x'
@@ -61,9 +57,7 @@ Detects functions that are defined but never called.
 
 **Example:**
 ```tl
-samooham adhi;
-
-dhimpu "fmt";
+@fmt = #dhimpu("std/fmt");
 
 #helper() {  // W006: Unused function: '#helper'
     fmt.Printf("Helper\n");
@@ -83,9 +77,7 @@ Detects code that is unreachable after return, break, or continue statements.
 
 **Example:**
 ```tl
-samooham adhi;
-
-dhimpu "fmt";
+@fmt = #dhimpu("std/fmt");
 
 #prarambham() {
     fmt.Printf("Before\n");
@@ -97,7 +89,7 @@ dhimpu "fmt";
 **Also detects:**
 - Code after `agu` (break)
 - Code after `konasagu` (continue)
-- Code after `thappu` (error return)
+- Code after error return (e.g. `mallinchu sunyam, err`)
 - Code after if-else where both branches return
 
 ## Usage

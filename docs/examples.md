@@ -10,7 +10,8 @@ This guide provides practical examples and patterns for common programming tasks
 4. [Mathematical Operations](#mathematical-operations)
 5. [Error Handling](#error-handling)
 6. [Complete Programs](#complete-programs)
-7. [Real-World Examples](../examples/real-world-examples/README.md) ⭐ **NEW** - Practical applications
+7. [Servers, CLIs, and system tools (MVP scope)](#servers-clis-and-system-tools-mvp-scope)
+8. [Real-World Examples](../examples/real-world-examples/README.md) - Practical applications
 
 ## Basic Examples
 
@@ -286,6 +287,16 @@ This guide provides practical examples and patterns for common programming tasks
     log.Info("Application completed");
 }
 ```
+
+## Servers, CLIs, and system tools (MVP scope)
+
+The Tlang language and standard library are sufficient to implement **servers**, **CLIs**, and **system tools** (MVP scope). You can build:
+
+- **HTTP / REST API servers** – use `std/http`, JSON, and file I/O. See [HTTP Server Guide](http-server-guide.md) and [Real-World Examples](../examples/real-world-examples/README.md) (e.g. `01_rest_api_server.tl`).
+- **CLI tools** – use `std/args` and `std/flag` for arguments and flags. See `examples/args_example.tl`, `examples/flag_example.tl`, and real-world `04_cli_tool.tl`.
+- **File and system tools** – use `std/io`, `std/filepath`, and string processing. See `examples/io_example.tl`, `examples/filepath_example.tl`, and real-world `02_file_processor.tl`, `03_data_pipeline.tl`, `05_config_manager.tl`.
+
+These examples compile and run with `tlang run` or `tlang compile`; see [Getting Started](getting-started.md) and [Real-World Examples](../examples/real-world-examples/README.md) for usage.
 
 ## More Examples
 

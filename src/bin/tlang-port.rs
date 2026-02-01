@@ -127,7 +127,7 @@ fn convert_go_to_tlang(go_code: &str) -> String {
         ("nil", "sunyam"),
         ("error", "error"), // Keep error type as is
         ("main", "prarambham"),
-        // "interface" - same in Go and Tlang, no conversion needed
+        // interface - removed from Tlang
         ("range", "varasa"), // Convert range to varasa
         ("type", "type"), // Keep type as is (for type aliases)
     ].iter().cloned().collect();
@@ -210,7 +210,7 @@ fn convert_imports(code: &str) -> String {
     // Handle single import: import "fmt"
     let re_single = Regex::new(r#"(?m)^import\s+"([^"]+)"\s*$"#).unwrap();
     let mut result = re_single.replace_all(code, |caps: &regex::Captures| {
-        format!("dhimpu \"{}\";", &caps[1])
+        format!("#dhimpu(\"{}\");", &caps[1])
     }).to_string();
     
     // Handle import block: import ( "fmt" "strings" )
@@ -229,7 +229,7 @@ fn convert_imports(code: &str) -> String {
     // Handle import with alias: import alias "package"
     let re_alias = Regex::new(r#"(?m)^import\s+(\w+)\s+"([^"]+)"\s*$"#).unwrap();
     result = re_alias.replace_all(&result, |caps: &regex::Captures| {
-        format!("dhimpu \"{}\" as {};", &caps[2], &caps[1])
+        format!("@{} = #dhimpu(\"{}\");", &caps[1], &caps[2])
     }).to_string();
     
     result

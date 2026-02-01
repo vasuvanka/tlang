@@ -1,6 +1,6 @@
 # Tlang Reserved Keywords
 
-Complete list of all reserved keywords in Tlang that cannot be used as identifiers.
+Complete list of reserved keywords and symbols, **aligned with the lexer/parser implementation**. Use this as the canonical reference for keyword usage and examples.
 
 > **Quick Navigation:** [Essential Keywords](#essential-keywords) | [All Keywords](#all-keywords-by-category) | [Quick Reference](#quick-reference-table) | [Common Patterns](#common-patterns)
 
@@ -16,15 +16,14 @@ Complete list of all reserved keywords in Tlang that cannot be used as identifie
 | `malli` | for | Control Flow | ⭐⭐⭐ Essential |
 | `mallinchu` | return | Control Flow | ⭐⭐⭐ Essential |
 | `@!` | var (mutable) | Declaration | ⭐⭐ Common |
-| `dhimpu` | import | Package | ⭐⭐ Common |
+| `#dhimpu("path")` | import | Package | ⭐⭐ Common |
 | `nirmanam` | struct | Type | ⭐⭐ Common |
 | `jatha` | map | Type | ⭐⭐ Common |
 | `agu` | break | Control Flow | ⭐ Common |
 | `konasagu` | continue | Control Flow | ⭐ Common |
-| `interface` | interface | Type | ⭐ Common |
-| `jarugu` | move | Ownership | ⚡ Advanced |
-| `varasa` | range | Loop | ⚡ Advanced |
-| `kotha` | new | Memory | ⚡ Advanced |
+| `<-` | move | Ownership | ⚡ Advanced |
+| `varasa` | for loop over map (key/value) | Loop | ⚡ Advanced |
+| `Type{}` / `Type{ field: value }` | struct literal | Create/allocate | ⚡ Advanced |
 
 **Legend:** ⭐⭐⭐ Essential (learn first) | ⭐⭐ Common (learn soon) | ⭐ Occasional | ⚡ Advanced
 
@@ -34,14 +33,14 @@ These 7 keywords cover 90% of Tlang code. Master these first:
 
 ### 1. Variable Declaration: `@`
 ```tl
-@x int = 10;              // Immutable variable
-@name string = "Tlang";   // Type inference: @name = "Tlang" also works
+@x int = 10              // Immutable variable (semicolon optional)
+@name string = "Tlang"   // Type inference: @name = "Tlang" also works
 ```
 
 ### 2. Function Declaration: `#`
 ```tl
 #add(a int, b int) int {
-    mallinchu a + b;
+    mallinchu a + b
 }
 ```
 
@@ -90,14 +89,14 @@ malli key := varasa map {
 
 ### 6. Return: `mallinchu`
 ```tl
-mallinchu value;    // Return with value
-mallinchu;          // Return void
+mallinchu value    // Return with value
+mallinchu          // Return void
 ```
 
 ### 7. Mutable Variable: `@!`
 ```tl
-@!counter int = 0;
-counter = counter + 1;  // Only @! variables can be reassigned
+@!counter int = 0
+counter = counter + 1   // Only @! variables can be reassigned
 ```
 
 ## All Keywords by Category
@@ -132,17 +131,18 @@ counter = counter + 1;  // Only @! variables can be reassigned
 
 | Keyword | English | Description | Example | Priority |
 |---------|---------|-------------|---------|----------|
-| `dhimpu` | import | Import package | `dhimpu "fmt" as fmt;` | ⭐⭐ |
-| `as` | as | Import alias | `dhimpu "fmt" as f;` | ⭐ |
+| `#dhimpu("path")` | import | Import package (use `@variable = #dhimpu("path")`) | `@fmt = #dhimpu("std/fmt")` then `fmt.Printf` | ⭐⭐ |
+
+**Note:** Use **`@variable = #dhimpu("path")`** (e.g. `@fmt = #dhimpu("std/fmt")` then `fmt.*`). Standard library: `std/<package>`. Relative: `./utils`, etc. No explicit package or alias keyword.
 
 ### Type Definition Keywords
 
 | Keyword | English | Description | Example | Priority |
 |---------|---------|-------------|---------|----------|
 | `nirmanam` | struct | Structure type definition | `nirmanam Person { ... }` | ⭐⭐ |
-| `jatha` | map | Map type | `jatha[string]int` | ⭐⭐ |
-| `interface` | interface | Interface type definition | `interface Writer { ... }` | ⭐ |
-| `interface{}` | any/unknown | Map value type only (unknown type, like Go's interface{}) | `jatha[string]interface{}` | ⭐ |
+| `jatha` | map | Map type | `jatha[string]int`, `jatha[string]nirmanam{}` | ⭐⭐ |
+
+For map values of any type, use **`nirmanam{}`** (only as map value): `jatha[string]nirmanam{}`.
 
 ### Type Keywords
 
@@ -152,7 +152,7 @@ counter = counter + 1;  // Only @! variables can be reassigned
 | `float` | Floating point type | `@y float = 3.14;` | ⭐⭐⭐ |
 | `string` | String type | `@name string = "Tlang";` | ⭐⭐⭐ |
 | `bool` | Boolean type | `@flag bool = true;` | ⭐⭐⭐ |
-| `void` | No return type | `#print() void { ... }` | ⭐⭐ |
+| `void` | No return type | `#print() void { ... }` or omit: `#print() { ... }` | ⭐⭐ |
 | `error` | Error type | `#read() (string, error) { ... }` | ⭐⭐ |
 
 ### Memory and Ownership Keywords
@@ -160,41 +160,55 @@ counter = counter + 1;  // Only @! variables can be reassigned
 | Keyword | Description | Example | Priority |
 |---------|-------------|---------|----------|
 | `!` | Mutable modifier | `@!x int = 10;` | ⭐⭐ |
-| `jarugu` | Explicit ownership transfer | `@y = jarugu x;` | ⚡ |
+| `<-` | Move / ownership transfer | `@y = <- x;` (replaces former `jarugu` keyword) | ⚡ |
+
+**Move (`<-`):**
+```tl
+@original string = "hello"
+@moved string = <- original
+// original is no longer valid (ownership transferred)
+```
 
 ### Error Handling Keywords
 
 | Keyword | English | Description | Example | Priority |
 |---------|---------|-------------|---------|----------|
 | (error type) | error | Use `errors.New("msg")` and `okavela err != sunyam { ... }` | ⭐ |
-| `sunyam` | nil | Nil/null value | `@x *int = sunyam;` | ⭐ |
+| `sunyam` | nil / free | Nil value **or** free memory: `sunyam(ptr)` | `@x *int = sunyam`; `sunyam(ptr)` | ⭐ |
 
 ### Loop Keywords
 
 | Keyword | Description | Example | Priority |
 |---------|-------------|---------|----------|
-| `varasa` | Range-based iteration | `malli key := varasa map { ... }` | ⚡ |
-| `kotha` | Memory allocation | `@ptr Type* = kotha Type;` | ⚡ |
+| `varasa` | For loop over map (key/value) | `malli key := varasa map { ... }` or `malli key, value := varasa map { ... }` | ⚡ |
 
-**Example:**
+### Struct literals (create / allocate)
+
+Use **`Type{}`** or **`Type{ field: value, ... }`** to create struct values. No separate allocation keyword.
+
+- **Value (stack):** `@person Person = Person{ name: "hello", age: 12 }` or `@person Person = Person{}`
+- **Pointer (heap):** `@person *Person = Person{ name: "hello", age: 12 }` or `@person *Person = Person{}` — compiler allocates and initializes.
+- **Maps:** use `nirmanam(jatha[key]value)` for empty map, or `jatha[K]V{"k": v}` for literal with entries.
+
+**Example (struct literal + sunyam to free):**
 ```tl
 nirmanam Person {
-    name string;
-    age int;
+    name string
+    age int
 }
 
 #prarambham() {
-    @person Person* = kotha Person;  // Allocates memory for Person struct
+    @person *Person = Person{ name: "Alice", age: 30 }
     okavela person == sunyam {
-        fmt.Printf("Memory allocation failed\n");
-        mallinchu;
+        fmt.Printf("Memory allocation failed\n")
+        mallinchu
     }
-    person->name = "Alice";
-    person->age = 30;
-    // ... use person ...
-    free(person);  // Don't forget to free!
+    @other *Person = <- person   // move ownership
+    sunyam(other)                // free: same keyword as nil value
 }
 ```
+
+**Note:** `sunyam` is used two ways: as the **nil value** (`@x = sunyam`, `okavela err != sunyam`) and as **free** (`sunyam(ptr)` to release memory).
 
 ### Boolean Literals
 
@@ -212,31 +226,31 @@ These are not strictly reserved keywords but have special meaning:
 | Identifier | Description | Usage | Priority |
 |------------|-------------|-------|----------|
 | `prarambham` | Entry point function name | `#prarambham() { ... }` | ⭐⭐⭐ |
-| `nil` | Alternative to `sunyam` (if supported) | `@x *int = nil;` | ⭐ |
-| `varasa` | Used in varasa-based loops | `malli key := varasa map { ... }` | ⚡ |
+| `varasa` | For loop over map only (key/value) | `malli key := varasa map { ... }` or `malli key, value := varasa map { ... }` | ⚡ |
 
-**Note:** `prarambham`, `nil`, and `varasa` are identifiers but have special semantic meaning.
+**Note:** `sunyam` is used two ways: (1) **nil value** — `@x *int = sunyam`, `okavela err != sunyam`; (2) **free** — `sunyam(ptr)` to release memory. `nil` is **not** a keyword. `prarambham` is the entry point; `varasa` is used only in for loops over a map (key, or key and value). **Removed:** samooham, thappu, jarugu (use `<-` instead of jarugu).
 
 ## Common Patterns
 
 ### Pattern 1: Basic Program Structure
 ```tl
-dhimpu "fmt" as fmt;
+@fmt = #dhimpu("std/fmt")  // use as fmt.Printf (variable = import name)
 
 #prarambham() {
-    @name string = "Tlang";
-    fmt.Printf("Hello, %s!\n", name);
+    @name string = "Tlang"
+    fmt.Printf("Hello, %s!\n", name)
 }
 ```
+Semicolons are optional; newline can terminate statements.
 
 ### Pattern 2: Conditional Logic
 ```tl
 okavela score >= 90 {
-    fmt.Printf("Grade: A\n");
+    fmt.Printf("Grade: A\n")
 } lekapothe okavela score >= 80 {
-    fmt.Printf("Grade: B\n");
+    fmt.Printf("Grade: B\n")
 } lekapothe {
-    fmt.Printf("Grade: C or below\n");
+    fmt.Printf("Grade: C or below\n")
 }
 ```
 
@@ -244,37 +258,65 @@ okavela score >= 90 {
 ```tl
 // Counted loop
 malli (@!i int = 0; i < 10; i = i + 1) {
-    fmt.Printf("%d\n", i);
+    fmt.Printf("%d\n", i)
 }
 
-// Range over map
-@scores jatha[string]int = jatha[string]int{"Alice": 95, "Bob": 87};
+// For loop over map (key, or key and value)
+@scores jatha[string]int = jatha[string]int{"Alice": 95, "Bob": 87}
 malli name := varasa scores {
-    fmt.Printf("%s: %d\n", name, scores[name]);
+    fmt.Printf("%s: %d\n", name, scores[name])
+}
+malli name, score := varasa scores {
+    fmt.Printf("%s: %d\n", name, score)
 }
 ```
 
 ### Pattern 4: Function with Error Handling
+
+**Option A – manual check:**
 ```tl
 #readFile(path string) (string, error) {
-    // ... file reading logic
-    okavela error != sunyam {
-        mallinchu sunyam, error;
+    // ...
+    okavela err != sunyam {
+        mallinchu sunyam, err
     }
-    mallinchu content, sunyam;
+    mallinchu content, sunyam
 }
 ```
+
+**Option B – `?` ("try" shorthand):**
+
+In Tlang, `?` acts as a **try shorthand**. If a function returns a tuple `(result, error)`, applying `?` will:
+
+1. **Check** if `error` is not `sunyam`.
+2. **If an error exists** — immediately `mallinchu` (return) that error to the caller.
+3. **If no error exists** — unwrap the result (bind the value).
+
+Single variable (bind only the value; propagate error):
+```tl
+#readFile(path string) (string, error) {
+    @data string = readFile("config.txt")?
+    mallinchu data, sunyam
+}
+```
+
+Multiple variables (bind value and error; still propagate on non-sunyam):
+```tl
+@content, @err string, error = readFile(path)?
+```
+
+For single-variable form (`@data = f()?`) give an explicit type when the RHS is a call, e.g. `@data string = readFile("config.txt")?`. Use `err` (or similar) for the error variable; `error` is a reserved type name.
 
 ### Pattern 5: Struct Definition
 ```tl
 nirmanam Person {
-    name string;
-    age int;
+    name string
+    age int
 }
 
 #prarambham() {
-    @p Person = Person{name: "Alice", age: 30};
-    fmt.Printf("%s is %d years old\n", p.name, p.age);
+    @p Person = Person{name: "Alice", age: 30}
+    fmt.Printf("%s is %d years old\n", p.name, p.age)
 }
 ```
 
@@ -297,14 +339,15 @@ These symbols are reserved and cannot be used as identifiers:
 | `<=` | Less than or equal | Comparison | ⭐⭐⭐ |
 | `>=` | Greater than or equal | Comparison | ⭐⭐⭐ |
 | `=` | Assign | Assignment (for mutable variables) | ⭐⭐⭐ |
+| `<-` | Move | Ownership transfer: `@y = <- x;` | ⚡ |
 | `&` | Ampersand | Immutable borrow | ⚡ |
 | `&mut` | Ampersand mut | Mutable borrow | ⚡ |
-| `?` | Question mark | Error propagation | ⚡ |
+| `?` | Question mark | Try shorthand: check error ≠ sunyam → return error; else unwrap result | ⭐⭐ |
 | `(` `)` | Parentheses | Grouping, function calls | ⭐⭐⭐ |
 | `{` `}` | Braces | Blocks, struct literals | ⭐⭐⭐ |
 | `[` `]` | Brackets | Arrays, slices, indexing | ⭐⭐⭐ |
 | `,` | Comma | Separator | ⭐⭐⭐ |
-| `;` | Semicolon | Statement terminator | ⭐⭐⭐ |
+| `;` | Semicolon | Statement terminator (optional; newline can terminate) | ⭐⭐⭐ |
 | `.` | Dot | Member access | ⭐⭐⭐ |
 | `:` | Colon | Type annotation, map literals | ⭐⭐⭐ |
 | `` ` `` | Backtick | Struct tags | ⚡ |
@@ -319,39 +362,43 @@ These symbols are reserved and cannot be used as identifiers:
 ### Declaration (5 keywords/symbols)
 - `@`, `@!`, `#`, `#prarambham`
 
-### Package/Import (2 keywords)
-- `dhimpu`, `as`
+### Package/Import (1 keyword)
+- `#dhimpu` (import; use `@variable = #dhimpu("path")`, e.g. `@fmt = #dhimpu("std/fmt")`)
 
 ### Type Definition (3 keywords)
-- `nirmanam`, `jatha`, `interface`
+- `nirmanam`, `jatha`
 
-### Type Names (6 keywords)
-- `int`, `float`, `string`, `bool`, `void`, `error`
+### Type names (5 keywords; void = omit return type)
+- `int`, `float`, `string`, `bool`, `error` — type names in lexer. No `void` keyword; omit return type for no value.
 
-### Memory/Ownership (3 keywords)
-- `!`, `jarugu`, `kotha`
+### Memory/Ownership
+- `!`, `<-` (move; `jarugu` was replaced by `<-`)
+- Struct: `Type{}`, `Type{ field: value }` (no separate keyword). Maps: `nirmanam(jatha[K]V)` for empty map.
 
 ### Error Handling
-- `sunyam` (nil); use `errors.New()` and `okavela err != sunyam` for errors
+- `sunyam` — nil value **or** free: `sunyam(ptr)`; use `errors.New()` and `okavela err != sunyam` for errors
+- `?` (try shorthand): for `(result, error)` — check error ≠ sunyam → mallinchu error; else unwrap result
 
 ### Boolean Literals (2)
 - `true`, `false`
 
-### Special Identifiers (3)
-- `prarambham`, `nil`, `varasa`
+### Special identifiers (lexer: Identifier, parser/codegen: special use)
+- `prarambham` — entry point: `#prarambham() { ... }`
+- `varasa` — for loop over map only: `malli key := varasa map { ... }` or `malli key, value := varasa map { ... }`
+- Use `sunyam` for nil; `nil` is not a keyword.
 
-## Total Count
+## Total count (matches lexer/parser)
 
-- **Reserved Keywords:** 29
-- **Reserved Symbols:** 20+
-- **Special Identifiers:** 3
-- **Boolean Literals:** 2
+- **Lexer keywords:** okavela, lekapothe, malli, mallinchu, agu, konasagu, nirmanam, jatha, sunyam; types: int, float, string, bool, error. Move: `<-` (replaced `jarugu`).
+- **Declaration symbols:** `@`, `@!`, `#` (and `#prarambham`, `#dhimpu` as identifiers after `#`).
+- **Special identifiers:** prarambham (entry), varasa (for loop over map only); true, false (boolean literals).
+- **Removed:** samooham, thappu, jarugu (use `<-` instead of jarugu).
 
 ## Rules for Identifiers
 
 1. **Cannot use reserved keywords** as variable, function, or type names
 2. **Cannot use reserved symbols** as identifiers
-3. **Case-sensitive:** `Okavela` is different from `okavela` (but don't use either)
+3. **Case-sensitive:** `Okavela` is different from `okavela`; use the lowercase keyword `okavela` (not as an identifier)
 4. **Valid identifier characters:** Letters, numbers, underscore (`_`)
 5. **Cannot start with number:** `@1var` is invalid, `@var1` is valid
 
@@ -359,29 +406,29 @@ These symbols are reserved and cannot be used as identifiers:
 
 ```tl
 // ❌ Cannot use keywords as identifiers
-@okavela int = 10;        // ERROR: 'okavela' is a keyword
-#malli() { ... }          // ERROR: 'malli' is a keyword
-nirmanam nirmanam { ... } // ERROR: 'nirmanam' is a keyword
+@okavela int = 10        // ERROR: 'okavela' is a keyword
+#malli() { }             // ERROR: 'malli' is a keyword
+nirmanam nirmanam { }    // ERROR: 'nirmanam' is a keyword
 
 // ❌ Cannot use type names as identifiers
-@int int = 10;            // ERROR: 'int' is a type name
-@string string = "hi";    // ERROR: 'string' is a type name
+@int int = 10            // ERROR: 'int' is a type name
+@string string = "hi"    // ERROR: 'string' is a type name
 
 // ❌ Cannot use boolean literals as identifiers
-@true bool = false;       // ERROR: 'true' is a literal
+@true bool = false       // ERROR: 'true' is a literal
 ```
 
 ## Examples of Valid Identifiers
 
 ```tl
 // ✅ Valid identifiers
-@myVariable int = 10;
-@my_function string = "hello";
-@var123 int = 42;
-@_temp int = 0;
+@myVariable int = 10
+@my_function string = "hello"
+@var123 int = 42
+@_temp int = 0
 
 // ✅ Using keywords in strings (allowed)
-@message string = "okavela condition";
+@message string = "okavela condition"
 ```
 
 ## Language Comparison
@@ -400,36 +447,42 @@ For developers coming from other languages:
 | Struct | `type S struct` | `struct S` | `nirmanam S` |
 | Map | `map[K]V` | `HashMap<K, V>` | `jatha[K]V` |
 | Import | `import` | `use` | `dhimpu` |
+| Move | (N/A) | `std::move` / ownership | `<-` (e.g. `@y = <- x`) |
+| Try/error | `if err != nil` | `?` operator | `?` (try shorthand) |
 
 ## Common Mistakes to Avoid
 
 1. **Forgetting `@!` for reassignable variables**
    ```tl
-   @x int = 10;
-   x = 20;  // ❌ ERROR: Cannot assign to immutable variable
-   
-   @!x int = 10;
-   x = 20;  // ✅ OK
+   @x int = 10
+   x = 20   // ❌ ERROR: Cannot assign to immutable variable
+
+   @!x int = 10
+   x = 20   // ✅ OK
    ```
 
 2. **Using `ledha` instead of `lekapothe`**
    ```tl
    okavela x > 0 {
-   } ledha {  // ❌ ERROR: 'ledha' is not a keyword
-   
+   } ledha {   // ❌ ERROR: 'ledha' is not a keyword
+
    okavela x > 0 {
-   } lekapothe {  // ✅ OK
+   } lekapothe {   // ✅ OK
    ```
 
 3. **Confusing `@` and `@!`**
    - `@` = immutable (default, most common)
    - `@!` = mutable (only when needed)
 
-4. **Missing semicolons in some contexts**
+4. **Using manual error checks instead of `?` (try shorthand)** — `?` checks error ≠ sunyam, returns error, else unwraps:
    ```tl
-   @x int = 10  // ❌ Missing semicolon
-   @x int = 10; // ✅ OK
+   @content, @err string, error = readFile(path)
+   okavela err != sunyam { mallinchu sunyam, err }   // verbose
+
+   @content, @err string, error = readFile(path)?   // ✅ try shorthand: same effect
    ```
+
+5. **Semicolons are optional** — newlines between statements act as terminators (Go-style). Use semicolons when putting multiple statements on one line: `@x int = 10; @y int = 20`
 
 ## Learning Path
 
@@ -438,11 +491,11 @@ For developers coming from other languages:
 - Types: `int`, `string`, `float`, `bool`
 
 ### Week 2: Common Patterns
-- `@!`, `dhimpu`, `nirmanam`, `jatha`
-- Error handling: `errors.New()`, `okavela err != sunyam`, `sunyam`
+- `@!`, `#dhimpu`, `nirmanam`, `jatha`
+- Error handling: `errors.New()`, `okavela err != sunyam`, `sunyam`, and `?` (try shorthand: check error → return; else unwrap)
 
 ### Week 3: Advanced Features
-- `jarugu`, `varasa`, `interface`, `kotha`
+- `<-` (move), `varasa`, struct literals `Type{}` / `Type{ field: value }`
 - Ownership and borrowing: `&`, `&mut`
 
 ## See Also

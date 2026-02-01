@@ -1,8 +1,8 @@
 // unicode library example
 // Demonstrates Unicode character classification and manipulation
 
-dhimpu "fmt" as fmt;
-dhimpu "unicode" as unicode;
+@fmt = #dhimpu("std/fmt");
+@unicode = #dhimpu("std/unicode");
 
 #prarambham() {
     fmt.Printf("=== unicode Library Examples ===\n\n");

@@ -1,12 +1,12 @@
 // Real-World Example 5: Configuration Manager
 // Reads and writes configuration files, manages environment variables
 
-dhimpu "fmt" as fmt;
-dhimpu "io" as io;
-dhimpu "json" as json;
-dhimpu "os" as os;
-dhimpu "strings" as strings;
-dhimpu "strconv" as strconv;
+@fmt = #dhimpu("std/fmt");
+@io = #dhimpu("std/io");
+@json = #dhimpu("std/json");
+@os = #dhimpu("std/os");
+@strings = #dhimpu("std/strings");
+@strconv = #dhimpu("std/strconv");
 
 nirmanam AppConfig {
     appName string;
@@ -18,20 +18,20 @@ nirmanam AppConfig {
 }
 
 // Load configuration from file
-#loadConfig(filename string) AppConfig* {
+#loadConfig(filename string) *AppConfig {
     @content string = io.ReadFile(filename);
     okavela content == sunyam {
         fmt.Printf("Warning: Config file %s not found, using defaults\n", filename);
         mallinchu sunyam;
     }
     
-    @config AppConfig* = json_unmarshal_app_config(content);
+    @config *AppConfig = json_unmarshal_app_config(content);
     okavela config != sunyam {
         mallinchu config;
     }
     
     // Fallback: create default config
-    @defaultConfig AppConfig* = kotha AppConfig;
+    @defaultConfig *AppConfig = AppConfig{};
     okavela defaultConfig == sunyam {
         mallinchu sunyam;
     }
@@ -47,7 +47,7 @@ nirmanam AppConfig {
 }
 
 // Save configuration to file
-#saveConfig(config AppConfig*, filename string) {
+#saveConfig(config *AppConfig, filename string) {
     @json string = json.Marshal(config);
     okavela json != sunyam {
         io.WriteFile(filename, json);
@@ -58,7 +58,7 @@ nirmanam AppConfig {
 }
 
 // Load from environment variables (override file config)
-#loadFromEnv(config AppConfig*) {
+#loadFromEnv(config *AppConfig) {
     @envPort string = os.Getenv("APP_PORT");
     okavela envPort != sunyam {
         @port int = strconv.Atoi(envPort);
@@ -92,7 +92,7 @@ nirmanam AppConfig {
 }
 
 // Print configuration
-#printConfig(config AppConfig*) {
+#printConfig(config *AppConfig) {
     fmt.Printf("\n=== Application Configuration ===\n");
     fmt.Printf("App Name:     %s\n", config.appName);
     fmt.Printf("Version:      %s\n", config.version);
@@ -113,7 +113,7 @@ nirmanam AppConfig {
     fmt.Printf("=== Configuration Manager ===\n\n");
     
     // Create default configuration
-    @config AppConfig* = kotha AppConfig;
+    @config *AppConfig = AppConfig{};
     okavela config == sunyam {
         fmt.Printf("Error: Failed to allocate memory\n");
         mallinchu;
@@ -132,7 +132,7 @@ nirmanam AppConfig {
     
     // Load configuration from file
     fmt.Printf("\nLoading configuration from file...\n");
-    @loadedConfig AppConfig* = loadConfig(configFile);
+    @loadedConfig *AppConfig = loadConfig(configFile);
     
     okavela loadedConfig != sunyam {
         // Override with environment variables

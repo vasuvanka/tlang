@@ -220,13 +220,12 @@ vscode-extension/
 ├── src/
 │   └── extension.ts      # Main extension entry point
 ├── syntaxes/
-│   └── tlang.tmLanguage.json  # Syntax highlighting rules
-├── icons/
-│   ├── tlang.jpg         # File icon
-│   └── tlang-icon-theme.json  # Icon theme definition
+│   └── tlang.tmLanguage.json  # Syntax highlighting (keywords, @, #, prarambham, dhimpu, etc.)
 ├── language-configuration.json  # Language config (brackets, comments)
 ├── package.json          # Extension manifest
-└── tsconfig.json         # TypeScript configuration
+├── tsconfig.json         # TypeScript configuration
+├── tlang.png             # Extension icon
+└── README.md             # This file
 ```
 
 ## Uninstalling

@@ -1,6 +1,6 @@
 # Map Iteration Guide
 
-Tlang provides a convenient way to iterate over maps using varasa-based loops.
+**`varasa`** is used only in **for loops over a map** to get the key, or key and value. Tlang provides a convenient way to iterate over maps using varasa-based loops.
 
 ## Syntax
 

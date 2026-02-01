@@ -1,7 +1,7 @@
 // Test cases for io library
 
-dhimpu "fmt" as fmt;
-dhimpu "io" as io;
+@fmt = #dhimpu("std/fmt");
+@io = #dhimpu("std/io");
 
 #prarambham() {
     fmt.Printf("=== io Library Tests ===\n");

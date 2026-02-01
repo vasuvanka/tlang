@@ -1,7 +1,7 @@
 // Test cases for filepath library
 
-dhimpu "fmt" as fmt;
-dhimpu "filepath" as filepath;
+@fmt = #dhimpu("std/fmt");
+@filepath = #dhimpu("std/filepath");
 
 #prarambham() {
     fmt.Printf("=== filepath Library Tests ===\n");

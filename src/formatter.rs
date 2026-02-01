@@ -41,9 +41,9 @@ impl Formatter {
         if !program.imports.is_empty() {
             for import in &program.imports {
                 if let Some(alias) = &import.alias {
-                    try_writeln!(output, "dhimpu \"{}\" as {};", import.path, alias);
+                    try_writeln!(output, "@{} = #dhimpu(\"{}\");", alias, import.path);
                 } else {
-                    try_writeln!(output, "dhimpu \"{}\";", import.path);
+                    try_writeln!(output, "#dhimpu(\"{}\");", import.path);
                 }
             }
             try_writeln!(output);
@@ -258,11 +258,11 @@ impl Formatter {
                 }
             }
             Stmt::Import { path, alias } => {
-                try_write!(output, "dhimpu \"{}\"", path);
                 if let Some(a) = alias {
-                    try_write!(output, " as {}", a);
+                    try_writeln!(output, "{}@{} = #dhimpu(\"{}\");", self.indent(), a, path);
+                } else {
+                    try_writeln!(output, "{}#dhimpu(\"{}\");", self.indent(), path);
                 }
-                try_writeln!(output, ";");
             }
             Stmt::StructDef { name, fields } => {
                 try_writeln!(output, "nirmanam {} {{", name);
@@ -272,31 +272,6 @@ impl Formatter {
                     try_write!(output, "@{} {}", field_name, self.format_type(field_type));
                     if let Some(t) = tag {
                         try_write!(output, " `{}`", t);
-                    }
-                    try_writeln!(output);
-                }
-                self.indent_level -= 1;
-                try_writeln!(output, "}}");
-            }
-            Stmt::InterfaceDef { name, methods, embedded } => {
-                try_writeln!(output, "interface {} {{", name);
-                self.indent_level += 1;
-                for embedded_name in embedded {
-                    try_write!(output, "{}", self.indent());
-                    try_writeln!(output, "{}", embedded_name);
-                }
-                for (method_name, params, return_type) in methods {
-                    try_write!(output, "{}", self.indent());
-                    try_write!(output, "{}(", method_name);
-                    for (i, (param_name, param_type)) in params.iter().enumerate() {
-                        if i > 0 {
-                            try_write!(output, ", ");
-                        }
-                        try_write!(output, "@{} {}", param_name, self.format_type(param_type));
-                    }
-                    try_write!(output, ")");
-                    if let Some(rt) = return_type {
-                        try_write!(output, " {}", self.format_type(rt));
                     }
                     try_writeln!(output);
                 }
@@ -461,7 +436,12 @@ impl Formatter {
                 try_write!(output, "?");
             }
             Expr::Kotha { target_type } => {
-                try_write!(output, "kotha {}", self.format_type(target_type));
+                try_write!(output, "nirmanam({})", self.format_type(target_type));
+            }
+            Expr::SunyamFree { expr } => {
+                try_write!(output, "sunyam(");
+                self.format_expr(expr, output)?;
+                try_write!(output, ")");
             }
         }
         
@@ -491,8 +471,7 @@ impl Formatter {
             Type::Map { key_type, value_type } => {
                 format!("jatha[{}]{}", self.format_type(key_type), self.format_type(value_type))
             }
-            Type::Interface { name } => name.clone(),
-            Type::Any => "interface{}".to_string(),
+            Type::Any => "nirmanam{}".to_string(),
             Type::Tuple { types } => {
                 let type_strs: Vec<String> = types.iter().map(|t| self.format_type(t)).collect();
                 format!("({})", type_strs.join(", "))

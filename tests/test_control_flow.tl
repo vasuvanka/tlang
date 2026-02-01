@@ -1,8 +1,8 @@
 // Comprehensive test suite for control flow features
 // Tests: if/else, for loops, break, continue, nested control flow
 
-dhimpu "fmt" as fmt;
-dhimpu "testing" as testing;
+@fmt = #dhimpu("std/fmt");
+@testing = #dhimpu("std/testing");
 
 // ============================================
 // Test 1: If/Else Statements

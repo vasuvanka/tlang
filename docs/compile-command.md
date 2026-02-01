@@ -2,29 +2,31 @@
 
 ## Overview
 
-The `tlangc compile` command compiles Tlang source code to an executable binary in one step. It:
-1. Compiles Tlang → C
-2. Compiles C → Executable binary
+The compile command compiles Tlang source code to an executable binary in one step. Use `tlang compile` (if you have the `tlang` wrapper) or `tlangc compile`. A single command performs both steps:
+1. Compiles Tlang → C (intermediate `.c` file)
+2. Compiles C → Executable binary (invokes gcc/clang/MSVC)
 
 ## Usage
 
 ### Basic Syntax
 
 ```bash
+tlang compile <input_file> [output_name]
+# or
 tlangc compile <input_file> [output_name]
 ```
 
 ### Examples
 
 ```bash
-# Compile to default binary name (output.exe on Windows, output on Unix)
-tlangc compile program.tl
+# Compile to default binary name (output.exe on Windows, output on Linux/macOS)
+tlang compile program.tl
+# or: tlangc compile program.tl
 
 # Compile to custom binary name
-tlangc compile program.tl myapp
-
-# Compile to specific name (will create myapp.exe on Windows)
-tlangc compile program.tl myapp
+tlang compile program.tl myapp
+# or: tlangc compile program.tl myapp
+# Creates myapp.exe (Windows) or myapp (Linux/macOS)
 ```
 
 ## How It Works
@@ -33,7 +35,7 @@ tlangc compile program.tl myapp
    - Intermediate C file: `output.c` (or `{output_name}.c` if specified)
    
 2. **C → Binary**: Automatically compiles the C code to an executable
-   - Binary: `output.exe` (Windows) or `output` (Unix/Linux)
+   - Binary: `output.exe` (Windows) or `output` (Linux/macOS)
    - Or: `{output_name}.exe` / `{output_name}` if specified
 
 ## Requirements
@@ -59,29 +61,62 @@ If your program uses crypto/SSL libraries, OpenSSL development libraries are nee
 - **macOS**: `brew install openssl`
 - **Windows**: Included with MinGW or MSVC
 
+## Supported platforms
+
+The binary produced by `tlang compile` runs on the **same platform** (and architecture) where you built it:
+
+| Platform | Binary form | Notes |
+|----------|-------------|--------|
+| **Linux** | `./output` or `./myapp` (no extension) | Use `chmod +x` if needed. Built with gcc/clang on Linux. |
+| **Windows** | `output.exe` or `myapp.exe` | Built with MinGW (gcc/clang) or MSVC (`cl`) on Windows. |
+| **macOS** | `./output` or `./myapp` (no extension) | Built with clang (Xcode Command Line Tools) on macOS. Same architecture (x86_64 or arm64) as build. |
+
+The executable is native to the host: build on Linux → runs on Linux; build on Windows → runs on Windows; build on macOS → runs on macOS. For **cross-compilation** (e.g. build on Linux for Windows) or **static binaries for distribution**, see [Zero-deps and cross-deploy](zero-deps-cross-deploy.md).
+
 ## Output Files
 
 ### Default Behavior
 
 ```bash
-tlangc compile program.tl
+tlang compile program.tl
+# or: tlangc compile program.tl
 ```
 
 **Creates:**
 - `output.c` - Intermediate C file (kept for debugging)
-- `output.exe` (Windows) or `output` (Unix) - Executable binary
+- `output.exe` (Windows) or `output` (Linux/macOS) - Executable binary
 
 ### Custom Output Name
 
 ```bash
-tlangc compile program.tl myapp
+tlang compile program.tl myapp
+# or: tlangc compile program.tl myapp
 ```
 
 **Creates:**
 - `myapp.c` - Intermediate C file
-- `myapp.exe` (Windows) or `myapp` (Unix) - Executable binary
+- `myapp.exe` (Windows) or `myapp` (Linux/macOS) - Executable binary
 
 ## Error Handling
+
+### Tlang source errors (syntax, type, imports)
+
+When your Tlang source has a compile-time error (syntax, type, or import), the compiler stops and prints an error that includes:
+
+- **File, line, and column** – e.g. `Parser Error at program.tl:3:5: unexpected token`
+- **Message** – a short description of what went wrong (e.g. unexpected token, type mismatch, package not found)
+- **Source snippet** – for parse/lex errors, the compiler also prints the offending line and a caret (`^`) under the column so you can fix it quickly
+
+Example:
+
+```
+Parser Error at hello.tl:2:10: unexpected token
+
+  2 | #prarambham() { x
+    |          ^
+```
+
+Use the file and line number to open the right spot in your editor; the message and snippet tell you what to fix. For more on error types and the compile flow, see [Getting Started](getting-started.md).
 
 ### No C Compiler Found
 
@@ -130,7 +165,7 @@ tlangc compile examples/hello.tl hello
 
 # Run the executable
 ./hello.exe    # Windows
-./hello        # Unix/Linux
+./hello        # Linux/macOS
 ```
 
 ### Example 2: With Arguments
@@ -150,7 +185,7 @@ tlangc compile examples/args_example.tl args_example
 # Compile without specifying output name
 tlangc compile program.tl
 
-# Creates: output.exe (or output on Unix)
+# Creates: output.exe (or output on Linux/macOS)
 ./output.exe
 ```
 
@@ -200,7 +235,7 @@ The compile command uses these flags:
 
 ### Binary not executable
 
-**Problem**: On Unix/Linux, binary might not have execute permissions.
+**Problem**: On Linux/macOS, binary might not have execute permissions.
 
 **Solution**:
 ```bash

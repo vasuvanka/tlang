@@ -1,6 +1,6 @@
 // Test cases for fmt library
 
-dhimpu "fmt" as fmt;
+@fmt = #dhimpu("std/fmt");
 
 #prarambham() {
     fmt.Printf("=== fmt Library Tests ===\n");

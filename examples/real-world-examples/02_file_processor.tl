@@ -1,10 +1,10 @@
 // Real-World Example 2: File Processing Tool
 // Processes log files, extracts statistics, and generates reports
 
-dhimpu "fmt" as fmt;
-dhimpu "io" as io;
-dhimpu "strings" as strings;
-dhimpu "time" as time;
+@fmt = #dhimpu("std/fmt");
+@io = #dhimpu("std/io");
+@strings = #dhimpu("std/strings");
+@time = #dhimpu("std/time");
 
 nirmanam LogStats {
     total int;
@@ -14,8 +14,8 @@ nirmanam LogStats {
 }
 
 // Simple log line parser (checks for log levels)
-#processLogContent(content string) LogStats* {
-    @stats LogStats* = kotha LogStats;
+#processLogContent(content string) *LogStats {
+    @stats *LogStats = LogStats{};
     okavela stats == sunyam {
         mallinchu sunyam;
     }
@@ -48,7 +48,7 @@ nirmanam LogStats {
 }
 
 // Generate report
-#generateReport(stats LogStats*, outputFile string) {
+#generateReport(stats *LogStats, outputFile string) {
     @report string = "Log File Analysis Report\n";
     report = report + "Generated: 2024-01-15 10:00:00\n\n";
     report = report + fmt.Sprintf("Total Entries: %d\n", stats.total);
@@ -85,7 +85,7 @@ nirmanam LogStats {
     // Process log file
     fmt.Printf("Processing log file...\n");
     @content string = io.ReadFile(logFile);
-    @stats LogStats* = processLogContent(content);
+    @stats *LogStats = processLogContent(content);
     
     okavela stats != sunyam {
         fmt.Printf("\nStatistics:\n");

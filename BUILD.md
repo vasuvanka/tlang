@@ -1,5 +1,7 @@
 # Building Tlang from Source
 
+**New to Tlang?** See the [Getting Started Guide](docs/getting-started.md) for install, your first program, and run/compile—everything you need to get going.
+
 This guide explains how to clone Tlang from GitHub and build it locally to make the `tlang` command line tool available.
 
 ## Prerequisites
@@ -240,8 +242,8 @@ tlang --version
 
 # Create a test file
 cat > hello.tl << 'EOF'
-dhimpu "fmt" as fmt;
-dhimpu "fmt";
+@fmt = #dhimpu("std/fmt");
+#dhimpu("std/fmt");
 
 #prarambham() {
     fmt.Printf("Hello, Tlang!\n");
@@ -337,6 +339,9 @@ cargo test
 - [Development Guide](docs/development.md) - Contributing to Tlang
 - [Language Documentation](docs/) - Complete language reference
 - [Examples](examples/) - Code examples and tutorials
+- [Small Binaries & IoT](docs/small-binaries-iot.md) - Keep build size small for IoT devices and microcontrollers
+- [Zero-Deps, Cross-Compile & Deploy](docs/zero-deps-cross-deploy.md) - Static binaries, cross-compile (Windows/Linux/macOS), deployable images
+- [Strategy: Concurrency and Generics](docs/strategy-concurrency-generics.md) - Phased plan for adding concurrency and generics (Phase 2)
 
 ## Support
 

@@ -83,19 +83,29 @@ cargo run --bin tlang-build -- build examples/
 tlang/
 ├── src/
 │   ├── main.rs              # tlangc binary (main compiler)
-│   ├── lib.rs               # Library code
+│   ├── lib.rs               # Library entry; re-exports compiler + tools
+│   ├── compiler/            # Compiler pipeline (lex → parse → ast → type_inference → codegen)
+│   │   ├── mod.rs
+│   │   ├── lexer.rs         # Lexical analysis
+│   │   ├── error.rs         # Compile errors and source locations
+│   │   ├── ast.rs           # Abstract syntax tree
+│   │   ├── parser.rs        # Syntax parsing
+│   │   ├── type_inference.rs # Type checking
+│   │   ├── codegen.rs       # C code generation
+│   │   └── borrow_checker.rs # Borrow / mutability checks
+│   ├── package.rs           # Package resolution (dhimpu, config.toml)
+│   ├── linter.rs            # Lint rules and diagnostics
+│   ├── formatter.rs         # Source formatter
 │   ├── bin/
 │   │   ├── tlang-build.rs   # Build system
 │   │   ├── tlang-lsp.rs     # LSP server
 │   │   └── tlang-port.rs    # Porting tool
-│   ├── lexer.rs             # Lexical analysis
-│   ├── parser.rs            # Syntax parsing
-│   ├── codegen.rs           # C code generation
-│   ├── type_inference.rs    # Type checking
 │   ├── build/               # Build system modules
-│   └── libs/                # Standard library generators
+│   ├── libs/                # Standard library (fmt, strings, json, http, etc.)
+│   ├── lsp/                 # LSP server implementation
+│   └── runtime/             # Runtime helpers
 ├── examples/                # Example Tlang programs
-├── docs/                     # Documentation
+├── docs/                    # Documentation
 └── Cargo.toml               # Rust project configuration
 ```
 

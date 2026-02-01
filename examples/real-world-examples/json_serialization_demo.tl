@@ -1,8 +1,8 @@
 // JSON Serialization and Deserialization Demo
 // Comprehensive example showing how JSON works in Tlang
 
-dhimpu "fmt" as fmt;
-dhimpu "json" as json;
+@fmt = #dhimpu("std/fmt");
+@json = #dhimpu("std/json");
 
 // Example structs
 nirmanam Person {
@@ -77,7 +77,7 @@ nirmanam Employee {
     fmt.Printf("Input JSON:  %s\n", jsonInput);
     
     // Automatic deserialization - compiler generates json_unmarshal_person()
-    @person2 Person* = json_unmarshal_person(jsonInput);
+    @person2 *Person = json_unmarshal_person(jsonInput);
     okavela person2 != sunyam {
         fmt.Printf("Deserialized Person:\n");
         fmt.Printf("  Name:   %s\n", person2.name);
@@ -120,7 +120,7 @@ nirmanam Employee {
     @jsonEmployee string = "{\"name\": \"David\", \"age\": 28, \"address\": {\"street\": \"456 Oak Ave\", \"city\": \"Boston\", \"zip\": 02101}, \"salary\": 90000.0, \"active\": 1}";
     fmt.Printf("Input JSON: %s\n", jsonEmployee);
     
-    @employee2 Employee* = json_unmarshal_employee(jsonEmployee);
+    @employee2 *Employee = json_unmarshal_employee(jsonEmployee);
     okavela employee2 != sunyam {
         fmt.Printf("Deserialized Employee:\n");
         fmt.Printf("  Name:   %s\n", employee2.name);
@@ -157,7 +157,7 @@ nirmanam Employee {
     fmt.Printf("Serialized:   %s\n", serialized);
     
     // Deserialize
-    @deserialized Person* = json_unmarshal_person(serialized);
+    @deserialized *Person = json_unmarshal_person(serialized);
     okavela deserialized != sunyam {
         fmt.Printf("Deserialized:\n");
         fmt.Printf("  Name:   %s (original: %s)\n", deserialized.name, original.name);
@@ -186,7 +186,7 @@ nirmanam Employee {
     @partialJson string = "{\"name\": \"Frank\", \"age\": 40}";
     fmt.Printf("Partial JSON (missing email, active): %s\n", partialJson);
     
-    @person3 Person* = json_unmarshal_person(partialJson);
+    @person3 *Person = json_unmarshal_person(partialJson);
     okavela person3 != sunyam {
         fmt.Printf("Deserialized (missing fields default to zero):\n");
         fmt.Printf("  Name:   %s\n", person3.name);

@@ -1,8 +1,8 @@
 // encoding/xml library example
 // Demonstrates XML encoding and decoding
 
-dhimpu "fmt" as fmt;
-dhimpu "xml" as xml;
+@fmt = #dhimpu("std/fmt");
+@xml = #dhimpu("std/xml");
 
 #prarambham() {
     fmt.Printf("=== encoding/xml Library Examples ===\n\n");

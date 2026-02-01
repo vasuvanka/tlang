@@ -1,7 +1,7 @@
 // filepath library example
 
-dhimpu "fmt" as fmt;
-dhimpu "filepath" as filepath;
+@fmt = #dhimpu("std/fmt");
+@filepath = #dhimpu("std/filepath");
 
 #prarambham() {
     // Join path components

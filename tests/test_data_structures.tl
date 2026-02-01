@@ -1,8 +1,8 @@
 // Comprehensive test suite for data structures
 // Tests: Arrays, Slices, Structs, Maps
 
-dhimpu "fmt" as fmt;
-dhimpu "testing" as testing;
+@fmt = #dhimpu("std/fmt");
+@testing = #dhimpu("std/testing");
 
 // ============================================
 // Test 1: Arrays
@@ -138,10 +138,7 @@ nirmanam Employee {
 #testStructPointers() {
     testing.Log("Testing pointers to structs");
     
-    @person Person* = kotha Person;
-    person.name = "Dave";
-    person.age = 40;
-    person.active = 1;
+    @person *Person = Person{ name: "Dave", age: 40, active: 1 };
     
     testing.AssertEqualString("Dave", person.name, "Pointer to struct - name");
     testing.AssertEqual(40, person.age, "Pointer to struct - age");

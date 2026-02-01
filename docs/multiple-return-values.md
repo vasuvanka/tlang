@@ -49,28 +49,25 @@ okavela err != sunyam {
 
 ## Error Propagation
 
-### The `?` Operator
+### The `?` Operator (Try Shorthand)
 
-The `?` operator automatically checks for errors and returns early if an error occurs:
+In Tlang, `?` acts as a **try shorthand**. If a function returns a tuple `(result, error)`, applying `?` will:
+
+1. **Check** if `error` is not `sunyam`.
+2. **If an error exists** — immediately `mallinchu` (return) that error to the caller.
+3. **If no error exists** — unwrap the result.
 
 ```tl
 #safeDivide(a int, b int) (int, error) {
-    // If divide fails, automatically return error
     @result, @err (int, error) = divide(a, b)?;
-    // If we get here, no error occurred
     mallinchu (result, sunyam);
 }
 ```
 
 ### How It Works
 
-1. **With Tuple Returns**: `expr?` checks the error field (typically last field)
-   - If error is not NULL, returns the error immediately
-   - Otherwise, continues with the value
-
-2. **With Error Returns**: `expr?` checks if the error is not NULL
-   - If error exists, returns it
-   - Otherwise, continues
+- **With tuple returns** `(result, error)`: `expr?` checks the error field (last field). If error ≠ sunyam, return that error; otherwise unwrap and bind the result.
+- **With single error return**: `expr?` checks if the value is not NULL; if so, return it; otherwise continue.
 
 ### Usage Examples
 

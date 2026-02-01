@@ -1,8 +1,8 @@
 // crypto encryption library example
 // Demonstrates AES and DES encryption/decryption
 
-dhimpu "fmt" as fmt;
-dhimpu "crypto" as crypto;
+@fmt = #dhimpu("std/fmt");
+@crypto = #dhimpu("std/crypto");
 
 #prarambham() {
     fmt.Printf("=== crypto Encryption Library Examples ===\n\n");

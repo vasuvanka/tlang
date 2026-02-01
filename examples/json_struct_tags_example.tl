@@ -1,8 +1,8 @@
 // JSON Struct Tags Example
 // Demonstrates Go-like struct tags for automatic schema validation
 
-dhimpu "fmt" as fmt;
-dhimpu "json" as json;
+@fmt = #dhimpu("std/fmt");
+@json = #dhimpu("std/json");
 
 // Define struct with tags for JSON field mapping and validation
 nirmanam Person {

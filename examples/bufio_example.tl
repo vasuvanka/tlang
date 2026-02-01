@@ -1,10 +1,10 @@
 // bufio library example
 // Demonstrates buffered I/O operations
 
-dhimpu "fmt" as fmt;
-dhimpu "bufio" as bufio;
-dhimpu "io" as io;
-dhimpu "strings" as strings;
+@fmt = #dhimpu("std/fmt");
+@bufio = #dhimpu("std/bufio");
+@io = #dhimpu("std/io");
+@strings = #dhimpu("std/strings");
 
 #prarambham() {
     fmt.Printf("=== bufio Library Examples ===\n\n");

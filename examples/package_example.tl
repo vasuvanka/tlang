@@ -1,7 +1,7 @@
 // Package and import example
 
-dhimpu "fmt" as fmt;
-dhimpu "./utils" as utils;
+@fmt = #dhimpu("std/fmt");
+@utils = #dhimpu("./utils");
 
 #prarambham() {
     fmt.Printf("=== Package and Import Example ===\n\n");

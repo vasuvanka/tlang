@@ -1,8 +1,8 @@
 // HTTP Client Example
 // Demonstrates HTTP GET and POST requests
 
-dhimpu "fmt" as fmt;
-dhimpu "http" as http;
+@fmt = #dhimpu("std/fmt");
+@http = #dhimpu("std/http");
 
 #prarambham() {
     fmt.Printf("=== HTTP Client Examples ===\n\n");

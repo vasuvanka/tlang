@@ -1,8 +1,8 @@
 // JSON Unmarshal examples
 // Demonstrates parsing JSON strings into Tlang values
 
-dhimpu "fmt" as fmt;
-dhimpu "json" as json;
+@fmt = #dhimpu("std/fmt");
+@json = #dhimpu("std/json");
 
 #prarambham() {
     fmt.Printf("=== JSON Unmarshal Examples ===\n\n");
@@ -155,7 +155,7 @@ dhimpu "json" as json;
 //       |     ^    
 // C:\Users\vanka\github.com\vasuvanka\tlang\examples\json_unmarshal_example.tl:5:5: note: each undeclared identifier is reported only once for each function it appears in
 // C:\Users\vanka\github.com\vasuvanka\tlang\examples\json_unmarshal_example.tl:6:5: error: 'world' undeclared (first use in this function)
-//     6 | dhimpu "fmt" as fmt;
+//     6 | @fmt = #dhimpu("std/fmt");
 //       |     ^~~~~
 //
 //

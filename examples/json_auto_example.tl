@@ -1,7 +1,7 @@
 // JSON automatic serialization example
 
-dhimpu "fmt" as fmt;
-dhimpu "json" as json;
+@fmt = #dhimpu("std/fmt");
+@json = #dhimpu("std/json");
 
 // Define structs for automatic JSON serialization
 nirmanam Person {

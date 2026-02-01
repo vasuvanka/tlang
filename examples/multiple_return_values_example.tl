@@ -1,8 +1,8 @@
 // Multiple Return Values and Error Propagation Example
 // Demonstrates Go-style (value, error) returns and error propagation
 
-dhimpu "fmt" as fmt;
-dhimpu "errors" as errors;
+@fmt = #dhimpu("std/fmt");
+@errors = #dhimpu("std/errors");
 
 // Function with multiple return values: (int, error)
 #divide(a int, b int) (int, error) {

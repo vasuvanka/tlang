@@ -6,8 +6,6 @@ pub struct CodeGenerator {
     indent_level: usize,
     import_aliases: HashMap<String, String>, // Map of alias -> package path
     current_function_return_type: Option<crate::ast::Type>, // Track current function's return type for tuple literal generation
-    interfaces: HashMap<String, Vec<(String, Vec<(String, crate::ast::Type)>, Option<crate::ast::Type>)>>, // Track interfaces: name -> methods
-    struct_methods: HashMap<String, Vec<(String, Vec<(String, crate::ast::Type)>, Option<crate::ast::Type>)>>, // Track struct methods: StructName_MethodName -> signature
     source_filename: Option<String>, // Source filename for debug symbols (#line directives)
     current_line: usize, // Track current line number for debug symbols
     variable_types: HashMap<String, crate::ast::Type>, // Track variable types for pointer detection
@@ -21,8 +19,6 @@ impl CodeGenerator {
             indent_level: 0,
             import_aliases: HashMap::new(),
             current_function_return_type: None,
-            interfaces: HashMap::new(),
-            struct_methods: HashMap::new(),
             source_filename: None,
             current_line: 1,
             variable_types: HashMap::new(),
@@ -154,13 +150,12 @@ impl CodeGenerator {
                 continue;
             }
             
-            // Find the alias for this package
-            let path_str = pkg.path.to_string_lossy().to_string();
-            let package_alias = package_to_alias.get(&pkg.name)
+            // Find the alias for this package (key may be path e.g. "std/fmt" or name "fmt")
+            let path_str = pkg.path.to_string_lossy().replace('\\', "/");
+            let package_alias = package_to_alias.get(&path_str)
+                .or_else(|| package_to_alias.get(&pkg.name))
                 .or_else(|| {
-                    // Try to find by path
                     path_str.split('/').last()
-                        .or_else(|| path_str.split('\\').last())
                         .and_then(|name| package_to_alias.get(name))
                 })
                 .map(|a| a.clone())
@@ -208,10 +203,6 @@ impl CodeGenerator {
         for stmt in &functions {
             self.generate_statement(stmt);
         }
-        
-        // After all structs and functions are generated, check interface satisfaction
-        // and generate vtable initialization code
-        self.generate_interface_vtables(&program.statements);
         
         // Generate main function (C entry point) if adhi exists, otherwise create one with top-level statements
         if !has_prarambham && !top_level_stmts.is_empty() {
@@ -923,13 +914,20 @@ impl CodeGenerator {
     fn generate_statement(&mut self, stmt: &Stmt) {
         match stmt {
             Stmt::Expression(expr) => {
-                // Check if this is error propagation
+                // Check if this is error propagation: expr? (Rust/Zig-style)
                 if let Expr::ErrorPropagate { expr: inner_expr } = expr {
-                    // Error propagation: expr? -> if (err != NULL) return err;
                     let expr_str = self.generate_expression(inner_expr);
-                    // For now, simplified: assume expr might return error or tuple with error
-                    // In a full implementation, we'd check the return type
-                    self.writeln(&format!("if ({} != NULL) return {};", expr_str, expr_str));
+                    // Current function must return (value, error) tuple; propagate error on non-nil
+                    if let Some(crate::ast::Type::Tuple { types }) = &self.current_function_return_type {
+                        let error_field = types.len() - 1;
+                        self.writeln(&format!("auto _err_prop_tmp = {};", expr_str));
+                        self.writeln(&format!("if (_err_prop_tmp.field{} != NULL)", error_field));
+                        self.write_return_error_tuple(&format!("_err_prop_tmp.field{}", error_field));
+                    } else {
+                        // Function returns single value (e.g. just error): simple check
+                        self.writeln(&format!("auto _err_prop_tmp = {};", expr_str));
+                        self.writeln("if (_err_prop_tmp != NULL) return _err_prop_tmp;");
+                    }
                 } else {
                 let expr_str = self.generate_expression(expr);
                 self.writeln(&format!("{};", expr_str));
@@ -1005,6 +1003,19 @@ impl CodeGenerator {
                 };
                 
                 if let Some(val) = value {
+                    // Single-variable with ?: @data = readFile(path)?
+                    if let Expr::ErrorPropagate { expr: inner_expr } = val {
+                        let inner_str = self.generate_expression(inner_expr);
+                        self.writeln(&format!("auto _err_prop_tmp = {};", inner_str));
+                        self.writeln("if (_err_prop_tmp.field1 != NULL)");
+                        if self.current_function_return_type.as_ref().map(|t| matches!(t, crate::ast::Type::Tuple { .. })).unwrap_or(false) {
+                            self.write_return_error_tuple("_err_prop_tmp.field1");
+                        } else {
+                            self.writeln("return _err_prop_tmp.field1;");
+                        }
+                        self.writeln(&format!("{} {} = _err_prop_tmp.field0;", var_type, name));
+                        return;
+                    }
                     // Check if this is a slice with array literal
                     if let Some(crate::ast::Type::Slice { .. }) = &inferred_type {
                         if let Expr::ArrayLiteral { elements } = val {
@@ -1062,6 +1073,28 @@ impl CodeGenerator {
                             let elem_type_str = self.type_to_c_string(element_type, false);
                             let val_str = self.generate_expression(val);
                             self.writeln(&format!("{} {}[{}] = {};", elem_type_str, name, size, val_str));
+                        } else if let crate::ast::Type::Pointer(inner) = &final_type {
+                            if let crate::ast::Type::Struct { name: struct_name } = inner.as_ref() {
+                                if let Expr::StructLiteral { struct_type, fields } = val {
+                                    if struct_type == struct_name {
+                                        // @var *Person = Person{} or Person{ name: "x", age: 12 } → malloc + init
+                                        let type_str_c = self.type_to_c_string(&final_type, false);
+                                        let fields_init: Vec<String> = fields.iter()
+                                            .map(|(fname, expr)| format!(".{} = {}", fname, self.generate_expression(expr)))
+                                            .collect();
+                                        let init_expr = if fields_init.is_empty() {
+                                            format!("({}){{0}}", struct_name)
+                                        } else {
+                                            format!("({}){{{}}}", struct_name, fields_init.join(", "))
+                                        };
+                                        self.writeln(&format!("{} {} = ({}*)malloc(sizeof({}));", type_str_c, name, struct_name, struct_name));
+                                        self.writeln(&format!("*{} = {};", name, init_expr));
+                                        return;
+                                    }
+                                }
+                            }
+                            let val_str = self.generate_expression(val);
+                            self.writeln(&format!("{} {} = {};", var_type, name, val_str));
                         } else {
                             let val_str = self.generate_expression(val);
                             self.writeln(&format!("{} {} = {};", var_type, name, val_str));
@@ -1092,17 +1125,17 @@ impl CodeGenerator {
                 };
                 
                 if names.len() > 1 {
-                    // Multiple assignment from tuple return
-                    // Generate: Tuple_... _tuple_result = func();
-                    // Then extract each field
-                    self.writeln(&format!("// Multiple assignment: {} variables", names.len()));
+                    // Multiple assignment from tuple return: @a, @err = func()?
                     self.writeln(&format!("auto _tuple_result = {};", value_expr));
                     
-                    // If error propagation, check error field (typically last field)
                     if has_error_prop {
-                        let error_field_idx = names.len() - 1; // Assume last field is error
-                        self.writeln(&format!("if (_tuple_result.field{} != NULL) return _tuple_result.field{};", 
-                            error_field_idx, error_field_idx));
+                        let error_field_idx = names.len() - 1;
+                        self.writeln(&format!("if (_tuple_result.field{} != NULL)", error_field_idx));
+                        if self.current_function_return_type.as_ref().map(|t| matches!(t, crate::ast::Type::Tuple { .. })).unwrap_or(false) {
+                            self.write_return_error_tuple(&format!("_tuple_result.field{}", error_field_idx));
+                        } else {
+                            self.writeln(&format!("return _tuple_result.field{};", error_field_idx));
+                        }
                     }
                     
                     for (i, name) in names.iter().enumerate() {
@@ -1275,7 +1308,6 @@ impl CodeGenerator {
                                 Some(crate::ast::Type::Slice { .. }) => "Slice*".to_string(),
                                 Some(crate::ast::Type::Struct { name }) => format!("{}", name),
                                 Some(crate::ast::Type::Map { .. }) => "Map*".to_string(),
-                                Some(crate::ast::Type::Interface { .. }) => "void*".to_string(),
                                 Some(crate::ast::Type::Any) => "void*".to_string(),
                                 Some(crate::ast::Type::Tuple { .. }) => "void*".to_string(),
                                 Some(crate::ast::Type::Owned { inner, .. }) => {
@@ -1352,20 +1384,6 @@ impl CodeGenerator {
                 // Note: For precise line numbers, AST nodes would need to store source locations
                 if self.source_filename.is_some() {
                     self.emit_line_directive(1); // Placeholder - would use actual line from AST if available
-                }
-                
-                // Track struct methods for interface satisfaction checking
-                // Method names are in format: StructName_MethodName
-                if name.contains('_') {
-                    let parts: Vec<&str> = name.split('_').collect();
-                    if parts.len() >= 2 {
-                        let struct_name = parts[0].to_string();
-                        let method_name = parts[1..].join("_");
-                        let method_sig = (method_name, params.clone(), return_type.clone());
-                        self.struct_methods.entry(struct_name.clone())
-                            .or_insert_with(Vec::new)
-                            .push(method_sig);
-                    }
                 }
                 
                 // Store return type for tuple literal generation
@@ -1483,61 +1501,6 @@ impl CodeGenerator {
                 // Generate schema validation function from struct tags
                 self.generate_struct_schema_validation(name, fields);
             }
-            Stmt::InterfaceDef { name, methods, embedded } => {
-                // Handle interface embedding - merge methods from embedded interfaces
-                let mut all_methods = methods.clone();
-                for embedded_name in embedded {
-                    // Find embedded interface and merge its methods
-                    if let Some(embedded_methods) = self.interfaces.get(embedded_name) {
-                        all_methods.extend(embedded_methods.clone());
-                    }
-                }
-                
-                // Store interface definition for later satisfaction checking
-                self.interfaces.insert(name.clone(), all_methods.clone());
-                
-                // Generate interface as a struct with function pointers
-                // This is similar to Go's interface implementation
-                self.write(&format!("// Interface: {}\n", name));
-                if !embedded.is_empty() {
-                    self.write(&format!("// Embedded interfaces: {}\n", embedded.join(", ")));
-                }
-                self.write(&format!("typedef struct {}_vtable {{\n", name));
-                self.indent();
-                for (method_name, params, return_type) in &all_methods {
-                    let return_type_str = match return_type {
-                        Some(typ) => self.type_to_c_string(typ, false),
-                        None => "void".to_string(),
-                    };
-                    
-                    // Generate function pointer type
-                    let param_types: Vec<String> = params.iter()
-                        .map(|(_, param_type)| self.type_to_c_string(param_type, false))
-                        .collect();
-                    let param_list = if param_types.is_empty() {
-                        "void".to_string()
-                    } else {
-                        param_types.join(", ")
-                    };
-                    
-                    self.writeln(&format!("{} (*{})({});", return_type_str, method_name, param_list));
-                }
-                self.dedent();
-                self.writeln(&format!("}} {}_vtable;", name));
-                self.write("\n");
-                
-                // Interface struct that contains vtable and data pointer
-                self.write(&format!("typedef struct {} {{\n", name));
-                self.indent();
-                self.writeln(&format!("{}_vtable* vtable;", name));
-                self.writeln("void* data;  // Pointer to implementing struct");
-                self.dedent();
-                self.writeln(&format!("}} {};", name));
-                self.write("\n");
-                
-                // Generate helper function to create interface from struct
-                self.generate_interface_constructor(name, &all_methods);
-            }
         }
     }
     
@@ -1577,12 +1540,8 @@ impl CodeGenerator {
                 // Map type - use a generic Map struct (we'll implement this)
                 format!("{}Map*", const_prefix)
             }
-            crate::ast::Type::Interface { name } => {
-                // Interface type - use interface name directly
-                format!("{}{}*", const_prefix, name)
-            }
             crate::ast::Type::Any => {
-                // interface{} - unknown/any type, use void* in C
+                // nirmanam{} - any type (map value), use void* in C
                 format!("{}void*", const_prefix)
             }
             crate::ast::Type::Tuple { types } => {
@@ -1640,12 +1599,8 @@ impl CodeGenerator {
                 // Map defaults to NULL (empty map)
                 "NULL".to_string()
             }
-            crate::ast::Type::Interface { name: _ } => {
-                // Interface defaults to NULL
-                "NULL".to_string()
-            }
             crate::ast::Type::Any => {
-                // interface{} defaults to NULL
+                // nirmanam{} defaults to NULL
                 "NULL".to_string()
             }
             crate::ast::Type::Reference { .. } => {
@@ -1666,23 +1621,76 @@ impl CodeGenerator {
         }
     }
     
+    /// Returns the C struct name for a tuple type (e.g. Tuple_char_ptr_char_ptr for (string, error)).
+    fn tuple_struct_name(&self, types: &[crate::ast::Type]) -> String {
+        format!("Tuple_{}", types.iter()
+            .map(|t| {
+                let t_str = self.type_to_c_string(t, false);
+                t_str.replace("*", "ptr").replace(" ", "_")
+            })
+            .collect::<Vec<_>>()
+            .join("_"))
+    }
+    
+    /// Emits `return (Tuple_X){ .field0 = default0, ..., .fieldN = error_expr };` for error propagation.
+    /// Caller must ensure current_function_return_type is Some(Type::Tuple { .. }).
+    fn write_return_error_tuple(&mut self, error_expr: &str) {
+        if let Some(crate::ast::Type::Tuple { types }) = &self.current_function_return_type {
+            let struct_name = self.tuple_struct_name(types);
+            let field_inits: Vec<String> = types.iter()
+                .enumerate()
+                .map(|(i, typ)| {
+                    if i == types.len() - 1 {
+                        format!(".field{} = {}", i, error_expr)
+                    } else {
+                        format!(".field{} = {}", i, self.get_default_value(typ))
+                    }
+                })
+                .collect();
+            self.writeln(&format!("return ({}){{{}}};", struct_name, field_inits.join(", ")));
+        }
+    }
+    
     fn generate_expression(&mut self, expr: &Expr) -> String {
         match expr {
             Expr::Number(n) => n.to_string(),
             Expr::String(s) => format!("\"{}\"", s),
             Expr::Bool(b) => if *b { "1".to_string() } else { "0".to_string() },
             Expr::Nil => "NULL".to_string(), // Sunyam -> NULL
+            Expr::SunyamFree { expr } => {
+                let inner = self.generate_expression(expr);
+                format!("free({})", inner)
+            }
             Expr::Kotha { target_type } => {
-                // kotha Type -> malloc(sizeof(Type))
-                let type_str = self.type_to_c_string(target_type, false);
-                // For pointer types, we need to allocate the pointed-to type
-                let alloc_type = match target_type {
-                    crate::ast::Type::Pointer(inner) => {
-                        self.type_to_c_string(inner, false)
+                // nirmanam(Type) -> malloc(sizeof(Type)) or map_create for jatha
+                match target_type {
+                    crate::ast::Type::Map { key_type, value_type } => {
+                        let key_type_code = match key_type.as_ref() {
+                            crate::ast::Type::String => "0",
+                            crate::ast::Type::Int => "1",
+                            crate::ast::Type::Float => "2",
+                            _ => "0",
+                        };
+                        let value_type_code = match value_type.as_ref() {
+                            crate::ast::Type::Int => "0",
+                            crate::ast::Type::Float => "1",
+                            crate::ast::Type::String => "2",
+                            crate::ast::Type::Bool => "3",
+                            _ => "0",
+                        };
+                        format!("map_create({}, {})", key_type_code, value_type_code)
                     }
-                    _ => type_str.clone(),
-                };
-                format!("({}*)malloc(sizeof({}))", type_str, alloc_type)
+                    _ => {
+                        let type_str = self.type_to_c_string(target_type, false);
+                        let alloc_type = match target_type {
+                            crate::ast::Type::Pointer(inner) => {
+                                self.type_to_c_string(inner, false)
+                            }
+                            _ => type_str.clone(),
+                        };
+                        format!("({}*)malloc(sizeof({}))", type_str, alloc_type)
+                    }
+                }
             },
             Expr::Identifier(name) => {
                 // Check if this identifier is a struct type (for json.Marshal detection)
@@ -1831,7 +1839,7 @@ impl CodeGenerator {
                                             true // Default to taking address for direct structs
                                         }
                                     }
-                                    Expr::Kotha { .. } => false, // kotha returns pointer
+                                    Expr::Kotha { .. } => false, // nirmanam returns pointer
                                     Expr::Deref { .. } => false, // Deref is already a pointer
                                     Expr::MemberAccess { .. } => {
                                         // Member access on struct - check if object is pointer
@@ -1857,7 +1865,7 @@ impl CodeGenerator {
                 let args_str: Vec<String> = args.iter().map(|a| self.generate_expression(a)).collect();
                 // Convert dot notation to underscore notation for C (e.g., strconv.Atoi -> strconv_Atoi)
                 // Handle package.function calls (e.g., utils.sum -> utils_sum)
-                // Also handle aliased imports (e.g., dhimpu "utils" as u -> u.sum -> u_sum)
+                // Also handle aliased imports (e.g., @u = #dhimpu("utils") -> u.sum -> u_sum)
                 let c_name = name.replace(".", "_");
                 format!("{}({})", c_name, args_str.join(", "))
             }
@@ -1881,7 +1889,7 @@ impl CodeGenerator {
                         }
                     }
                     Expr::Deref { .. } => true,
-                    Expr::Kotha { .. } => true,  // kotha always returns a pointer
+                    Expr::Kotha { .. } => true,  // nirmanam always returns a pointer
                     Expr::MemberAccess { .. } => {
                         // Nested member access - check if result is pointer
                         obj_str.ends_with("*") || obj_str.contains("->")
@@ -1942,7 +1950,7 @@ impl CodeGenerator {
                         }
                     }
                     Expr::Deref { .. } => true,
-                    Expr::Kotha { .. } => true,  // kotha always returns a pointer
+                    Expr::Kotha { .. } => true,  // nirmanam always returns a pointer
                     Expr::MemberAccess { .. } => {
                         // Nested member access - check if result is pointer
                         obj_str.ends_with("*") || obj_str.contains("->")
@@ -2141,7 +2149,7 @@ impl CodeGenerator {
                 format!("*{}", expr_str)
             }
             Expr::Jarugu { expr } => {
-                // Explicit jarugu: jarugu expr
+                // Move: <- expr (or jarugu expr)
                 // In C, moves are just assignments
                 // The borrow checker handles ownership tracking at compile time
                 self.generate_expression(expr)
@@ -2291,7 +2299,7 @@ impl CodeGenerator {
                 crate::ast::Type::Slice { .. } => "array",
                 crate::ast::Type::Struct { .. } => "object",
                 crate::ast::Type::Map { .. } => "object",
-                crate::ast::Type::Any => "object", // interface{} - any type
+                crate::ast::Type::Any => "object", // nirmanam{} - any type
                 _ => "string", // Default
             };
             
@@ -2401,37 +2409,6 @@ impl CodeGenerator {
         self.writeln("return s;");
         self.dedent();
         self.writeln("}\n");
-    }
-    
-    /// After all code is generated, check which structs satisfy which interfaces
-    /// and generate vtable initialization code
-    fn generate_interface_vtables(&mut self, statements: &[Stmt]) {
-        // Find all struct definitions
-        let structs: Vec<&str> = statements.iter()
-            .filter_map(|stmt| {
-                if let Stmt::StructDef { name, .. } = stmt {
-                    Some(name.as_str())
-                } else {
-                    None
-                }
-            })
-            .collect();
-        
-        // Clone interfaces to avoid borrow conflict
-        let interfaces: Vec<(String, Vec<(String, Vec<(String, crate::ast::Type)>, Option<crate::ast::Type>)>)> = 
-            self.interfaces.iter()
-                .map(|(k, v)| (k.clone(), v.clone()))
-                .collect();
-        
-        // For each interface, check which structs satisfy it
-        for (interface_name, interface_methods) in &interfaces {
-            for struct_name in &structs {
-                if self.check_interface_satisfaction(struct_name, interface_name, interface_methods) {
-                    // Generate vtable for this struct implementing this interface
-                    self.generate_struct_interface_vtable(struct_name, interface_name, interface_methods);
-                }
-            }
-        }
     }
     
     fn get_type_string_for_json(&self, typ: &crate::ast::Type) -> String {
@@ -2619,102 +2596,6 @@ impl CodeGenerator {
         self.writeln("");
         self.writeln("protobuf_buffer_free(buf);");
         self.writeln("return s;");
-        self.dedent();
-        self.writeln("}\n");
-    }
-    
-    /// Generate interface constructor function that creates interface from struct
-    /// This function automatically populates the vtable if the struct implements all required methods
-    fn generate_interface_constructor(&mut self, interface_name: &str, _methods: &[(String, Vec<(String, crate::ast::Type)>, Option<crate::ast::Type>)]) {
-        // Generate constructor: InterfaceName NewInterfaceName(void* data)
-        // This will be called automatically when converting a struct to an interface
-        let constructor_name = format!("New{}", interface_name);
-        self.write(&format!("// Constructor for {} interface\n", interface_name));
-        self.write(&format!("// Automatically creates interface from implementing struct\n"));
-        self.write(&format!("{}* {}(void* data) {{\n", interface_name, constructor_name));
-        self.indent();
-        self.writeln(&format!("if (!data) return NULL;"));
-        self.writeln(&format!("{}* iface = ({}*)malloc(sizeof({}));", interface_name, interface_name, interface_name));
-        self.writeln(&format!("if (!iface) return NULL;"));
-        self.writeln(&format!("iface->vtable = NULL;  // Will be populated by struct-specific constructors"));
-        self.writeln(&format!("iface->data = data;"));
-        self.writeln(&format!("return iface;"));
-        self.dedent();
-        self.writeln("}\n");
-    }
-    
-    /// Check if a struct satisfies an interface by verifying all required methods exist
-    /// This is called during code generation to verify interface satisfaction
-    fn check_interface_satisfaction(&self, struct_name: &str, _interface_name: &str, interface_methods: &[(String, Vec<(String, crate::ast::Type)>, Option<crate::ast::Type>)]) -> bool {
-        // Check if struct has all required methods
-        // Method names should be in format: StructName_MethodName
-        for (method_name, expected_params, expected_return) in interface_methods {
-            let _struct_method_name = format!("{}_{}", struct_name, method_name);
-            // Check if this method exists in struct_methods
-            if let Some(method_sigs) = self.struct_methods.get(struct_name) {
-                // Find matching method
-                let found = method_sigs.iter().any(|(actual_method_name, actual_params, actual_return)| {
-                    // Method name should match (without struct prefix in comparison)
-                    if actual_method_name != method_name {
-                        return false;
-                    }
-                    // Check parameter count (first param is usually self pointer, so skip it)
-                    let actual_param_count = if actual_params.len() > 0 && 
-                        matches!(actual_params[0].1, crate::ast::Type::Pointer(_)) {
-                        actual_params.len() - 1
-                    } else {
-                        actual_params.len()
-                    };
-                    if actual_param_count != expected_params.len() {
-                        return false;
-                    }
-                    // Check return type
-                    actual_return == expected_return
-                });
-                if !found {
-                    return false;
-                }
-            } else {
-                // No methods found for this struct
-                return false;
-            }
-        }
-        true
-    }
-    
-    /// Generate vtable initialization for a struct implementing an interface
-    fn generate_struct_interface_vtable(&mut self, struct_name: &str, interface_name: &str, methods: &[(String, Vec<(String, crate::ast::Type)>, Option<crate::ast::Type>)]) {
-        let vtable_name = format!("{}_vtable_{}", struct_name.to_lowercase(), interface_name.to_lowercase());
-        self.write(&format!("// Vtable for {} implementing {}\n", struct_name, interface_name));
-        self.write(&format!("// Automatically generated - struct {} satisfies interface {}\n", struct_name, interface_name));
-        self.write(&format!("static {}_vtable {} = {{\n", interface_name, vtable_name));
-        self.indent();
-        
-        for (i, (method_name, _params, _return_type)) in methods.iter().enumerate() {
-            let struct_method_name = format!("{}_{}", struct_name, method_name);
-            if i > 0 {
-                self.write(",\n");
-            }
-            self.write(&format!("    .{} = ({}){}", method_name, 
-                // Cast to function pointer type (simplified - actual type would be more complex)
-                "void*", struct_method_name));
-        }
-        self.write("\n");
-        self.dedent();
-        self.writeln("};\n");
-        
-        // Generate constructor that uses this vtable
-        let constructor_name = format!("New{}_{}", struct_name, interface_name);
-        self.write(&format!("// Constructor: {} as {}\n", struct_name, interface_name));
-        self.write(&format!("// Usage: {}* iface = {}(&struct_instance);\n", interface_name, constructor_name));
-        self.write(&format!("{}* {}({}* s) {{\n", interface_name, constructor_name, struct_name));
-        self.indent();
-        self.writeln(&format!("if (!s) return NULL;"));
-        self.writeln(&format!("{}* iface = ({}*)malloc(sizeof({}));", interface_name, interface_name, interface_name));
-        self.writeln(&format!("if (!iface) return NULL;"));
-        self.writeln(&format!("iface->vtable = &{};", vtable_name));
-        self.writeln(&format!("iface->data = (void*)s;"));
-        self.writeln(&format!("return iface;"));
         self.dedent();
         self.writeln("}\n");
     }

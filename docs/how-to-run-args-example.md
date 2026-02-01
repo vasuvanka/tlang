@@ -125,11 +125,9 @@ Install a C compiler:
 ### Missing imports error
 Make sure the file has the required imports:
 ```tl
-samooham adhi;
-
-dhimpu "fmt";
-dhimpu "args";
-dhimpu "strings";
+@fmt = #dhimpu("std/fmt");
+@args = #dhimpu("std/args");
+@strings = #dhimpu("std/strings");
 ```
 
 ## See Also

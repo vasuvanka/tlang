@@ -32,7 +32,7 @@ tlang run
 
 ```bash
 # Create prarambham.tl
-echo 'samooham adhi; dhimpu "fmt"; #prarambham() { fmt.Printf("Hello!\n"); }' > prarambham.tl
+echo '@fmt = #dhimpu("std/fmt"); #prarambham() { fmt.Printf("Hello!\n"); }' > prarambham.tl
 
 # Run it
 tlang run

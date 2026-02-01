@@ -44,16 +44,12 @@ pub enum Token {
     Lekapothe,       // lekapothe (Telugu for "else")
     Malli,           // malli loop (Telugu for "again")
     Mallinchu,       // mallinchu (Telugu for "return")
-    Dhimpu,          // dhimpu (Telugu for "import")
     Agu,             // agu (Telugu for "break")
     Konasagu,        // konasagu (Telugu for "continue")
     Nirmanam,        // nirmanam (Telugu for "struct")
     Jatha,           // jatha (Telugu for "map")
-    Interface,       // interface
     Sunyam,          // sunyam (Telugu for "nil")
-    As,              // as (for import aliases: techu "fmt" as f)
     Varasa,          // varasa (for range-based loops: malli key := varasa map)
-    Kotha,           // kotha (Telugu for "new" - memory allocation)
     // Type keywords
     IntType,         // integer type
     FloatType,       // float type
@@ -320,6 +316,9 @@ impl Lexer {
                 if let Some('=') = self.current_char {
                     self.advance();
                     Token::LessThanEqual
+                } else if let Some('-') = self.current_char {
+                    self.advance();
+                    Token::Jarugu  // <- move/transfer (replaces jarugu keyword)
                 } else {
                     Token::LessThan
                 }
@@ -446,13 +445,10 @@ impl Lexer {
                     "lekapothe" => Token::Lekapothe,
                     "malli" => Token::Malli,
                     "mallinchu" => Token::Mallinchu,
-                    "dhimpu" => Token::Dhimpu,
                     "agu" => Token::Agu,
                     "konasagu" => Token::Konasagu,
                     "nirmanam" => Token::Nirmanam,
                     "jatha" => Token::Jatha,
-                    "interface" => Token::Interface,
-                    "as" => Token::As,
                     "sunyam" => Token::Sunyam,  // nil keyword
                     "int" => Token::IntType,
                     "float" => Token::FloatType,
@@ -463,7 +459,6 @@ impl Lexer {
                     "false" => Token::Identifier("false".to_string()), // Boolean literal
                     "prarambham" => Token::Identifier("prarambham".to_string()), // Entry point function (Telugu for "beginning")
                     "jarugu" => Token::Jarugu,     // explicit jarugu keyword
-                    "kotha" => Token::Kotha,   // kotha keyword (new/malloc)
                     _ => Token::Identifier(ident),
                 }
             }

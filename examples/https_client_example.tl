@@ -1,9 +1,9 @@
 // HTTPS Client Example
 // Demonstrates making secure HTTPS requests with TLS/SSL support
 
-dhimpu "fmt" as fmt;
-dhimpu "http" as http;
-dhimpu "strings" as strings;
+@fmt = #dhimpu("std/fmt");
+@http = #dhimpu("std/http");
+@strings = #dhimpu("std/strings");
 
 #prarambham() {
     fmt.Printf("=== HTTPS Client Example ===\n\n");
@@ -45,7 +45,7 @@ dhimpu "strings" as strings;
 //       |     ^      
 // C:\Users\vanka\github.com\vasuvanka\tlang\examples\https_client_example.tl: In function 'adhi':
 // C:\Users\vanka\github.com\vasuvanka\tlang\examples\https_client_example.tl:7:31: error: implicit declaration of function 'strings_Substring' [-Wimplicit-function-declaration]
-//     7 | dhimpu "http" as http;
+//     7 | @http = #dhimpu("std/http");
 //       |                               ^                
 // C:\Users\vanka\github.com\vasuvanka\tlang\examples\https_client_example.tl:7:31: error: initialization of 'const char *' from 'int' makes pointer from integer without a cast [-Wint-conversion]
 //

@@ -1,7 +1,7 @@
 // Mutable variables example (@!)
 // Demonstrates mutable variables and assignments
 
-dhimpu "fmt" as fmt;
+@fmt = #dhimpu("std/fmt");
 
 #prarambham() {
     fmt.Printf("=== Mutable Variables Example ===\n\n");

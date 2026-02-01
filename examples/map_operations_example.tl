@@ -1,6 +1,6 @@
 // Map operations example - demonstrates delete(), len(), and iteration
 
-dhimpu "fmt" as fmt;
+@fmt = #dhimpu("std/fmt");
 
 #prarambham() {
     fmt.Printf("=== Map Operations Example ===\n\n");

@@ -145,8 +145,8 @@ while (protobuf_decode_tag(buf, &field_num, &wire_type)) {
 ## Example: Using Automatic Struct Serialization
 
 ```tl
-dhimpu "fmt" as fmt;
-dhimpu "protobuf" as protobuf;
+@fmt = #dhimpu("std/fmt");
+@protobuf = #dhimpu("std/protobuf");
 
 // Define struct
 nirmanam Person {
@@ -176,7 +176,7 @@ nirmanam Person {
         // ...
         
         // Automatic unmarshaling - compiler generates protobuf_unmarshal_person()
-        Person* decoded = protobuf_unmarshal_person(data, size);
+        @decoded *Person = protobuf_unmarshal_person(data, size);
         okavela decoded != sunyam {
             fmt.Printf("Name: %s, Age: %d\n", decoded->name, decoded->age);
             
@@ -257,7 +257,7 @@ nirmanam Person {
     size_t len = ...;
     
     // Automatic deserialization - no manual field handling needed!
-    Person* person = protobuf_unmarshal_person(data, len);
+    @person *Person = protobuf_unmarshal_person(data, len);
     okavela person != sunyam {
         fmt.Printf("Name: %s, Age: %d\n", person->name, person->age);
         

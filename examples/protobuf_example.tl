@@ -5,8 +5,8 @@
 // Full struct serialization support requires compiler-generated functions
 // (similar to json.Marshal() and json_unmarshal_<structname>)
 
-dhimpu "fmt" as fmt;
-dhimpu "protobuf" as protobuf;
+@fmt = #dhimpu("std/fmt");
+@protobuf = #dhimpu("std/protobuf");
 
 #prarambham() {
     fmt.Printf("=== Protocol Buffers Example ===\n\n");

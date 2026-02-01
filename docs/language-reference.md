@@ -12,8 +12,10 @@ Complete reference for Tlang syntax, keywords, and language features.
 6. [Control Flow](#control-flow)
 7. [Operators](#operators)
 8. [Comments](#comments)
-9. [Packages](#packages)
-10. [Type System](#type-system)
+9. [Statement termination (the semicolon debate)](#statement-termination-the-semicolon-debate)
+10. [Packages](#packages)
+11. [Type System](#type-system)
+12. [Interfaces](#interfaces)
 
 ## File Structure
 
@@ -31,30 +33,45 @@ Every Tlang program must have a `#prarambham()` function as the entry point:
 
 ## Keywords
 
-### Telugu Keywords
+Keywords match the lexer/parser implementation. There is no explicit package keyword; use `@variable = #dhimpu("path")` for imports.
 
-| Keyword | English | Usage |
-|---------|---------|-------|
-| `@` | var | Variable declaration |
+### Declaration and control flow
+
+| Keyword / symbol | English | Usage |
+|------------------|---------|-------|
+| `@` | var | Variable declaration (immutable) |
+| `@!` | var (mutable) | Mutable variable declaration |
 | `#` | func | Function declaration |
-| `#prarambham` | main | Entry point function |
+| `#prarambham` | main | Entry point function (identifier after `#`) |
 | `okavela` | if | Conditional statement |
-| `lekapothe` | else | Alternative branch |
+| `lekapothe` | else | Alternative branch (also else-if) |
 | `malli` | for | Loop construct |
 | `mallinchu` | return | Return from function |
 | `agu` | break | Exit loop |
 | `konasagu` | continue | Skip to next iteration |
+
+### Types and values
+
+| Keyword | English | Usage |
+|---------|---------|-------|
 | `nirmanam` | struct | Structure type |
 | `jatha` | map | Map type |
-| `samooham` | package | Package declaration |
-| `dhimpu` | import | Import package |
-| `thappu` | error | Error keyword |
 | `sunyam` | nil | Nil/null value |
-| `interface` | interface | Interface type |
+| `int`, `float`, `string`, `bool` | types | Type names |
+| `error` | error type | Type for errors (e.g. return type) |
+| `true`, `false` | literals | Boolean literals (lexer: identifiers) |
 
-### Reserved Words
-- `int`, `float`, `string`, `bool`, `void` - Type names
-- `true`, `false` - Boolean literals
+### Import
+
+| Syntax | Usage |
+|--------|-------|
+| `@variable = #dhimpu("path")` | Import package; use `variable` in code (e.g. `@fmt = #dhimpu("std/fmt")` then `fmt.Printf`) |
+
+### Reserved words (do not use as identifiers)
+
+- Type names: `int`, `float`, `string`, `bool`, `error`
+- Boolean literals: `true`, `false`
+- Return type: omit for no value (void); no `void` keyword in source
 
 ## Data Types
 
@@ -226,7 +243,7 @@ malli i < 10 {
 }
 ```
 
-**Range-based loop (for maps, slices, arrays):**
+**For loop over map (varasa — key/value only):**
 ```tl
 // Iterate over map with key and value
 malli key, value := varasa map {
@@ -237,12 +254,8 @@ malli key, value := varasa map {
 malli key := varasa map {
     fmt.Printf("Key: %s\n", key);
 }
-
-// Iterate over slice/array
-malli index := varasa slice {
-    fmt.Printf("Index: %d\n", index);
-}
 ```
+`varasa` is used only in for loops over a map to get key, or key and value.
 
 **Break and Continue:**
 ```tl
@@ -339,35 +352,37 @@ Tlang supports Go-style type conversion syntax:
 /* Single line comment */
 ```
 
-## Packages
+## Statement termination (the semicolon debate)
 
-### Package Declaration
+**Are semicolons mandatory?** No. Tlang uses **Go-style** statement termination:
 
-Every Tlang file can declare a package name:
+- **Semicolons are optional.** The parser accepts `;` after statements and consumes it when present.
+- **Newlines act as statement terminators.** Between statements, newlines are skipped and the next token (e.g. `@`, `okavela`, `#`) starts the next statement. So you can write cleaner code without semicolons:
 
 ```tl
-samooham adhi;
-samooham utils;
-samooham mypackage;
+@x int = 10
+@y int = 20
 ```
 
-- Package declaration must be the first statement in a file
-- Only one package declaration per file
-- If no package is declared, it defaults to `main`
-- Package name is used for organizing code and imports
-
-### Import Statements
-
-Import other packages to use their functions:
+- **You may still use semicolons** for style or when putting multiple statements on one line:
 
 ```tl
-samooham adhi;
+@x int = 10; @y int = 20
+```
 
-dhimpu "fmt";           // Import standard library
-dhimpu "./utils";       // Import local file (relative path)
-dhimpu "../common";     // Import from parent directory
-dhimpu "mypackage";     // Import from search paths
-dhimpu "math" as m;     // Import with alias
+So the spec’s `@x int = 10;` is valid, and `@x int = 10` followed by a newline is also valid. There is **no automatic semicolon insertion (ASI)** in the lexer—the parser simply treats newlines between statements as boundaries and optionally consumes semicolons. The effect is similar to Go: you can omit semicolons for cleaner code.
+
+## Packages
+
+There is **no explicit package keyword**. Use **`@variable = #dhimpu("path")`** to import packages; the variable is the name you use in code.
+
+### Import statements
+
+```tl
+@fmt = #dhimpu("std/fmt");       // use as fmt.Printf
+@utils = #dhimpu("./utils");     // use as utils.* (relative path)
+@common = #dhimpu("../common");  // use as common.* (parent directory)
+@mypackage = #dhimpu("mypackage");  // use as mypackage.* (search paths)
 ```
 
 ### Package Visibility (Go-style Exports)
@@ -379,21 +394,17 @@ Tlang follows Go's visibility rules: **identifiers starting with an uppercase le
 - Variables: `@Counter`, `@GlobalValue`
 - Variables: `@MaxValue`, `@DefaultConfig`
 - Structs: `nirmanam Point`, `nirmanam User`
-- Interfaces: `interface Writer`, `interface Reader`
 
 **Unexported identifiers** (only available within the same package):
 - Functions: `#helper()`, `#internal()`
 - Variables: `@counter`, `@internalValue`
 - Variables: `@minValue`, `@defaultConfig`
 - Structs: `nirmanam point`, `nirmanam user`
-- Interfaces: `interface writer`, `interface reader`
 
 **Example:**
 
 ```tl
-// In utils.tl package
-samooham utils;
-
+// In utils.tl
 // Exported - can be used by other packages
 #Add(a int, b int) int {
     mallinchu a + b;
@@ -405,8 +416,7 @@ samooham utils;
 }
 
 // In main.tl
-samooham adhi;
-dhimpu "./utils" as utils;
+@utils = #dhimpu("./utils");
 
 #prarambham() {
     @result int = utils.Add(5, 3);  // OK - Add is exported
@@ -416,22 +426,20 @@ dhimpu "./utils" as utils;
 
 See [Package Visibility Guide](package-visibility.md) for complete documentation.
 
-**Import Syntax:**
-- `dhimpu "path"` - Import package from path
-- `dhimpu "path" as alias` - Import with alias (e.g., `dhimpu "./utils" as u`)
-- Imports must come after package declaration, before other statements
-- Built-in standard libraries (fmt, math, strings, etc.) are automatically available
-- Local files use relative paths: `./filename` or `../directory/filename`
+**Import syntax:**
+- **`@variable = #dhimpu("path")`** – Import a package; assign it to a variable and use that variable in code (e.g. `@fmt = #dhimpu("std/fmt")` then `fmt.Printf`). There is no explicit package or alias keyword—just the variable you assign to.
+- Imports must come before other statements.
+- Standard library: `@fmt = #dhimpu("std/fmt")`, `@math = #dhimpu("std/math")`, etc. (libs/std/<package>).
+- Local files: relative paths `./filename` or `../directory/filename`.
 
-**Import Aliases:**
 ```tl
-dhimpu "fmt";
-dhimpu "./utils" as u;  // Use 'u' instead of 'utils'
-dhimpu "../common" as common;  // Explicit alias
+@fmt = #dhimpu("std/fmt");       // use as fmt.Printf
+@utils = #dhimpu("./utils");      // use as utils.sum, etc.
+@common = #dhimpu("../common");   // use as common.*
 
 #prarambham() {
-    fmt.Printf("Hello\n");      // Standard import
-    @result int = u.sum(numbers);  // Using alias
+    fmt.Printf("Hello\n");
+    @result int = utils.sum(numbers);
 }
 ```
 
@@ -439,10 +447,8 @@ dhimpu "../common" as common;  // Explicit alias
 
 ```tl
 // main.tl
-samooham adhi;
-
-dhimpu "fmt";
-dhimpu "./utils";
+@fmt = #dhimpu("std/fmt");
+@utils = #dhimpu("./utils");
 
 #prarambham() {
     @numbers []int = {1, 2, 3, 4, 5};
@@ -453,8 +459,6 @@ dhimpu "./utils";
 
 ```tl
 // utils.tl
-samooham utils;
-
 #sum(numbers []int) int {
     @total int = 0;
     @i int = 0;
@@ -529,21 +533,6 @@ malli key, value := varasa scores {
 }
 ```
 
-### Interfaces
-
-```tl
-interface Writer {
-    Write(data string) int;
-}
-
-interface Reader {
-    Read() string;
-}
-
-// Interfaces define method signatures that types must implement
-// A struct implements an interface by having methods matching the interface
-```
-
 ## Library Functions
 
 All standard library functions use dot notation:
@@ -587,6 +576,10 @@ See [Standard Library](standard-library.md) for complete reference.
 4. **Keep functions small** - one responsibility per function
 5. **Use constants** for magic numbers and strings
 6. **Format code consistently** - use consistent indentation
+
+## Interfaces
+
+Interfaces (method contracts) are **partially supported**: the compiler can parse interface definitions and generate vtables/constructors, but there is a known parser limitation (newlines in interface bodies) and no language-level “assign struct to interface variable.” For current behavior, limitations, and manual usage pattern, see [Interface Analysis](interface-analysis.md).
 
 ## See Also
 

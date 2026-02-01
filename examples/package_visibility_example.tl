@@ -1,7 +1,7 @@
 // Package visibility example - demonstrates Go-style exports
 // Uppercase identifiers are exported (public), lowercase are unexported (private)
 
-dhimpu "fmt" as fmt;
+@fmt = #dhimpu("std/fmt");
 
 // Exported function (uppercase) - can be used by other packages
 #Add(a int, b int) int {

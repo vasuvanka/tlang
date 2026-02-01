@@ -1,8 +1,8 @@
 // regexp library example
 // Demonstrates regular expression operations
 
-dhimpu "fmt" as fmt;
-dhimpu "regexp" as regexp;
+@fmt = #dhimpu("std/fmt");
+@regexp = #dhimpu("std/regexp");
 
 #prarambham() {
     fmt.Printf("=== regexp Library Examples ===\n\n");

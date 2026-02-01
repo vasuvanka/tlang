@@ -19,14 +19,27 @@ This guide will help you get started with Tlang, from installation to writing yo
   - **Linux**: `gcc` (usually pre-installed)
   - **macOS**: `clang` (comes with Xcode Command Line Tools)
   - **Windows**: MinGW or Visual Studio Build Tools
+- **OpenSSL** (for crypto in the standard library): development libraries per platform. **Windows**: [OpenSSL for Windows](https://slproweb.com/products/Win32OpenSSL.html). **Linux/macOS**: see [Installation Guide](../README_INSTALL.md#installing-prerequisites) for package names (`libssl-dev`, `openssl-devel`, `brew install openssl`, etc.).
+
+For full prerequisite install commands per platform, see the [Installation Guide](../README_INSTALL.md).
 
 ### Installing Tlang
 
-#### Linux/macOS
+#### One-line install (Linux/macOS, WSL)
+
+You can install without cloning the repo first (rustup-style). Prerequisites: Rust, C compiler, OpenSSL dev libs (see above). The script clones the repo and runs the install (user install, no sudo).
+
+```bash
+curl --proto '=https' --tlsv1.2 -sSf https://raw.githubusercontent.com/vasuvanka/tlang/main/install-curl.sh | sh
+```
+
+Use `--proto '=https'` and `--tlsv1.2` for a secure connection; you can open the URL in a browser to inspect the script before running. After install, add to PATH if needed: `export PATH="$PATH:$HOME/.local/bin"`. Verify with `tlang --version` or `tlangc --version`. **Windows:** use [install.ps1](../README_INSTALL.md) or build from source; curl-pipe install is for Linux/macOS/WSL only.
+
+#### Linux/macOS (clone and install)
 
 ```bash
 # Clone the repository
-git clone https://github.com/yourusername/tlang.git
+git clone https://github.com/vasuvanka/tlang.git
 cd tlang
 
 # Build the compiler
@@ -49,6 +62,10 @@ cargo build --release
 # Install (optional)
 .\install.ps1
 ```
+
+#### Build from source only (no install script)
+
+You can use the compiler without running any install script. After `cargo build --release`, the binary is at `target/release/tlangc` (Linux/macOS) or `target/release/tlangc.exe` (Windows). Run it from the project root (e.g. `./target/release/tlangc --version`), or add that directory to your PATH. To put the binary on your PATH without using the scripts, see the [Installation Guide](../README_INSTALL.md) “Manual Installation” section.
 
 ### Verify Installation
 
@@ -79,8 +96,8 @@ Create a file named `hello.tl`:
 ### Compile and Run
 
 ```bash
-# Compile directly to executable
-tlang compile hello.tl
+# Compile to a named executable
+tlang compile hello.tl hello
 
 # Run
 ./hello
@@ -97,6 +114,8 @@ tlang run hello.tl
 tlang run
 ```
 
+For more on run options (e.g. auto-detect entry file, passing arguments), see the [Run Guide](tlang-run-guide.md). Use `tlang run` for quick runs; use `tlang compile` then run the binary when you want to keep the executable.
+
 ## Compiling and Running
 
 ### Basic Compilation
@@ -108,12 +127,15 @@ tlang compile program.tl program
 ./program
 ```
 
-Or let it auto-generate the output name (removes .tl extension):
+Or use the default output name (binary is named `output` or `output.exe` on Windows):
 
 ```bash
 tlang compile program.tl
-./program
+./output
+# Windows: output.exe
 ```
+
+Verify the binary runs (e.g. produces expected output). If the compiler reports an error, it will show file, line, column, and a message (and a source snippet for syntax/parse errors); see [Compile Command – Tlang source errors](compile-command.md#tlang-source-errors-syntax-type-imports) for the format. For full compile options (default vs custom output name, C compiler requirements), see the [Compile Command](compile-command.md) guide. Both `tlang compile` and `tlangc compile` work.
 
 ### Using the tlang Wrapper
 
@@ -132,6 +154,8 @@ tlang compile program.tl
 # Run tests
 tlang test
 ```
+
+**Run vs compile-then-run:** Use `tlang run` for quick development and testing (no permanent binary). Use `tlang compile` then run the produced binary when you need a persistent executable or want to distribute it. Both paths work on all supported platforms. The produced binary runs on the same platform where you built it (Linux, Windows, or macOS); see [Compile Command – Supported platforms](compile-command.md#supported-platforms) for details.
 
 ## Understanding the Basics
 
@@ -202,9 +226,10 @@ fmt.Printf("Welcome to %s v%d!\n", name, version);
 ## Next Steps
 
 1. **Learn the Language**: Follow the [Tutorial](tutorial.md) for step-by-step learning
-2. **Explore Examples**: Check the `examples/` directory
+2. **Explore Examples**: Check the `examples/` directory. For **servers, CLIs, and system tools** (MVP scope), the language and standard library are sufficient—see [Real-World Examples](../examples/real-world-examples/README.md) and [HTTP Server Guide](http-server-guide.md), or run `examples/args_example.tl` for command-line arguments. Imports use **`@variable = #dhimpu("path")`** (e.g. `@fmt = #dhimpu("std/fmt")` then `fmt.Printf`); there is no explicit package or alias keyword.
 3. **Read the Reference**: See [Language Reference](language-reference.md)
 4. **Use Libraries**: Explore the [Standard Library](standard-library.md)
+5. **Projects and config:** For multi-file projects, declare dependencies and entry point in `config.toml`; the build system reads it for dependency resolution and entry. See [Build System](build-system.md) and `examples/config.toml.example`.
 
 ## Common Issues
 

@@ -76,7 +76,7 @@ okavela err != sunyam {
 // Validate against schema
 @schema string = "name:string,age:int";
 @err2 error = json.ValidateSchema("{\"name\": \"John\", \"age\": 30}", schema);
-thappu err2 okavela {
+okavela err2 != sunyam {
     fmt.Printf("Schema validation failed: %s\n", err2);
 }
 
@@ -147,7 +147,7 @@ nirmanam Person {
     // Output: {"name":"Alice","age":30,"email":"alice@example.com"}
     
     // Also works with pointers
-    @personPtr Person* = kotha Person;
+    @personPtr *Person = Person{};
     personPtr.name = "Bob";
     @json2 string = json.Marshal(personPtr);
 }
@@ -176,7 +176,7 @@ nirmanam Person {
     @json string = "{\"name\": \"Alice\", \"age\": 30, \"email\": \"alice@example.com\"}";
     
     // Automatic deserialization - no manual field handling needed!
-    @person Person* = json_unmarshal_person(json);
+    @person *Person = json_unmarshal_person(json);
     okavela person != sunyam {
         fmt.Printf("Name: %s, Age: %d\n", person->name, person->age);
     }

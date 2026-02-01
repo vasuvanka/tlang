@@ -1,30 +1,28 @@
 # Packages and Modules
 
-Tlang's package system allows you to organize code into reusable modules. There is no package declaration at the top of files; use `dhimpu` (import) to bring in other packages.
+Tlang's package system allows you to organize code into reusable modules. There is no package declaration at the top of files; use `#dhimpu` (import) to bring in other packages.
 
 ## Importing Packages
 
-Use `dhimpu` (import) to bring in other packages. Prefer the alias form: `dhimpu "path" as alias;`
+Use **`@variable = #dhimpu("path")`** to import a package. The variable you assign to is the name you use in code (e.g. `@fmt = #dhimpu("std/fmt")` then `fmt.Printf`). There is no explicit package or alias keyword—just assign the import to a variable.
 
 ```tl
-dhimpu "fmt" as fmt;           // Standard library
-dhimpu "math" as math;         // Standard library
-dhimpu "./utils" as utils;     // Local package (relative path)
-dhimpu "../shared" as shared;  // Parent directory package
-dhimpu "mypackage" as mypackage;  // Package from search path
+@fmt = #dhimpu("std/fmt");        // use as fmt.Printf
+@math = #dhimpu("std/math");      // use as math.Abs
+@utils = #dhimpu("./utils");       // use as utils.HelperFunction (relative path)
 ```
 
-### Import Aliases
+### Qualified use
 
-Use `dhimpu "path" as alias` so calls are explicit and there are no name clashes:
+After `@variable = #dhimpu("path")`, use that variable to call functions or refer to types:
 
 ```tl
-dhimpu "fmt" as fmt;
-dhimpu "./utils" as u;
+@fmt = #dhimpu("std/fmt");
+@utils = #dhimpu("./utils");
 
 #prarambham() {
     fmt.Printf("Hello\n");
-    u.HelperFunction();
+    utils.HelperFunction();
 }
 ```
 
@@ -68,7 +66,7 @@ nirmanam privateStruct {  // Private struct
 
 ```tl
 // utils.tl
-dhimpu "fmt" as fmt;
+#dhimpu("std/fmt");
 
 #HelperFunction() {
     fmt.Printf("Helper called\n");
@@ -95,7 +93,7 @@ mypackage/
 
 ```tl
 // mypackage/mod.tl
-dhimpu "fmt" as fmt;
+@fmt = #dhimpu("std/fmt");
 
 // Exported function
 #PublicFunction() {
@@ -135,19 +133,19 @@ The compiler searches for packages in the following order:
 
 When you import a package, the compiler tries to find it in this order:
 
-1. **Single file**: `package.tl` (e.g., `dhimpu "utils"` → `utils.tl`)
-2. **Directory with mod.tl**: `package/mod.tl` (e.g., `dhimpu "mypackage"` → `mypackage/mod.tl`)
+1. **Single file**: `package.tl` (e.g., `#dhimpu("utils")` → `utils.tl`)
+2. **Directory with mod.tl**: `package/mod.tl` (e.g., `#dhimpu("mypackage")` → `mypackage/mod.tl`)
 3. **Relative file**: `./utils.tl` or `../shared.tl`
 4. **Standard library**: `stdlib/package.tl`
 
 **Examples:**
 
 ```tl
-// These all work:
-dhimpu "fmt" as fmt;           // Finds stdlib/fmt.tl
-dhimpu "./utils" as utils;     // Finds ./utils.tl or ./utils/mod.tl
-dhimpu "../common" as common;  // Finds ../common.tl or ../common/mod.tl
-dhimpu "mypackage" as mypackage;  // Finds mypackage.tl or mypackage/mod.tl
+// Assign import to a variable; use that variable in code:
+@fmt = #dhimpu("std/fmt");           // use as fmt.* (finds stdlib/fmt.tl)
+@utils = #dhimpu("./utils");          // use as utils.* (finds ./utils.tl or ./utils/mod.tl)
+@common = #dhimpu("../common");      // use as common.* (finds ../common.tl or ../common/mod.tl)
+@mypackage = #dhimpu("mypackage");   // use as mypackage.* (finds mypackage.tl or mypackage/mod.tl)
 ```
 
 ## Package Initialization (Future Enhancement)
@@ -232,7 +230,7 @@ nirmanam Response {
 
 ```tl
 // mathutils.tl
-dhimpu "math" as math;
+@math = #dhimpu("std/math");
 
 #Square(x float) float {
     return x * x;
@@ -245,8 +243,8 @@ dhimpu "math" as math;
 
 ```tl
 // main.tl
-dhimpu "fmt" as fmt;
-dhimpu "./mathutils" as mathutils;
+@fmt = #dhimpu("std/fmt");
+@mathutils = #dhimpu("./mathutils");  // use as mathutils.* (relative path)
 
 #prarambham() {
     @result float = mathutils.Square(5.0);
@@ -318,11 +316,11 @@ The compiler detects and prevents circular dependencies:
 ```tl
 // Before: circular dependency
 // packageA.tl
-dhimpu "./packageB" as packageB;
+@packageB = #dhimpu("./packageB");
 #FunctionA() { packageB.FunctionB(); }
 
 // packageB.tl
-dhimpu "./packageA" as packageA;
+@packageA = #dhimpu("./packageA");
 #FunctionB() { packageA.FunctionA(); }
 ```
 
@@ -332,11 +330,11 @@ dhimpu "./packageA" as packageA;
 #SharedFunction() { /* ... */ }
 
 // packageA.tl
-dhimpu "./shared" as shared;
+@shared = #dhimpu("./shared");
 #FunctionA() { shared.SharedFunction(); }
 
 // packageB.tl
-dhimpu "./shared" as shared;
+@shared = #dhimpu("./shared");
 #FunctionB() { shared.SharedFunction(); }
 ```
 

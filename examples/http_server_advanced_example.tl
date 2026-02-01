@@ -1,9 +1,9 @@
 // HTTP Server Advanced Example
 // Demonstrates HTTP server with request parsing and routing
 
-dhimpu "fmt" as fmt;
-dhimpu "http" as http;
-dhimpu "strings" as strings;
+@fmt = #dhimpu("std/fmt");
+@http = #dhimpu("std/http");
+@strings = #dhimpu("std/strings");
 
 // Handler function for processing requests
 #handler(method string, path string, body string) string {

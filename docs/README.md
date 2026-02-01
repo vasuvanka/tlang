@@ -17,7 +17,7 @@ Welcome to the comprehensive documentation for Tlang, a simple compiled programm
 ### Your First Program
 
 ```tl
-dhimpu "fmt" as fmt;
+@fmt = #dhimpu("std/fmt");
 
 #prarambham() {
     fmt.Printf("Hello, Tlang!\n");
@@ -30,9 +30,10 @@ Save as `hello.tl` and run:
 tlang run hello.tl
 
 # Or compile to executable (for distribution)
-tlang compile hello.tl
+tlang compile hello.tl hello
 ./hello
 ```
+For the full flow (install → first program → run/compile), see the **[Getting Started Guide](getting-started.md)**.
 
 ### Porting from Go
 

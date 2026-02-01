@@ -1,8 +1,8 @@
 // HTTP Server Example
 // Demonstrates basic HTTP server
 
-dhimpu "fmt" as fmt;
-dhimpu "http" as http;
+@fmt = #dhimpu("std/fmt");
+@http = #dhimpu("std/http");
 
 #prarambham() {
     fmt.Printf("=== HTTP Server Example ===\n");

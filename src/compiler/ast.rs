@@ -25,10 +25,7 @@ pub enum Type {
         key_type: Box<Type>,   // Key type (typically string)
         value_type: Box<Type>, // Value type
     },
-    Interface {
-        name: String, // Interface type name
-    },
-    /// Empty interface / unknown type: interface{} (like Go's interface{} or any)
+    /// Any type: nirmanam{} (for map values, e.g. jatha[string]nirmanam{})
     Any,
     Tuple {
         types: Vec<Type>, // Multiple types: (int, error)
@@ -123,12 +120,16 @@ pub enum Expr {
         elements: Vec<Expr>,             // Tuple elements
     },
     /// Error propagation: expr?
-    /// Memory allocation: kotha Type
+    /// Memory allocation: nirmanam(Type)
     Kotha {
         target_type: Type,  // Type to allocate
     },
     ErrorPropagate {
         expr: Box<Expr>,                 // Expression that may return error
+    },
+    /// sunyam(ptr): free/release memory (same keyword as nil value)
+    SunyamFree {
+        expr: Box<Expr>,                  // Pointer expression to free
     },
 }
 
@@ -203,27 +204,22 @@ pub enum Stmt {
     Block(Vec<Stmt>),
     Import {
         path: String, // Import path (e.g., "fmt", "./utils", "math")
-        alias: Option<String>, // Optional alias (e.g., dhimpu "math" as m)
+        alias: Option<String>, // Optional alias (e.g., @m = #dhimpu("math"))
     },
     StructDef {
         name: String,                    // Struct name
         fields: Vec<(String, Type, Option<String>)>, // Field name, type, and optional tags (e.g., `json:"name" validate:"required"`)
     },
-    InterfaceDef {
-        name: String,                     // Interface name
-        methods: Vec<(String, Vec<(String, Type)>, Option<Type>)>, // Method name, parameters, return type
-        embedded: Vec<String>,            // Embedded interfaces
-    },
 }
 
 #[derive(Debug, Clone)]
 pub struct Program {
-    pub imports: Vec<ImportInfo>,     // Import statements (dhimpu)
+    pub imports: Vec<ImportInfo>,     // Import statements (#dhimpu)
     pub statements: Vec<Stmt>,        // Other statements
 }
 
 #[derive(Debug, Clone)]
 pub struct ImportInfo {
     pub path: String,      // Import path (e.g. "fmt", "./utils")
-    pub alias: Option<String>, // Optional alias; recommended for clarity (e.g. dhimpu "fmt" as fmt)
+    pub alias: Option<String>, // Optional alias; recommended for clarity (e.g. @fmt = #dhimpu("fmt"))
 }

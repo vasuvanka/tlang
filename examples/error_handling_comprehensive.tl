@@ -1,8 +1,8 @@
 // Comprehensive error handling examples
 // Demonstrates all error handling patterns in Tlang. Use errors.New() and okavela err != sunyam.
 
-dhimpu "fmt" as fmt;
-dhimpu "errors" as errors;
+@fmt = #dhimpu("std/fmt");
+@errors = #dhimpu("std/errors");
 
 // ============================================
 // Pattern 1: Function returning only error

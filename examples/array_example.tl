@@ -1,6 +1,6 @@
 // Array examples - Go-like array support in Tlang
 
-dhimpu "fmt" as fmt;
+@fmt = #dhimpu("std/fmt");
 
 #prarambham() {
     fmt.Printf("=== Array Examples ===\n\n");

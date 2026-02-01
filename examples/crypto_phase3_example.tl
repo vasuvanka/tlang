@@ -1,9 +1,9 @@
 // crypto Phase 3 algorithms example
 // Demonstrates Ed25519, bcrypt, and scrypt
 
-dhimpu "fmt" as fmt;
-dhimpu "crypto" as crypto;
-dhimpu "strings" as strings;
+@fmt = #dhimpu("std/fmt");
+@crypto = #dhimpu("std/crypto");
+@strings = #dhimpu("std/strings");
 
 #prarambham() {
     fmt.Printf("=== Phase 3 Crypto Algorithms Examples ===\n\n");
@@ -200,10 +200,10 @@ dhimpu "strings" as strings;
 //       |                              ^            
 // C:\Users\vanka\github.com\vasuvanka\tlang\examples\crypto_phase3_example.tl:5:30: error: initialization of 'const char *' from 'int' makes pointer from integer without a cast [-Wint-conversion]
 // C:\Users\vanka\github.com\vasuvanka\tlang\examples\crypto_phase3_example.tl:6:32: error: initialization of 'const char *' from 'char' makes pointer from integer without a cast [-Wint-conversion]
-//     6 | dhimpu "fmt" as fmt;
+//     6 | @fmt = #dhimpu("std/fmt");
 //       |                                ^         
 // C:\Users\vanka\github.com\vasuvanka\tlang\examples\crypto_phase3_example.tl:7:31: error: initialization of 'const char *' from 'char' makes pointer from integer without a cast [-Wint-conversion]
-//     7 | dhimpu "crypto" as crypto;
+//     7 | @crypto = #dhimpu("std/crypto");
 //       |                               ^         
 // C:\Users\vanka\github.com\vasuvanka\tlang\examples\crypto_phase3_example.tl:23:28: error: initialization of 'const char *' from 'int' makes pointer from integer without a cast [-Wint-conversion]
 //    23 |     fmt.Printf("Public key length: %d\n", strings.Index(edPublicKey, ""));

@@ -49,19 +49,14 @@
           "match": "\\b(mallinchu)\\b"
         },
         {
-          "comment": "Package declaration",
-          "name": "keyword.control.package.tlang",
-          "match": "\\b(samooham)\\b"
-        },
-        {
-          "comment": "Import statement",
+          "comment": "Import (dhimpu) - used in @var = #dhimpu(\"path\")",
           "name": "keyword.control.import.tlang",
           "match": "\\b(dhimpu)\\b"
         },
         {
-          "comment": "Import alias",
-          "name": "keyword.control.as.tlang",
-          "match": "\\b(as)\\b"
+          "comment": "Entry point name",
+          "name": "keyword.control.entry.tlang",
+          "match": "\\b(prarambham)\\b"
         },
         {
           "comment": "Struct definition",
@@ -79,14 +74,9 @@
           "match": "\\b(emaina)\\b"
         },
         {
-          "comment": "Error keyword",
-          "name": "keyword.control.error.tlang",
-          "match": "\\b(thappu)\\b"
-        },
-        {
-          "comment": "Nil/null keyword",
+          "comment": "Nil keyword (error type uses sunyam for nil)",
           "name": "constant.language.nil.tlang",
-          "match": "\\b(sunyam|nil)\\b"
+          "match": "\\b(sunyam)\\b"
         },
         {
           "comment": "Boolean true",
@@ -97,16 +87,6 @@
           "comment": "Boolean false",
           "name": "constant.language.boolean.false.tlang",
           "match": "\\b(false|asathyam)\\b"
-        },
-        {
-          "comment": "Memory allocation - kotha keyword",
-          "name": "keyword.operator.kotha.tlang",
-          "match": "\\b(kotha)\\b"
-        },
-        {
-          "comment": "Memory - jarugu keyword",
-          "name": "keyword.operator.jarugu.tlang",
-          "match": "\\b(jarugu)\\b"
         },
         {
           "comment": "Memory - mut keyword",
@@ -147,8 +127,8 @@
     "functions": {
       "patterns": [
         {
-          "comment": "Main function #adhi",
-          "match": "(#)(adhi)(\\s*\\()",
+          "comment": "Entry point #prarambham()",
+          "match": "(#)(prarambham)(\\s*\\()",
           "captures": {
             "1": { "name": "storage.type.function.tlang" },
             "2": { "name": "entity.name.function.main.tlang" },
@@ -277,6 +257,11 @@
           "comment": "Arithmetic operators",
           "name": "keyword.operator.arithmetic.tlang",
           "match": "(\\+|\\-|\\*|/|%)"
+        },
+        {
+          "comment": "Move operator <-",
+          "name": "keyword.operator.move.tlang",
+          "match": "<-"
         },
         {
           "comment": "Error propagation ?",

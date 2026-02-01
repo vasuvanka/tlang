@@ -1,7 +1,7 @@
 // Package import with alias example
 
-dhimpu "fmt" as fmt;
-dhimpu "./utils" as u;  // Import with alias
+@fmt = #dhimpu("std/fmt");
+@u = #dhimpu("./utils");  // Import with alias
 
 #prarambham() {
     fmt.Printf("=== Package Alias Example ===\n\n");

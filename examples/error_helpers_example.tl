@@ -1,8 +1,8 @@
 // Error handling with helper functions example
 // Demonstrates using errors library for better error handling
 
-dhimpu "fmt" as fmt;
-dhimpu "errors" as errors;
+@fmt = #dhimpu("std/fmt");
+@errors = #dhimpu("std/errors");
 
 // ============================================
 // Using errors.New to create errors

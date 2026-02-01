@@ -1,8 +1,8 @@
 // JSON Validation Example
 // Demonstrates JSON syntax validation and schema validation
 
-dhimpu "fmt" as fmt;
-dhimpu "json" as json;
+@fmt = #dhimpu("std/fmt");
+@json = #dhimpu("std/json");
 
 #prarambham() {
     fmt.Printf("=== JSON Validation Example ===\n\n");

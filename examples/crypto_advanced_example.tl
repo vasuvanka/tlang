@@ -1,8 +1,8 @@
 // crypto advanced algorithms example
 // Demonstrates AES-GCM, ChaCha20-Poly1305, and PBKDF2
 
-dhimpu "fmt" as fmt;
-dhimpu "crypto" as crypto;
+@fmt = #dhimpu("std/fmt");
+@crypto = #dhimpu("std/crypto");
 
 #prarambham() {
     fmt.Printf("=== Advanced Crypto Algorithms Examples ===\n\n");

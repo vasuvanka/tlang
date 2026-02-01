@@ -56,13 +56,15 @@ Use `*` to dereference a reference:
 
 ### Explicit Move
 
-Use `jarugu` keyword for explicit ownership transfer:
+Use `<-` for explicit ownership transfer:
 
 ```tl
 @original string = "hello";
-@moved string = jarugu original;
-// fmt.Printf("%s", original);  // ERROR: use after jarugu
+@moved string = <- original;
+// fmt.Printf("%s", original);  // ERROR: use after move
 ```
+
+Use `<-` for move/ownership transfer; the `jarugu` keyword was replaced by `<-`.
 
 ## Ownership Rules
 
@@ -79,7 +81,7 @@ fmt.Printf("%s\n", s2);  // OK: s2 owns the string
 
 ### Copy Types
 
-Primitive types (`int`, `float`, `bool`) are Copy types and don't jarugu:
+Primitive types (`int`, `float`, `bool`) are Copy types and are not moved with `<-`:
 
 ```tl
 @x int = 42;
@@ -145,7 +147,7 @@ error[E0382]: borrow of moved value: `data`
   --> line 5
   |
   | value moved to `other` at line 3
-  | value used here after jarugu
+  | value used here after move
 ```
 
 ### Double Mutable Borrow
@@ -218,7 +220,7 @@ error[E0597]: `local` does not live long enough
 ```tl
 // When intentionally transferring ownership:
 @channel Channel = createChannel();
-spawn(jarugu channel);  // Clear that ownership transfers
+spawn(<- channel);  // Ownership transfer with <-
 ```
 
 ## Integration with Build System
@@ -248,7 +250,7 @@ error[E0382]: borrow of moved value: `data`
   --> line 15
   |
   | value moved to `other` at line 12
-  | value used here after jarugu
+  | value used here after move
 ```
 
 ## Comparison with Other Languages

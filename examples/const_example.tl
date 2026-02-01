@@ -1,7 +1,7 @@
 // Immutable variables example
 // Demonstrates immutable variable declarations using @
 
-dhimpu "fmt" as fmt;
+@fmt = #dhimpu("std/fmt");
 
 #prarambham() {
     // Immutable variables with explicit type

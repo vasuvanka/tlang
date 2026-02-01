@@ -188,9 +188,7 @@ source ~/.bashrc
 Create a test file `test.tl`:
 
 ```tl
-samooham adhi;
-
-dhimpu "fmt";
+@fmt = #dhimpu("std/fmt");
 
 // This is a comment
 /* Multi-line
@@ -211,7 +209,7 @@ dhimpu "fmt";
 ```
 
 You should see:
-- Keywords (`samooham`, `dhimpu`, `okavela`, `lekapothe`) highlighted
+- Keywords (`dhimpu`, `okavela`, `lekapothe`, `prarambham`) highlighted
 - Strings in quotes highlighted
 - Numbers highlighted
 - Comments dimmed
@@ -282,14 +280,12 @@ vscode-extension/
 │   └── extension.ts          # Extension entry point & LSP client
 ├── syntaxes/
 │   └── tlang.tmLanguage.json # TextMate grammar for syntax highlighting
-├── icons/
-│   ├── tlang.jpg             # File icon image
-│   └── tlang-icon-theme.json # Icon theme definition
 ├── out/
 │   └── extension.js          # Compiled JavaScript (generated)
 ├── language-configuration.json # Brackets, comments, auto-close
 ├── package.json              # Extension manifest
 ├── tsconfig.json             # TypeScript config
+├── tlang.png                 # Extension icon
 └── README.md                 # Extension documentation
 ```
 

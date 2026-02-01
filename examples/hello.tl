@@ -1,6 +1,6 @@
 // Simple hello world program
 
-dhimpu "fmt" as fmt;
+@fmt = #dhimpu("std/fmt");
 
 #prarambham() {
     fmt.Printf("Hello, World!\n");

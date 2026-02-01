@@ -106,22 +106,6 @@ impl SymbolTable {
                 };
                 self.add_symbol(symbol);
             }
-            Stmt::InterfaceDef { name, .. } => {
-                let symbol = SymbolInfo {
-                    name: name.clone(),
-                    kind: SymbolKind::INTERFACE,
-                    location: Location {
-                        uri: uri.clone(),
-                        range: Range {
-                            start: Position { line: 0, character: 0 },
-                            end: Position { line: 0, character: 0 },
-                        },
-                    },
-                    detail: None,
-                    documentation: None,
-                };
-                self.add_symbol(symbol);
-            }
             _ => {}
         }
     }
@@ -182,8 +166,7 @@ impl SymbolTable {
                 format!("[]{}", self.format_type(element_type))
             }
             Type::Struct { name } => name.clone(),
-            Type::Interface { name } => name.clone(),
-            Type::Any => "interface{}".to_string(),
+            Type::Any => "nirmanam{}".to_string(),
             Type::Map { key_type, value_type } => {
                 format!("jatha[{}]{}", self.format_type(key_type), self.format_type(value_type))
             }

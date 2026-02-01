@@ -1,8 +1,8 @@
 // url library example
 // Demonstrates URL parsing and manipulation
 
-dhimpu "fmt" as fmt;
-dhimpu "url" as url;
+@fmt = #dhimpu("std/fmt");
+@url = #dhimpu("std/url");
 
 #prarambham() {
     fmt.Printf("=== url Library Examples ===\n\n");

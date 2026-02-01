@@ -1,9 +1,9 @@
 // Command-line arguments example
 // Demonstrates accessing program arguments
 
-dhimpu "fmt" as fmt;
-dhimpu "args" as args;
-dhimpu "strings" as strings;
+@fmt = #dhimpu("std/fmt");
+@args = #dhimpu("std/args");
+@strings = #dhimpu("std/strings");
 
 #prarambham() {
     @argCount int = args.Count();

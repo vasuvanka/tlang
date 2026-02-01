@@ -1,7 +1,7 @@
 // Test cases for strconv library
 
-dhimpu "fmt" as fmt;
-dhimpu "strconv" as strconv;
+@fmt = #dhimpu("std/fmt");
+@strconv = #dhimpu("std/strconv");
 
 #prarambham() {
     fmt.Printf("=== strconv Library Tests ===\n");

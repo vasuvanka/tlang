@@ -1,11 +1,11 @@
 // Real-World Example 3: Data Processing Pipeline
 // Reads CSV data, transforms it, and writes results
 
-dhimpu "fmt" as fmt;
-dhimpu "csv" as csv;
-dhimpu "io" as io;
-dhimpu "strconv" as strconv;
-dhimpu "json" as json;
+@fmt = #dhimpu("std/fmt");
+@csv = #dhimpu("std/csv");
+@io = #dhimpu("std/io");
+@strconv = #dhimpu("std/strconv");
+@json = #dhimpu("std/json");
 
 nirmanam Product {
     id int;
@@ -26,8 +26,8 @@ nirmanam SalesReport {
 // This example demonstrates the concept
 
 // Process products and generate report
-#processProducts(productCount int) SalesReport* {
-    @report SalesReport* = kotha SalesReport;
+#processProducts(productCount int) *SalesReport {
+    @report *SalesReport = SalesReport{};
     okavela report == sunyam {
         mallinchu sunyam;
     }
@@ -42,7 +42,7 @@ nirmanam SalesReport {
 }
 
 // Generate JSON report
-#generateJSONReport(report SalesReport*) string {
+#generateJSONReport(report *SalesReport) string {
     @jsonStr string =         fmt.Sprintf("{\"totalProducts\":%d,\"totalValue\":%.2f,\"categories\":%d,\"lowStockItems\":%d}",
         report.totalProducts, report.totalValue, report.categories, report.lowStockItems);
     mallinchu jsonStr;
@@ -76,7 +76,7 @@ nirmanam SalesReport {
     
     // Process data
     fmt.Printf("Processing data...\n");
-    @report SalesReport* = processProducts(productCount);
+    @report *SalesReport = processProducts(productCount);
     
     okavela report != sunyam {
         fmt.Printf("\nSales Report:\n");

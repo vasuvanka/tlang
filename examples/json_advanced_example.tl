@@ -1,7 +1,7 @@
 // JSON example with slices, structs, and maps
 
-dhimpu "fmt" as fmt;
-dhimpu "json" as json;
+@fmt = #dhimpu("std/fmt");
+@json = #dhimpu("std/json");
 
 // Define a Person struct for JSON
 nirmanam Person {

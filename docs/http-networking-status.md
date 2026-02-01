@@ -57,10 +57,8 @@ The HTTP/Networking features are **fully implemented** with support for HTTP and
 ### HTTP GET Request
 
 ```tl
-samooham adhi;
-
-dhimpu "fmt";
-dhimpu "http";
+@fmt = #dhimpu("std/fmt");
+@http = #dhimpu("std/http");
 
 #prarambham() {
     @response string = http.Get("https://api.example.com/data");

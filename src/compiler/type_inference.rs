@@ -125,7 +125,7 @@ pub fn infer_type(expr: &Expr) -> Option<Type> {
             })
         }
         Expr::Kotha { target_type } => {
-            // kotha Type returns a pointer to that type
+            // nirmanam(Type) returns a pointer to that type
             Some(Type::Pointer(Box::new(target_type.clone())))
         }
         Expr::MapLiteral { key_type, value_type, entries: _ } => {
@@ -178,10 +178,15 @@ pub fn infer_type(expr: &Expr) -> Option<Type> {
             }
         }
         Expr::ErrorPropagate { expr } => {
-            // Error propagation returns the non-error part of the expression's type
-            // This is typically the inner type for a (value, error) tuple
+            // ? unwraps (value, error) to just value for assignment
+            if let Some(crate::ast::Type::Tuple { types }) = infer_type(expr) {
+                if types.len() >= 2 {
+                    return Some(types[0].clone());
+                }
+            }
             infer_type(expr)
         }
+        Expr::SunyamFree { expr: _ } => None, // sunyam(ptr) is void (free)
         Expr::MemberAssignment { object: _, field: _, value } => {
             // Member assignment returns the type of the assigned value
             infer_type(value)

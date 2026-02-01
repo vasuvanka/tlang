@@ -1,7 +1,7 @@
 // Immutable variables example
 // Demonstrates that variables are immutable by default
 
-dhimpu "fmt" as fmt;
+@fmt = #dhimpu("std/fmt");
 
 #prarambham() {
     fmt.Printf("=== Immutable Variables Example ===\n\n");

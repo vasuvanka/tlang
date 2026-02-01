@@ -1,9 +1,9 @@
 // HTTP Server with Routing Example
 // Demonstrates HTTP server with path-based routing
 
-dhimpu "fmt" as fmt;
-dhimpu "http" as http;
-dhimpu "json" as json;
+@fmt = #dhimpu("std/fmt");
+@http = #dhimpu("std/http");
+@json = #dhimpu("std/json");
 
 // Handler function for routing requests
 #handler(method string, path string, body string) string {

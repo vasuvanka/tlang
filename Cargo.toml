@@ -49,6 +49,17 @@ regex = "1.10"
 default = []
 tls = ["openssl"]
 
+# Smaller compiler/tool binaries (for resource-limited hosts or IoT tooling)
+[profile.release]
+# Default release: balance of speed and size
+
+[profile.release-small]
+inherits = "release"
+opt-level = "z"     # Optimize for size
+lto = true          # Link-time optimization
+codegen-units = 1   # Better optimization, slower compile
+strip = true        # Remove symbols from binary
+
 # Pin base64ct to avoid edition2024 requirement (not available in Cargo 1.82.0)
 # base64ct 1.8.0+ requires edition2024, so we pin to 1.7.3 which uses edition 2021
 [dependencies.base64ct]

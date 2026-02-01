@@ -1,9 +1,9 @@
 // Comprehensive test suite for advanced features
 // Tests: JSON serialization, Interfaces, Packages, Memory management
 
-dhimpu "fmt" as fmt;
-dhimpu "testing" as testing;
-dhimpu "json" as json;
+@fmt = #dhimpu("std/fmt");
+@testing = #dhimpu("std/testing");
+@json = #dhimpu("std/json");
 
 // ============================================
 // Test 1: JSON Serialization
@@ -35,7 +35,7 @@ nirmanam User {
     testing.Log("Testing JSON deserialization");
     
     @json_str string = "{\"name\":\"Bob\",\"age\":25,\"email\":\"bob@example.com\"}";
-    @user User* = json_unmarshal_user(json_str);
+    @user *User = json_unmarshal_user(json_str);
     
     okavela user != sunyam {
         testing.AssertEqualString("Bob", user.name, "Deserialized user name");
@@ -49,18 +49,15 @@ nirmanam User {
 }
 
 // ============================================
-// Test 3: Memory Management (kotha)
+// Test 3: Memory Management (nirmanam)
 // ============================================
 #testMemoryManagement() {
-    testing.Log("Testing memory management with kotha");
+    testing.Log("Testing memory management with struct literals");
     
-    @user User* = kotha User;
-    user.name = "Charlie";
-    user.age = 35;
-    user.email = "charlie@example.com";
+    @user *User = User{ name: "Charlie", age: 35, email: "charlie@example.com" };
     
-    testing.AssertEqualString("Charlie", user.name, "kotha allocated struct");
-    testing.AssertEqual(35, user.age, "kotha allocated struct age");
+    testing.AssertEqualString("Charlie", user.name, "struct literal allocated struct");
+    testing.AssertEqual(35, user.age, "nirmanam allocated struct age");
     
     free(user.name);
     free(user.email);
@@ -80,11 +77,11 @@ nirmanam Rectangle {
     height float;
 }
 
-#Rectangle_area(r Rectangle*) float {
+#Rectangle_area(r *Rectangle) float {
     mallinchu r.width * r.height;
 }
 
-#Rectangle_perimeter(r Rectangle*) float {
+#Rectangle_perimeter(r *Rectangle) float {
     mallinchu 2.0 * (r.width + r.height);
 }
 
@@ -92,16 +89,16 @@ nirmanam Circle {
     radius float;
 }
 
-#Circle_area(c Circle*) float {
+#Circle_area(c *Circle) float {
     mallinchu 3.14159 * c.radius * c.radius;
 }
 
-#Circle_perimeter(c Circle*) float {
+#Circle_perimeter(c *Circle) float {
     mallinchu 2.0 * 3.14159 * c.radius;
 }
 
-#testInterfaces() {
-    testing.Log("Testing interfaces");
+#testStructMethods() {
+    testing.Log("Testing struct methods (Rectangle, Circle)");
     
     @rect Rectangle = Rectangle{width: 5.0, height: 3.0};
     @area float = Rectangle_area(&rect);
@@ -152,13 +149,9 @@ nirmanam Node {
 #testStructWithPointers() {
     testing.Log("Testing struct with pointer fields");
     
-    @node1 Node* = kotha Node;
-    node1.value = 10;
-    node1.next = sunyam;
+    @node1 *Node = Node{ value: 10, next: sunyam };
     
-    @node2 Node* = kotha Node;
-    node2.value = 20;
-    node2.next = node1;
+    @node2 *Node = Node{ value: 20, next: node1 };
     
     testing.AssertEqual(20, node2.value, "Node value");
     testing.Assert(node2.next != sunyam, "Node next pointer");
@@ -204,7 +197,7 @@ nirmanam Company {
     testing.Run("testJSONSerialization", testJSONSerialization);
     testing.Run("testJSONDeserialization", testJSONDeserialization);
     testing.Run("testMemoryManagement", testMemoryManagement);
-    testing.Run("testInterfaces", testInterfaces);
+    testing.Run("testStructMethods", testStructMethods);
     testing.Run("testPackageSystem", testPackageSystem);
     testing.Run("testDoublePointers", testDoublePointers);
     testing.Run("testStructWithPointers", testStructWithPointers);

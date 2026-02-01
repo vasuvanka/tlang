@@ -127,9 +127,7 @@ The `http` library provides full HTTP client and server functionality with suppo
 ### Example 1: Basic GET Request (HTTP)
 
 ```tl
-samooham adhi;
-
-dhimpu "fmt";
+@fmt = #dhimpu("std/fmt");
 
 #prarambham() {
     @response string = http.Get("http://api.example.com/data");
@@ -142,9 +140,7 @@ dhimpu "fmt";
 ### Example 1b: HTTPS GET Request ⭐ **NEW**
 
 ```tl
-samooham adhi;
-
-dhimpu "fmt";
+@fmt = #dhimpu("std/fmt");
 
 #prarambham() {
     // HTTPS automatically uses TLS when compiled with OpenSSL
@@ -240,9 +236,7 @@ cl /DUSE_OPENSSL program.c /link libssl.lib libcrypto.lib
 ### Example
 
 ```tl
-samooham adhi;
-
-dhimpu "fmt";
+@fmt = #dhimpu("std/fmt");
 
 #prarambham() {
     // HTTPS request - automatically uses TLS

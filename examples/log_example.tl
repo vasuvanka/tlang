@@ -1,9 +1,9 @@
 // log library example
 // Demonstrates structured logging with different levels
 
-dhimpu "fmt" as fmt;
-dhimpu "log" as log;
-dhimpu "io" as io;
+@fmt = #dhimpu("std/fmt");
+@log = #dhimpu("std/log");
+@io = #dhimpu("std/io");
 
 #prarambham() {
     fmt.Printf("=== log Library Examples ===\n\n");

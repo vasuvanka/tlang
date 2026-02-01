@@ -265,10 +265,14 @@ if ! command -v openssl &> /dev/null && [ -z "$BUNDLED_OPENSSL" ]; then
         echo "  - Arch: sudo pacman -S openssl pkg-config"
         echo "  - macOS: brew install openssl pkg-config"
         echo ""
-        read -p "Continue anyway? (y/n) " -n 1 -r
-        echo
-        if [[ ! $REPLY =~ ^[Yy]$ ]]; then
-            exit 1
+        if [ -n "$TLANG_NONINTERACTIVE" ]; then
+            echo "Non-interactive mode: continuing (install may fail without OpenSSL)."
+        else
+            read -p "Continue anyway? (y/n) " -n 1 -r
+            echo
+            if [[ ! $REPLY =~ ^[Yy]$ ]]; then
+                exit 1
+            fi
         fi
     fi
 else

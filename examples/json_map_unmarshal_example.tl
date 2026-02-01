@@ -1,8 +1,8 @@
 // JSON Map Unmarshal Example
 // Demonstrates unmarshaling JSON objects into maps
 
-dhimpu "fmt" as fmt;
-dhimpu "json" as json;
+@fmt = #dhimpu("std/fmt");
+@json = #dhimpu("std/json");
 
 #prarambham() {
     fmt.Printf("=== JSON Map Unmarshal Examples ===\n\n");

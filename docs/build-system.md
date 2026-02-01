@@ -118,7 +118,7 @@ tlang build
 
 ## Project Configuration (`config.toml`)
 
-The project manifest file is `config.toml` located in the project root.
+The project manifest file is `config.toml` located in the project root. The build system reads it for **dependency resolution** and for the **entry point** (`entry_file`); if `entry_file` is not set, it auto-detects `prarambham.tl`, `main.tl`, or `{package_name}.tl`. For a full example see `examples/config.toml.example`.
 
 Example `config.toml`:
 

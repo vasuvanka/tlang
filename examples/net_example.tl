@@ -1,8 +1,8 @@
 // Network Utilities Example
 // Demonstrates DNS resolution and socket operations
 
-dhimpu "fmt" as fmt;
-dhimpu "net" as net;
+@fmt = #dhimpu("std/fmt");
+@net = #dhimpu("std/net");
 
 #prarambham() {
     fmt.Printf("=== Network Utilities Examples ===\n\n");

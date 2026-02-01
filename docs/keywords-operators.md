@@ -1,8 +1,8 @@
 # Keywords and Operators Reference
 
-Complete reference for all Tlang keywords and operators.
+**For the keyword list and usage (aligned with lexer/parser), see [Reserved Keywords](reserved-keywords.md).** This document focuses on **operators** and **mutable variables** (`@!`).
 
-## Keywords
+## Keywords (summary — see reserved-keywords.md for full list)
 
 ### Variable Declaration
 
@@ -200,7 +200,7 @@ malli {
     }
 }
 
-// Range-based loop
+// For loop over map only (varasa — key, or key and value)
 malli key := varasa map {
     // statements
 }
@@ -250,8 +250,8 @@ mallinchu errors.New("error message");  // Return error
 
 ```tl
 mallinchu errors.New("error message");  // Return error
-@err error = thappu "something went wrong";
-thappu err okavela {  // Check for error
+@err error = errors.New("something went wrong");
+okavela err != sunyam {  // Check for error
     // Handle error
 }
 ```
@@ -320,27 +320,13 @@ nirmanam Person {
 @m jatha[string]int;
 ```
 
-**`interface`** - Interface type
+### Import
+
+Use **`@variable = #dhimpu("path")`** (no explicit package keyword). See [Packages](packages.md) and [Reserved Keywords](reserved-keywords.md).
 
 ```tl
-interface Writer {
-    #Write(data string);
-}
-```
-
-### Packages
-
-**`samooham`** - Package declaration (Telugu for "package")
-
-```tl
-samooham adhi;
-```
-
-**`dhimpu`** - Import statement (Telugu for "import")
-
-```tl
-dhimpu "fmt";
-dhimpu "strings";
+@fmt = #dhimpu("std/fmt");
+@strings = #dhimpu("std/strings");
 ```
 
 ## Operators
@@ -352,7 +338,7 @@ dhimpu "strings";
 | `&` | Immutable borrow | `@ref = &value` |
 | `&mut` | Mutable borrow | `@ref = &mut value` |
 | `*` | Dereference | `@copy = *ref` |
-| `jarugu` | Explicit ownership transfer | `@new = jarugu old` |
+| `<-` | Move / ownership transfer | `@new = <- old` (replaces former `jarugu` keyword) |
 
 **Immutable Borrow (`&`)** - Create a read-only reference
 
@@ -378,13 +364,15 @@ fmt.Printf("Value: %d\n", *ref);
 @copy int = *ref;  // Dereference to get value
 ```
 
-**Jarugu (`jarugu`)** - Explicitly transfer ownership
+**Move (`<-`)** - Explicitly transfer ownership
 
 ```tl
 @original string = "hello";
-@moved string = jarugu original;
+@moved string = <- original;
 // original is no longer valid
 ```
+
+Use `<-` for move; the `jarugu` keyword was replaced by `<-`.
 
 ### Arithmetic Operators
 
@@ -514,16 +502,16 @@ Operators are evaluated in the following order (highest to lowest):
 /* Single line comment */
 ```
 
-## Reserved Words
+## Reserved words
 
-The following are reserved and cannot be used as identifiers:
+For the full list and usage, see **[Reserved Keywords](reserved-keywords.md)** (matches lexer/parser).
 
-- Keywords: `@`, `#`, `okavela`, `lekapothe`, `malli`, `mallinchu`, `agu`, `konasagu`, `nirmanam`, `jatha`, `samooham`, `dhimpu`
-- Type names: `int`, `float`, `string`, `bool`, `void`
-- Literals: `true`, `false`
-- Library names: `fmt`, `strings`, `math`, `io`, etc.
+- **Lexer keywords:** okavela, lekapothe, malli, mallinchu, agu, konasagu, nirmanam, jatha, sunyam; types: int, float, string, bool, error. Move: `<-` (replaced `jarugu`).
+- **Declaration symbols:** `@`, `@!`, `#`. No explicit package or alias keyword.
+- **Special identifiers:** prarambham (entry), varasa (range loop); true, false (boolean literals).
 
-## See Also
+## See also
 
-- [Language Reference](language-reference.md) - Complete syntax reference
-- [Tutorial](tutorial.md) - Learning guide
+- [Reserved Keywords](reserved-keywords.md) — keyword list and usage (canonical)
+- [Language Reference](language-reference.md) — complete syntax
+- [Tutorial](tutorial.md) — learning guide

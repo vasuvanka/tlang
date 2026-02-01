@@ -1,6 +1,6 @@
 // Default values example - variables initialize with defaults if no value provided
 
-dhimpu "fmt" as fmt;
+@fmt = #dhimpu("std/fmt");
 
 #prarambham() {
     fmt.Printf("=== Default Values Example ===\n\n");

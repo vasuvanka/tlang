@@ -1,9 +1,9 @@
 // Documentation generation example
 // Demonstrates doc library
 
-dhimpu "fmt" as fmt;
-dhimpu "io" as io;
-dhimpu "doc" as doc;
+@fmt = #dhimpu("std/fmt");
+@io = #dhimpu("std/io");
+@doc = #dhimpu("std/doc");
 
 /* 
  * This is a multi-line comment

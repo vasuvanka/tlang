@@ -120,7 +120,7 @@ nirmanam Person {
     // Output: {"name":"Alice","age":30,"email":"alice@example.com"}
     
     // Also works with pointers
-    @personPtr Person* = kotha Person;
+    @personPtr *Person = Person{};
     personPtr.name = "Bob";
     @json2 string = json.Marshal(personPtr);  // Works with pointers too!
 }
@@ -133,7 +133,7 @@ nirmanam Person {
     @json string = "{\"name\": \"Bob\", \"age\": 25, \"email\": \"bob@example.com\"}";
     
     // Automatic deserialization - just call the generated function!
-    @person Person* = json_unmarshal_person(json);
+    @person *Person = json_unmarshal_person(json);
     okavela person != sunyam {
         fmt.Printf("Name: %s\n", person.name);
         fmt.Printf("Age: %d\n", person.age);
@@ -198,7 +198,7 @@ nirmanam Person {
     
     // Deserialize
     @jsonInput string = "{\"name\": \"Bob\", \"address\": {\"street\": \"456 Oak Ave\", \"city\": \"Boston\", \"zip\": 02101}}";
-    @person2 Person* = json_unmarshal_person(jsonInput);
+    @person2 *Person = json_unmarshal_person(jsonInput);
     okavela person2 != sunyam {
         fmt.Printf("City: %s\n", person2.address.city);  // Nested access!
         free(person2.name);
@@ -236,7 +236,7 @@ When deserializing, missing fields default to zero values:
 
 ```tl
 @json string = "{\"name\": \"Alice\"}";  // Missing age and email
-@person Person* = json_unmarshal_person(json);
+@person *Person = json_unmarshal_person(json);
 // person.age = 0 (default)
 // person.email = NULL (default)
 ```
@@ -246,7 +246,7 @@ When deserializing, missing fields default to zero values:
 ⚠️ **Important**: When you unmarshal a struct, you must free all string fields and the struct itself:
 
 ```tl
-@person Person* = json_unmarshal_person(json);
+@person *Person = json_unmarshal_person(json);
 okavela person != sunyam {
     // Use person...
     
@@ -262,8 +262,8 @@ okavela person != sunyam {
 ## Complete Example
 
 ```tl
-dhimpu "fmt" as fmt;
-dhimpu "json" as json;
+@fmt = #dhimpu("std/fmt");
+@json = #dhimpu("std/json");
 
 nirmanam Person {
     name string;
@@ -282,12 +282,12 @@ nirmanam Person {
     fmt.Printf("Serialized: %s\n", json);
     
     // Also works with pointers
-    @personPtr Person* = kotha Person;
+    @personPtr *Person = Person{};
     personPtr.name = "Bob";
     @json2 string = json.Marshal(personPtr);  // Works with pointers too!
     
     // 2. Deserialize (JSON → Struct)
-    @person2 Person* = json_unmarshal_person(json);
+    @person2 *Person = json_unmarshal_person(json);
     okavela person2 != sunyam {
         fmt.Printf("Deserialized:\n");
         fmt.Printf("  Name: %s\n", person2.name);
@@ -329,7 +329,7 @@ For each struct `Person`, the compiler generates:
 
 1. **Always check for NULL** after unmarshaling:
    ```tl
-   @person Person* = json_unmarshal_person(json);
+   @person *Person = json_unmarshal_person(json);
    okavela person == sunyam {
        fmt.Printf("Failed to unmarshal\n");
        mallinchu;

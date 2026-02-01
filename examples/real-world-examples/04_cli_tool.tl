@@ -1,10 +1,10 @@
 // Real-World Example 4: CLI Tool
 // A command-line utility with subcommands and options
 
-dhimpu "fmt" as fmt;
-dhimpu "args" as args;
-dhimpu "strings" as strings;
-dhimpu "io" as io;
+@fmt = #dhimpu("std/fmt");
+@args = #dhimpu("std/args");
+@strings = #dhimpu("std/strings");
+@io = #dhimpu("std/io");
 
 // Show help message
 #showHelp(programName string) {

@@ -319,7 +319,7 @@ fn init_project(project_root: &PathBuf, app_name: Option<&str>) -> Result<(), Co
     // Create prarambham.tl in src directory
     let entry_file_path = "src/prarambham.tl";
     let prarambham_file = project_root.join(entry_file_path);
-    let prarambham_content = "dhimpu \"fmt\" as fmt;\n\n#prarambham() {{\n    fmt.Printf(\"Hello, World!\\n\");\n}}\n".to_string();
+    let prarambham_content = "@fmt = #dhimpu(\"fmt\");\n\n#prarambham() {{\n    fmt.Printf(\"Hello, World!\\n\");\n}}\n".to_string();
     fs::write(&prarambham_file, prarambham_content).map_err(|e| {
         CompileError::codegen(format!("Failed to write {}: {}", entry_file_path, e), None)
     })?;

@@ -39,8 +39,8 @@ tlang-port ./go-package
 
 | Go | Tlang | Example |
 |----|-------|---------|
-| `package` | `samooham` | `package main` → `samooham adhi;` |
-| `import` | `dhimpu` | `import "fmt"` → `dhimpu "fmt";` |
+| `package` | (none) | No package keyword; omit. |
+| `import` | `@variable = #dhimpu("path")` | `import "fmt"` → `@fmt = #dhimpu("std/fmt");` |
 | `func` | `#` | `func add()` → `#add()` |
 | `func main()` | `#prarambham()` | `func main()` → `#prarambham()` |
 | `var` | `@` | `var x int` → `@x int` |
@@ -127,9 +127,7 @@ func main() {
 
 **Converted Tlang (`main.tl`):**
 ```tl
-samooham adhi;
-
-dhimpu "fmt";
+@fmt = #dhimpu("std/fmt");
 
 #prarambham() {
     @x int = 10;

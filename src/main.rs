@@ -170,11 +170,20 @@ fn main() {
         
         println!("Compiling C to binary using {}...", compiler);
         
-        // Compile C to binary
         let mut cmd = Command::new(&compiler);
+        let is_gcc_or_clang = compiler == "gcc" || compiler == "clang";
+        if is_gcc_or_clang {
+            cmd.arg("-Os");   // Optimize for size
+            cmd.arg("-s");    // Strip symbols (smaller binary)
+            // Static link for zero runtime deps. Skip on macOS (limited) and Windows (MinGW often lacks static CRT).
+            if !cfg!(target_os = "macos") && !cfg!(windows) {
+                cmd.arg("-static");
+            }
+            // On Windows MinGW, -static-libgcc/-static-libstdc++ can fail; use dynamic link by default.
+        }
         cmd.arg("-o").arg(&binary_path);
         cmd.arg(&output_c_file);
-        cmd.arg("-lm"); // Math library
+        cmd.arg("-lm");   // Math library
         
         if cfg!(windows) {
             cmd.arg("-lws2_32");
@@ -210,8 +219,23 @@ fn main() {
                     // fs::remove_file(&output_c_file).ok(); // Uncomment to auto-delete .c file
                 } else {
                     let stderr = String::from_utf8_lossy(&output.stderr);
+                    let stdout = String::from_utf8_lossy(&output.stdout);
                     eprintln!("✗ C compilation failed:");
-                    eprintln!("{}", stderr);
+                    if !stderr.is_empty() {
+                        eprintln!("{}", stderr);
+                    }
+                    if !stdout.is_empty() {
+                        eprintln!("{}", stdout);
+                    }
+                    if stderr.is_empty() && stdout.is_empty() {
+                        eprintln!("(Compiler produced no message.)");
+                        eprintln!("Try building manually: {} -o {} {} -lm{}",
+                            compiler,
+                            binary_path,
+                            output_c_file,
+                            if cfg!(windows) { " -lws2_32" } else { "" }
+                        );
+                    }
                     // Get absolute path for error message
                     let absolute_c_path = match std::fs::canonicalize(&output_c_file) {
                         Ok(path) => path.display().to_string(),

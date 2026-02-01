@@ -1,7 +1,7 @@
 // Test cases for math library
 
-dhimpu "fmt" as fmt;
-dhimpu "math" as math;
+@fmt = #dhimpu("std/fmt");
+@math = #dhimpu("std/math");
 
 #prarambham() {
     fmt.Printf("=== math Library Tests ===\n");

@@ -1,8 +1,8 @@
 // HTTP Advanced Features Example
 // Demonstrates PUT, DELETE, custom headers, and redirects
 
-dhimpu "fmt" as fmt;
-dhimpu "http" as http;
+@fmt = #dhimpu("std/fmt");
+@http = #dhimpu("std/http");
 
 #prarambham() {
     fmt.Printf("=== HTTP Advanced Features Examples ===\n\n");
@@ -108,7 +108,7 @@ dhimpu "http" as http;
 //     5 | 
 //       |                           ^    
 // C:\Users\vanka\github.com\vasuvanka\tlang\examples\http_advanced_example.tl:6:5: error: 'name' undeclared (first use in this function); did you mean 'tzname'?
-//     6 | dhimpu "fmt" as fmt;
+//     6 | @fmt = #dhimpu("std/fmt");
 //       |     ^~~~
 //       |     tzname
 // C:\Users\vanka\github.com\vasuvanka\tlang\examples\http_advanced_example.tl:6:5: note: each undeclared identifier is reported only once for each function it appears in

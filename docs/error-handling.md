@@ -1,6 +1,6 @@
 # Error Handling
 
-Tlang provides clear error messages and stack traces to help debug issues. Tlang also supports runtime error handling similar to Go, using `thappu` (error) and `sunyam` (nil).
+Tlang provides clear error messages and stack traces to help debug issues. Runtime error handling uses the **`error`** type and **`sunyam`** (nil): use `errors.New("msg")` and `okavela err != sunyam { ... }` (no `thappu` keyword in lexer).
 
 ## Compile-Time Errors
 

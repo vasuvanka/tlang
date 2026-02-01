@@ -19,19 +19,26 @@ binary_name = "myapp"
 # Entry point file (optional - defaults to auto-detect: prarambham.tl, main.tl, or {package_name}.tl)
 entry_file = "src/main.tl"
 
-# Static linking: creates standalone binary (compile once, run anywhere)
+# Static linking: zero runtime dependencies (compile once, run anywhere)
+# See docs/zero-deps-cross-deploy.md for cross-compile (Linux↔Windows) and deployable images
 static_link = true
 
 # Optimization level: "none", "size", or "speed"
+# Use "size" for IoT / microcontrollers to minimize binary size
 optimize = "speed"
 
 # Include debug symbols (for GDB/LLDB debugging)
 debug = false
 
-# Additional compiler flags
+# Cross-compile: use a cross C compiler (e.g. x86_64-w64-mingw32-gcc for Windows from Linux/macOS;
+# clang -target x86_64-apple-darwin for macOS from Linux/Windows). Not yet built-in; generate C
+# then run the cross-compiler manually. See docs/zero-deps-cross-deploy.md
+
+# Additional compiler/linker flags (for smallest IoT binaries, add):
+#   compiler_flags = ["-Os", "-ffunction-sections", "-fdata-sections", "-Wall"]
+#   linker_flags = ["-Wl,--gc-sections", "-s"]
 compiler_flags = ["-Wall", "-Wextra"]
 
-# Additional linker flags
 linker_flags = []
 
 # Dependencies (direct dependencies)

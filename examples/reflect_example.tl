@@ -1,8 +1,8 @@
 // Reflection example
 // Demonstrates reflect library for runtime type information
 
-dhimpu "fmt" as fmt;
-dhimpu "reflect" as reflect;
+@fmt = #dhimpu("std/fmt");
+@reflect = #dhimpu("std/reflect");
 
 #prarambham() {
     fmt.Printf("=== Reflection Examples ===\n\n");

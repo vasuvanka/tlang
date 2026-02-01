@@ -36,7 +36,17 @@ brew install openssl pkg-config
 
 ## Linux/Unix Installation
 
-### Quick Install
+### One-line install (curl, no clone)
+
+Install without cloning the repo (Linux, macOS, WSL). Prerequisites: Rust, C compiler, OpenSSL dev libs (see [Installing Prerequisites](#installing-prerequisites)). Uses HTTPS and TLS 1.2; you can inspect the script at the URL before running.
+
+```bash
+curl --proto '=https' --tlsv1.2 -sSf https://raw.githubusercontent.com/vasuvanka/tlang/main/install-curl.sh | sh
+```
+
+Then add to PATH if needed: `export PATH="$PATH:$HOME/.local/bin"`. Verify: `tlang --version` or `tlangc --version`. **Windows:** use [Windows Installation](#windows-installation) (install.ps1 or cargo); curl install is for Linux/macOS/WSL only.
+
+### Quick Install (clone then script)
 
 ```bash
 # Clone the repository
@@ -193,6 +203,8 @@ The installation script will attempt to install OpenSSL automatically on Linux/U
 
 ## Building from Source
 
+You can install the toolchain using only Cargo, without running the install scripts:
+
 ```bash
 # Clone repository
 git clone https://github.com/vasuvanka/tlang.git
@@ -201,5 +213,7 @@ cd tlang
 # Build
 cargo build --release
 
-# Binary will be at: target/release/tlangc (Linux) or target/release/tlangc.exe (Windows)
+# Binary will be at: target/release/tlangc (Linux/macOS) or target/release/tlangc.exe (Windows)
 ```
+
+You can run the compiler from that path (e.g. `./target/release/tlangc --version`). Optionally, copy the binary to a directory in your PATH or run the install script (see [Manual Installation](#manual-installation) above).

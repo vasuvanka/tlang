@@ -1,8 +1,8 @@
 // net/url library example
 // Demonstrates network URL utilities
 
-dhimpu "fmt" as fmt;
-dhimpu "neturl" as neturl;
+@fmt = #dhimpu("std/fmt");
+@neturl = #dhimpu("std/neturl");
 
 #prarambham() {
     fmt.Printf("=== net/url Library Examples ===\n\n");

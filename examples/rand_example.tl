@@ -1,9 +1,9 @@
 // rand library example
 // Demonstrates random number generation, UUID, and random strings
 
-dhimpu "fmt" as fmt;
-dhimpu "rand" as rand;
-dhimpu "strings" as strings;
+@fmt = #dhimpu("std/fmt");
+@rand = #dhimpu("std/rand");
+@strings = #dhimpu("std/strings");
 
 #prarambham() {
     fmt.Printf("=== rand Library Examples ===\n\n");

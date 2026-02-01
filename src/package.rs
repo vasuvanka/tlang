@@ -17,7 +17,7 @@ pub struct PackageInfo {
 
 /// Package resolver - handles finding and loading packages.
 ///
-/// **Recommended:** Use `dhimpu "path" as alias` so calls are explicit (`alias.Symbol`)
+/// **Recommended:** Use `@alias = #dhimpu("path")` so calls are explicit (`alias.Symbol`)
 /// and there are no name clashes when multiple packages export the same name.
 pub struct PackageResolver {
     packages: HashMap<String, PackageInfo>,
@@ -48,8 +48,13 @@ impl PackageResolver {
         search_paths.push(current_dir.clone());
         search_paths.push(PathBuf::from("."));
         
-        // Add standard library path (if exists)
+        // Add standard library path: libs/std/<package> (if exists)
         if let Ok(cargo_manifest) = std::env::var("CARGO_MANIFEST_DIR") {
+            let std_path = PathBuf::from(&cargo_manifest).join("libs").join("std");
+            if std_path.exists() {
+                search_paths.push(std_path);
+            }
+            // Legacy: stdlib at repo root (if present)
             let stdlib_path = PathBuf::from(cargo_manifest).join("stdlib");
             if stdlib_path.exists() {
                 search_paths.push(stdlib_path);
@@ -68,35 +73,58 @@ impl PackageResolver {
         self.search_paths.push(path);
     }
     
-    /// Check if import is a built-in standard library
+    /// Standard library package names (under std/ in import path).
+    pub const STDLIB_NAMES: &[&str] = &[
+        "fmt", "strings", "strconv", "math", "os", "io", "filepath", "time",
+        "regexp", "rand", "log", "testing", "args", "flag", "bytes", "sort",
+        "json", "unicode", "csv", "xml", "url", "neturl", "bufio", "benchmark",
+        "doc", "reflect", "crypto", "hex", "base64", "http", "errors", "net", "protobuf",
+    ];
+
+    /// Check if import is a built-in standard library. Use `std/<name>` in source (e.g. `#dhimpu("std/fmt")`).
     pub fn is_builtin_library(&self, import_path: &str) -> bool {
-        // Built-in libraries that don't need file resolution
-        let builtin_libs = [
-            "fmt", "strings", "strconv", "math", "os", "io", "filepath", "time",
-            "regexp", "rand", "log", "testing", "args", "flag", "bytes", "sort",
-            "json", "unicode", "csv", "xml", "url", "neturl", "bufio", "benchmark",
-            "doc", "reflect", "crypto", "hex", "base64", "http", "errors", "net",
-        ];
-        builtin_libs.contains(&import_path)
+        if let Some(name) = import_path.strip_prefix("std/") {
+            return Self::STDLIB_NAMES.contains(&name);
+        }
+        false
+    }
+
+    /// Return the short package name for an import path (e.g. "std/fmt" -> "fmt").
+    pub fn stdlib_short_name(import_path: &str) -> &str {
+        import_path.strip_prefix("std/").unwrap_or(import_path)
     }
     
     /// Resolve import path to file path
     fn resolve_import_path(&self, import_path: &str) -> Result<PathBuf, String> {
-        // Handle built-in standard library imports (e.g., "fmt", "math")
+        // Handle built-in standard library imports: std/<name> (e.g. "std/fmt", "std/math")
         if self.is_builtin_library(import_path) {
             return Err(format!("Built-in library '{}' (no file resolution needed)", import_path));
         }
+
+        // Handle std/<name> file resolution (libs/std/<name>/mod.tl or libs/std/<name>.tl)
+        if let Some(name) = import_path.strip_prefix("std/") {
+            for search_path in &self.search_paths {
+                let mod_path = search_path.join(name).join("mod.tl");
+                if mod_path.exists() {
+                    return Ok(mod_path);
+                }
+                let file_path = search_path.join(format!("{}.tl", name));
+                if file_path.exists() {
+                    return Ok(file_path);
+                }
+            }
+            return Err(format!("Package '{}' not found (expected under libs/std/<package>)", import_path));
+        }
         
-        // Handle standard library imports in stdlib directory
+        // Handle other non-relative package names (look in stdlib directory for legacy)
         if !import_path.contains('/') && !import_path.contains('\\') && !import_path.starts_with('.') {
-            // Look in stdlib directory
             for search_path in &self.search_paths {
                 let stdlib_path = search_path.join("stdlib").join(format!("{}.tl", import_path));
                 if stdlib_path.exists() {
                     return Ok(stdlib_path);
                 }
             }
-            return Err(format!("Package '{}' not found", import_path));
+            return Err(format!("Package '{}' not found (use std/<name> for standard library, e.g. #dhimpu(\"std/fmt\"))", import_path));
         }
         
         // Handle relative imports (e.g., "./utils", "../common")
@@ -142,8 +170,9 @@ impl PackageResolver {
             Err(e) => {
                 // If it's a built-in library, create a placeholder (no functions to import)
                 if e.contains("Built-in library") {
+                    let short_name = Self::stdlib_short_name(import_path).to_string();
                     return Ok(PackageInfo {
-                        name: import_path.to_string(),
+                        name: short_name,
                         path: PathBuf::from(import_path),
                         program: Program {
                             imports: Vec::new(),
@@ -201,14 +230,6 @@ impl PackageResolver {
                     }
                     Stmt::StructDef { name, .. } => {
                         // Only export structs with uppercase first letter
-                        if Self::is_exported(&name) {
-                            Some(name.clone())
-                        } else {
-                            None
-                        }
-                    }
-                    Stmt::InterfaceDef { name, .. } => {
-                        // Only export interfaces with uppercase first letter
                         if Self::is_exported(&name) {
                             Some(name.clone())
                         } else {
@@ -285,8 +306,7 @@ impl PackageResolver {
                          \n\
                          To fix this:\n\
                          1. Extract shared code into a separate package\n\
-                         2. Use interfaces to break the dependency\n\
-                         3. Restructure your packages to avoid the cycle",
+                         2. Restructure your packages to avoid the cycle",
                         chain_display,
                         loading_stack.last().unwrap_or(&"<root>".to_string()),
                         import_path,

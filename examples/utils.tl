@@ -1,6 +1,6 @@
 // utils.tl - Example utility package
 
-dhimpu "fmt" as fmt;
+@fmt = #dhimpu("std/fmt");
 
 // Utility function to calculate sum of array
 #sum(numbers []int) int {

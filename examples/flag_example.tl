@@ -1,8 +1,8 @@
 // flag library example
 // Demonstrates command-line flag parsing
 
-dhimpu "fmt" as fmt;
-dhimpu "flag" as flag;
+@fmt = #dhimpu("std/fmt");
+@flag = #dhimpu("std/flag");
 
 #prarambham() {
     fmt.Printf("=== flag Library Examples ===\n\n");

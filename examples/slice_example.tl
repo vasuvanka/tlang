@@ -1,6 +1,6 @@
 // Slice examples - Variable-size arrays (slices) in Tlang
 
-dhimpu "fmt" as fmt;
+@fmt = #dhimpu("std/fmt");
 
 #prarambham() {
     fmt.Printf("=== Slice Examples ===\n\n");

@@ -1,7 +1,7 @@
 // Type conversion examples
 // Demonstrates Go-style type conversion: int(x), float(x), string(x), bool(x)
 
-dhimpu "fmt" as fmt;
+@fmt = #dhimpu("std/fmt");
 
 #prarambham() {
     fmt.Printf("=== Type Conversion Examples ===\n\n");

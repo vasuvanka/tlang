@@ -1,7 +1,7 @@
 // Factorial calculation example - Go-style
 // Demonstrates functions with explicit types
 
-dhimpu "fmt" as fmt;
+@fmt = #dhimpu("std/fmt");
 
 #factorial(n int) int {
     okavela n <= 1 {

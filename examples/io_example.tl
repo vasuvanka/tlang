@@ -1,7 +1,7 @@
 // io library example
 
-dhimpu "fmt" as fmt;
-dhimpu "io" as io;
+@fmt = #dhimpu("std/fmt");
+@io = #dhimpu("std/io");
 
 #prarambham() {
     // Write a file

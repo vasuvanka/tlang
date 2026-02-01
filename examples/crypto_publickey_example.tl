@@ -1,9 +1,9 @@
 // crypto public key cryptography example
 // Demonstrates RSA, ECDSA/ECC, and Argon2
 
-dhimpu "fmt" as fmt;
-dhimpu "crypto" as crypto;
-dhimpu "strings" as strings;
+@fmt = #dhimpu("std/fmt");
+@crypto = #dhimpu("std/crypto");
+@strings = #dhimpu("std/strings");
 
 #prarambham() {
     fmt.Printf("=== Public Key Cryptography Examples ===\n\n");
@@ -172,10 +172,10 @@ dhimpu "strings" as strings;
 //       |                            ^            
 // C:\Users\vanka\github.com\vasuvanka\tlang\examples\crypto_publickey_example.tl:5:28: error: initialization of 'const char *' from 'int' makes pointer from integer without a cast [-Wint-conversion]
 // C:\Users\vanka\github.com\vasuvanka\tlang\examples\crypto_publickey_example.tl:6:33: error: initialization of 'const char *' from 'char' makes pointer from integer without a cast [-Wint-conversion]
-//     6 | dhimpu "fmt" as fmt;
+//     6 | @fmt = #dhimpu("std/fmt");
 //       |                                 ^       
 // C:\Users\vanka\github.com\vasuvanka\tlang\examples\crypto_publickey_example.tl:7:32: error: initialization of 'const char *' from 'char' makes pointer from integer without a cast [-Wint-conversion]
-//     7 | dhimpu "crypto" as crypto;
+//     7 | @crypto = #dhimpu("std/crypto");
 //       |                                ^       
 // C:\Users\vanka\github.com\vasuvanka\tlang\examples\crypto_publickey_example.tl:32:31: error: initialization of 'const char *' from 'int' makes pointer from integer without a cast [-Wint-conversion]
 //    32 | 

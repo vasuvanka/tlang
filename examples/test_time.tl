@@ -1,7 +1,7 @@
 // Test cases for time library
 
-dhimpu "fmt" as fmt;
-dhimpu "time" as time;
+@fmt = #dhimpu("std/fmt");
+@time = #dhimpu("std/time");
 
 #prarambham() {
     fmt.Printf("=== time Library Tests ===\n");

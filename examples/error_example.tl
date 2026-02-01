@@ -1,8 +1,8 @@
 // Error handling example
 // Demonstrates error type and sunyam (nil). Use errors.New() to create errors; check with okavela err != sunyam.
 
-dhimpu "fmt" as fmt;
-dhimpu "errors" as errors;
+@fmt = #dhimpu("std/fmt");
+@errors = #dhimpu("std/errors");
 
 #divide(a int, b int) error {
     okavela b == 0 {

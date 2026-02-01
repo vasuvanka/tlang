@@ -1,7 +1,7 @@
 // Test cases for strings library
 
-dhimpu "fmt" as fmt;
-dhimpu "strings" as strings;
+@fmt = #dhimpu("std/fmt");
+@strings = #dhimpu("std/strings");
 
 #prarambham() {
     fmt.Printf("=== strings Library Tests ===\n");

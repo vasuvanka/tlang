@@ -1,10 +1,10 @@
 // Standard Library Examples
 // Function names use dot notation (e.g., fmt.Printf, math.Sqrt)
 
-dhimpu "fmt" as fmt;
-dhimpu "strings" as strings;
-dhimpu "math" as math;
-dhimpu "strconv" as strconv;
+@fmt = #dhimpu("std/fmt");
+@strings = #dhimpu("std/strings");
+@math = #dhimpu("std/math");
+@strconv = #dhimpu("std/strconv");
 
 #prarambham() {
     // fmt library

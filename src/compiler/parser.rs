@@ -124,17 +124,22 @@ impl Parser {
                 continue;
             }
             
-            // Handle import statements (must come before other statements)
-            if matches!(self.current_token, Token::Dhimpu) {
-                let import_stmt = self.parse_dhimpu()?;
+            // Handle import: #dhimpu("path") or @alias = #dhimpu("path")
+            if matches!(&self.current_token, Token::HashIdentifier(s) if s == "dhimpu") {
+                let import_stmt = self.parse_import_dhimpu()?;
                 if let Stmt::Import { path, alias } = import_stmt {
                     imports.push(crate::ast::ImportInfo { path, alias });
                 }
                 continue;
             }
             
-            // All other statements
-            statements.push(self.parse_statement()?);
+            // All other statements (may return Import for @alias = #dhimpu("path"))
+            let stmt = self.parse_statement()?;
+            if let Stmt::Import { path, alias } = stmt {
+                imports.push(crate::ast::ImportInfo { path, alias });
+            } else {
+                statements.push(stmt);
+            }
         }
         
         Ok(Program {
@@ -146,6 +151,7 @@ impl Parser {
     fn parse_statement(&mut self) -> CompileResult<Stmt> {
         match &self.current_token {
             Token::AtIdentifier(_) | Token::AtMutIdentifier(_) => self.parse_variable_decl(),
+            Token::HashIdentifier(name) if name == "dhimpu" => self.parse_import_dhimpu(),
             Token::HashIdentifier(_) => self.parse_function(),
             Token::Okavela => self.parse_if(),
             Token::Malli => self.parse_for(),
@@ -164,9 +170,7 @@ impl Parser {
                 }
                 Ok(Stmt::Continue)
             }
-            Token::Dhimpu => self.parse_dhimpu(),
             Token::Nirmanam => self.parse_struct_def(),
-            Token::Interface => self.parse_interface_def(),
             Token::LeftBrace => self.parse_block(),
             _ => {
                 let expr = self.parse_expression()?;
@@ -178,8 +182,22 @@ impl Parser {
         }
     }
     
-    /// Parse a type. When allow_interface_any is true, interface{} is allowed (for map value types only).
-    fn parse_type(&mut self, allow_interface_any: bool) -> CompileResult<crate::ast::Type> {
+    /// Parse a type. When allow_any is true, nirmanam{} is allowed (for map value types only).
+    fn parse_type(&mut self, allow_any: bool) -> CompileResult<crate::ast::Type> {
+        // Check for nirmanam{} (any type) - only in map value: jatha[string]nirmanam{}
+        if matches!(self.current_token, Token::Nirmanam) {
+            self.advance(); // Skip nirmanam
+            if matches!(self.current_token, Token::LeftBrace) {
+                if !allow_any {
+                    return Err(self.error("nirmanam{} can only be used in map value type (e.g. jatha[string]nirmanam{})".to_string()));
+                }
+                self.advance(); // Skip {
+                self.expect(Token::RightBrace)?; // Skip }
+                return Ok(crate::ast::Type::Any);
+            }
+            return Err(self.error("Expected {} after nirmanam for any type (e.g. jatha[string]nirmanam{})".to_string()));
+        }
+        
         // Check for tuple type: (type1, type2, ...)
         if matches!(self.current_token, Token::LeftParen) {
             self.advance(); // Skip (
@@ -211,7 +229,7 @@ impl Parser {
             self.expect(Token::LeftBracket)?;
             let key_type = Box::new(self.parse_type(false)?);
             self.expect(Token::RightBracket)?;
-            let value_type = Box::new(self.parse_type(true)?); // interface{} allowed as map value type
+            let value_type = Box::new(self.parse_type(true)?); // nirmanam{} allowed as map value type
             return Ok(crate::ast::Type::Map {
                 key_type,
                 value_type,
@@ -251,27 +269,6 @@ impl Parser {
             return Ok(crate::ast::Type::Pointer(Box::new(base_type)));
         }
         
-        // Check for interface type: interface{} (any/unknown, only in map value) or interface Name (named interface)
-        if matches!(self.current_token, Token::Interface) {
-            self.advance(); // Skip interface
-            if matches!(self.current_token, Token::LeftBrace) {
-                if !allow_interface_any {
-                    return Err(self.error("interface{} can only be used in map declarations (e.g. jatha[string]interface{})".to_string()));
-                }
-                self.advance(); // Skip {
-                self.expect(Token::RightBrace)?; // Skip }
-                return Ok(crate::ast::Type::Any);
-            }
-            if let Token::Identifier(name) = &self.current_token {
-                let type_name = name.clone();
-                self.advance();
-                return Ok(crate::ast::Type::Interface {
-                    name: type_name,
-                });
-            }
-            return Err(self.error("Expected '{}' for interface{} or interface name".to_string()));
-        }
-        
         let typ = match &self.current_token {
             Token::IntType => {
                 self.advance();
@@ -303,7 +300,7 @@ impl Parser {
                     name: type_name,
                 }
             }
-            _ => return Err(self.error("Expected type (int, float, string, bool, struct, interface, jatha[key]value, *type, or [N]type)".to_string())),
+            _ => return Err(self.error("Expected type (int, float, string, bool, struct, jatha[key]value, jatha[key]nirmanam{}, *type, or [N]type)".to_string())),
         };
         Ok(typ)
     }
@@ -336,9 +333,6 @@ impl Parser {
             }
         };
         
-        // Check for redeclaration - variables are immutable by default
-        self.declare_var(name.clone(), is_mutable)?;
-        
         // Go-style: var x int = 10 or var x = 10
         let type_annot = if matches!(self.current_token, Token::IntType) 
             || matches!(self.current_token, Token::FloatType)
@@ -355,10 +349,34 @@ impl Parser {
             None
         };
         
+        // @alias = #dhimpu("path") → import with alias
         let value = if matches!(self.current_token, Token::Assign) {
-            self.advance();
+            self.advance(); // skip =
+            if type_annot.is_none() {
+                if matches!(&self.current_token, Token::HashIdentifier(s) if s == "dhimpu") {
+                    self.advance(); // skip #dhimpu
+                    self.expect(Token::LeftParen)?;
+                    let path = match &self.current_token {
+                        Token::String(p) => { let x = p.clone(); self.advance(); x }
+                        Token::Identifier(p) => { let x = p.clone(); self.advance(); x }
+                        _ => {
+                            self.pop_context();
+                            return Err(self.error("Expected import path string in #dhimpu(\"path\") (e.g. @fmt = #dhimpu(\"fmt\"))".to_string()));
+                        }
+                    };
+                    self.expect(Token::RightParen)?;
+                    if matches!(self.current_token, Token::Semicolon) {
+                        self.advance();
+                    }
+                    self.pop_context();
+                    return Ok(Stmt::Import { path, alias: Some(name) });
+                }
+            }
+            // Not an import: declare var and parse RHS expression
+            self.declare_var(name.clone(), is_mutable)?;
             Some(self.parse_expression()?)
         } else {
+            self.declare_var(name.clone(), is_mutable)?;
             None
         };
         
@@ -638,10 +656,10 @@ impl Parser {
                 return Err(self.error("Expected 'mallinchu'".to_string()));
             }
         }
-        let value = if !matches!(self.current_token, Token::Semicolon) {
-            Some(self.parse_expression()?)
-        } else {
+        let value = if matches!(self.current_token, Token::Semicolon | Token::Newline | Token::RightBrace | Token::EOF) {
             None
+        } else {
+            Some(self.parse_expression()?)
         };
         if matches!(self.current_token, Token::Semicolon) {
             self.advance();
@@ -716,52 +734,24 @@ impl Parser {
         Ok(Stmt::Function { name, params, return_type, body, is_macro })
     }
     
-    fn parse_dhimpu(&mut self) -> CompileResult<Stmt> {
-        self.push_context("while parsing dhimpu (import)".to_string());
-        self.expect(Token::Dhimpu)?;
-        
+    fn parse_import_dhimpu(&mut self) -> CompileResult<Stmt> {
+        self.push_context("while parsing #dhimpu (import)".to_string());
+        self.advance(); // skip #dhimpu (caller verified HashIdentifier("dhimpu"))
+        self.expect(Token::LeftParen)?;
         let path = match &self.current_token {
-            Token::String(path) => {
-                let p = path.clone();
-                self.advance();
-                p
-            }
-            Token::Identifier(name) => {
-                let n = name.clone();
-                self.advance();
-                n
-            }
+            Token::String(p) => { let x = p.clone(); self.advance(); x }
+            Token::Identifier(p) => { let x = p.clone(); self.advance(); x }
             _ => {
                 self.pop_context();
-                return Err(self.error("Expected string or identifier after 'dhimpu'".to_string()));
+                return Err(self.error("Expected import path string in #dhimpu(\"path\")".to_string()));
             }
         };
-        
-        // Check for optional alias: dhimpu "path" as alias
-        let alias = if matches!(self.current_token, Token::As) {
-            self.advance(); // Skip "as"
-            let alias_name = match &self.current_token {
-                Token::Identifier(name) => {
-                    let n = name.clone();
-                    self.advance();
-                    Some(n)
-                }
-                _ => {
-                    self.pop_context();
-                    return Err(self.error("Expected alias name after 'as'".to_string()));
-                }
-            };
-            alias_name
-        } else {
-            None
-        };
-        
+        self.expect(Token::RightParen)?;
         if matches!(self.current_token, Token::Semicolon) {
             self.advance();
         }
-        
         self.pop_context();
-        Ok(Stmt::Import { path, alias })
+        Ok(Stmt::Import { path, alias: None })
     }
     
     fn parse_struct_def(&mut self) -> CompileResult<Stmt> {
@@ -784,6 +774,10 @@ impl Parser {
         
         let mut fields = Vec::new();
         while !matches!(self.current_token, Token::RightBrace) {
+            if matches!(self.current_token, Token::Newline) {
+                self.advance();
+                continue;
+            }
             let field_name = match &self.current_token {
                 Token::Identifier(name) => {
                     let n = name.clone();
@@ -836,117 +830,6 @@ impl Parser {
         
         self.pop_context();
         Ok(Stmt::StructDef { name, fields })
-    }
-    
-    fn parse_interface_def(&mut self) -> CompileResult<Stmt> {
-        self.push_context("while parsing interface definition".to_string());
-        self.expect(Token::Interface)?;
-        
-        let name = match &self.current_token {
-            Token::Identifier(name) => {
-                let n = name.clone();
-                self.advance();
-                n
-            }
-            _ => {
-                self.pop_context();
-                    return Err(self.error("Expected interface name after 'interface'".to_string()));
-            }
-        };
-        
-        self.expect(Token::LeftBrace)?;
-        
-        let mut methods = Vec::new();
-        let mut embedded = Vec::new();
-        
-        while !matches!(self.current_token, Token::RightBrace) {
-            // Check for interface embedding: interface EmbeddedInterface;
-            if matches!(self.current_token, Token::Interface) {
-                self.advance(); // Skip 'interface'
-                let embedded_name = match &self.current_token {
-                    Token::Identifier(name) => {
-                        let n = name.clone();
-                        self.advance();
-                        n
-                    }
-                    _ => {
-                        self.pop_context();
-                        return Err(self.error("Expected interface name after 'interface' in embedding".to_string()));
-                    }
-                };
-                embedded.push(embedded_name);
-                if matches!(self.current_token, Token::Semicolon) {
-                    self.advance();
-                }
-                continue;
-            }
-            // Parse method signature: MethodName(param1 type1, param2 type2) returnType
-            let method_name = match &self.current_token {
-                Token::Identifier(name) | Token::HashIdentifier(name) => {
-                    let n = name.clone();
-                    self.advance();
-                    n
-                }
-                _ => {
-                    self.pop_context();
-                        return Err(self.error("Expected method name in interface".to_string()));
-                }
-            };
-            
-            self.expect(Token::LeftParen)?;
-            
-            // Parse parameters
-            let mut params = Vec::new();
-            while !matches!(self.current_token, Token::RightParen) {
-                let param_name = match &self.current_token {
-                    Token::Identifier(name) => {
-                        let n = name.clone();
-                        self.advance();
-                        n
-                    }
-                    _ => {
-                        self.pop_context();
-                        return Err(self.error("Expected parameter name".to_string()));
-                    }
-                };
-                
-                let param_type = self.parse_type(false)?;
-                params.push((param_name, param_type));
-                
-                if matches!(self.current_token, Token::Comma) {
-                    self.advance();
-                }
-            }
-            
-            self.expect(Token::RightParen)?;
-            
-            // Parse return type (optional)
-            let return_type = if matches!(self.current_token, Token::IntType) 
-                || matches!(self.current_token, Token::FloatType)
-                || matches!(self.current_token, Token::StringType)
-                || matches!(self.current_token, Token::BoolType)
-                || matches!(self.current_token, Token::ErrorType)
-                || matches!(self.current_token, Token::Identifier(_)) {
-                Some(self.parse_type(false)?)
-            } else {
-                None
-            };
-            
-            methods.push((method_name, params, return_type));
-            
-            if matches!(self.current_token, Token::Semicolon) {
-                self.advance();
-            }
-        }
-        
-        self.expect(Token::RightBrace)?;
-        
-        if matches!(self.current_token, Token::Semicolon) {
-            self.advance();
-        }
-        
-        self.pop_context();
-        Ok(Stmt::InterfaceDef { name, methods, embedded })
     }
     
     fn parse_block(&mut self) -> CompileResult<Stmt> {
@@ -1188,7 +1071,7 @@ impl Parser {
                 })
             }
             Token::Jarugu => {
-                // Explicit jarugu: jarugu expr
+                // Move: <- expr (or jarugu expr)
                 self.advance();
                 let expr = self.parse_unary()?;
                 Ok(Expr::Jarugu {
@@ -1251,15 +1134,34 @@ impl Parser {
             }
             Token::Sunyam => {
                 self.advance();
-                Ok(Expr::Nil)
+                // sunyam(expr) = free(expr); plain sunyam = nil value
+                if matches!(self.current_token, Token::LeftParen) {
+                    self.advance(); // consume (
+                    let expr = self.parse_expression()?;
+                    self.expect(Token::RightParen)?;
+                    Ok(Expr::SunyamFree { expr: Box::new(expr) })
+                } else {
+                    Ok(Expr::Nil)
+                }
             }
-            Token::Kotha => {
+            Token::Nirmanam => {
+                // nirmanam(Map) only - use Type{} or Type{ field: value } for structs
                 self.advance();
-                // kotha Type - allocate memory for type
+                self.expect(Token::LeftParen)?;
                 let target_type = self.parse_type(false)?;
-                Ok(Expr::Kotha {
-                    target_type,
-                })
+                self.expect(Token::RightParen)?;
+                match &target_type {
+                    crate::ast::Type::Map { .. } => Ok(Expr::Kotha { target_type }),
+                    crate::ast::Type::Struct { name } => Err(self.error(format!("Use {} {{}} or {} {{ field: value }} instead of nirmanam({})", name, name, name))),
+                    crate::ast::Type::Pointer(inner) => {
+                        if let crate::ast::Type::Struct { name } = inner.as_ref() {
+                            Err(self.error(format!("Use @var *{} = {} {{}} or {} {{ field: value }} instead of nirmanam({})", name, name, name, name)))
+                        } else {
+                            Err(self.error("nirmanam() is only for maps: use nirmanam(jatha[key]value)".to_string()))
+                        }
+                    }
+                    _ => Err(self.error("nirmanam() is only for maps: use nirmanam(jatha[key]value)".to_string())),
+                }
             }
             Token::Identifier(name) => {
                 let qualified_name = name.clone();
@@ -1330,6 +1232,20 @@ impl Parser {
                         struct_type: qualified_name,
                         fields,
                     });
+                }
+                
+                // nirmanam(Map) only - structs use Type{} or Type{ field: value }
+                if qualified_name == "nirmanam" && matches!(self.current_token, Token::LeftParen) {
+                    self.advance(); // skip (
+                    let target_type = self.parse_type(false)?;
+                    self.expect(Token::RightParen)?;
+                    match &target_type {
+                        crate::ast::Type::Map { .. } => return Ok(Expr::Kotha { target_type }),
+                        crate::ast::Type::Struct { name } => {
+                            return Err(self.error(format!("Use {} {{}} or {} {{ field: value }} instead of nirmanam({})", name, name, name)));
+                        }
+                        _ => return Err(self.error("nirmanam() is only for maps: use nirmanam(jatha[key]value)".to_string())),
+                    }
                 }
                 
                 // Handle qualified names (e.g., strconv.Atoi) - but stop at dots for member access

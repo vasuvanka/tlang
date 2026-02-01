@@ -6,7 +6,7 @@ Tlang is a well-designed programming language that compiles to C, featuring Telu
 
 **Current Version:** 0.1.0  
 **Status:** Functional for real-world programming with core data structures  
-**Strengths:** Excellent documentation, comprehensive standard library (34 modules), modern crypto support, full data structure support, HTTP/HTTPS networking, interfaces, LSP support, borrow checker, linter, formatter, incremental compilation, Protocol Buffers, 50+ examples including 5 real-world examples  
+**Strengths:** Excellent documentation, comprehensive standard library (34 modules), modern crypto support, full data structure support, HTTP/HTTPS networking, LSP support, borrow checker, linter, formatter, incremental compilation, Protocol Buffers, 50+ examples including 5 real-world examples  
 **Future Work:** Generics, concurrency, advanced optimizations
 
 ---
@@ -23,13 +23,12 @@ Tlang is a well-designed programming language that compiles to C, featuring Telu
 - ✅ **Functions**: Full function support with parameters and return values
 - ✅ **Control Flow**: `okavela`/`lekapothe` (if/else), `malli` (for loops), `agu`/`konasagu` (break/continue)
 - ✅ **Comments**: Single-line (`//`) and multi-line (`/* */`)
-- ✅ **Error Handling**: `thappu` (error) and `sunyam` (nil) keywords
+- ✅ **Error Handling**: `error` type and `sunyam` (nil); `okavela err != sunyam { ... }`
 - ✅ **Arrays**: Fixed-size arrays `[N]type` with literals and indexing
 - ✅ **Slices**: Dynamic arrays `[]type` with `append()`, `len()`, `cap()`, slicing
 - ✅ **Structs**: Custom data types with `nirmanam`, field access, literals, automatic JSON serialization
 - ✅ **Maps**: Key-value stores with `jatha`, hash table runtime, automatic JSON serialization
-- ✅ **Interfaces**: Method contracts with `interface`, vtable-based implementation
-- ✅ **Packages**: `dhimpu` (import) with aliases, circular dependency detection
+- ✅ **Packages**: `@var = #dhimpu("path")` (import), circular dependency detection
 
 #### Standard Library (34 Libraries)
 - ✅ **Core**: fmt, strings, strconv, math
@@ -67,12 +66,12 @@ Tlang is a well-designed programming language that compiles to C, featuring Telu
    - ✅ Map runtime with hash table implementation
 
 2. **Package System** ✅ **FULLY IMPLEMENTED & ENHANCED**
-   - ✅ Keyword: `dhimpu` (import) with alias support
+   - ✅ Import: `@var = #dhimpu("path")` (variable binding)
    - ✅ Package resolution and imports
    - ✅ Relative and absolute import paths
    - ✅ Built-in library detection
    - ✅ Function importing from packages
-   - ✅ **Import aliases** (`dhimpu "fmt" as f`) ⭐
+   - ✅ **Import with variable binding** (`@fmt = #dhimpu("std/fmt")`) ⭐
    - ✅ **Circular dependency detection** ⭐
    - ✅ **Package-level variable/constant exports** ⭐
    - ✅ Multiple files per package support (mod.tl)
@@ -80,7 +79,7 @@ Tlang is a well-designed programming language that compiles to C, featuring Telu
    - ⚠️ Export visibility rules (currently all exported, can be refined)
 
 3. **Error Handling**
-   - ✅ Keywords: `thappu`, `sunyam`
+   - ✅ `error` type and `sunyam` (nil); `okavela err != sunyam { ... }`
    - ⚠️ Implementation may need verification
    - ❌ Error propagation patterns
 
@@ -114,13 +113,7 @@ Tlang is a well-designed programming language that compiles to C, featuring Telu
 
 ### ❌ Missing Core Features
 
-1. **Interfaces** ✅ **IMPLEMENTED**
-   - ✅ Interface definition syntax: `interface Writer { Write(data string) int; }`
-   - ✅ Interface type support
-   - ✅ Function pointer-based implementation (vtable pattern)
-   - ⚠️ Automatic interface satisfaction checking (basic support, can be enhanced)
-   - ⚠️ Interface method calls (basic support, can be enhanced)
-   - **Impact**: Basic abstraction mechanisms available
+1. **Interfaces** ❌ **REMOVED** (was partially implemented; see docs/interface-analysis.md)
 
 2. **HTTP/Networking** ✅ **FULLY IMPLEMENTED**
    - ✅ Full HTTP/HTTPS client with TLS support
@@ -267,18 +260,18 @@ nirmanam Person {
 - [x] Add package path resolution
 - [x] Support relative and absolute imports
 - [x] Handle circular dependencies (with detection)
-- [x] Import aliases (`dhimpu "path" as alias`)
+- [x] Import with variable binding (`@var = #dhimpu("path")`)
 - [x] Package-level exports (functions, variables, constants)
 - [x] Package-level visibility rules (Go-style: uppercase = exported, lowercase = unexported) ⭐
-  - Functions, variables, constants, structs, and interfaces follow visibility rules
+  - Functions, variables, constants, and structs follow visibility rules
   - Only exported identifiers are accessible from other packages
   - See `docs/package-visibility.md` for complete guide
 
 **Example Syntax:**
 ```tl
-dhimpu "fmt" as fmt;
-dhimpu "math" as math;
-dhimpu "./utils" as utils;
+@fmt = #dhimpu("std/fmt");
+@math = #dhimpu("std/math");
+@utils = #dhimpu("./utils");
 
 #prarambham() {
     fmt.Printf("Hello\n");
@@ -288,10 +281,10 @@ dhimpu "./utils" as utils;
 ```
 
 **Files Modified:**
-- `src/parser.rs` - Parse package/import with alias support
+- `src/parser.rs` - Parse import with variable binding
 - `src/main.rs` - Package resolution logic integrated
 - `src/package.rs` - Package management with circular dependency detection
-- `src/codegen.rs` - Import alias handling in function calls
+- `src/codegen.rs` - Import variable handling in function calls
 
 #### 2.2 Module System ⚠️ **PARTIALLY IMPLEMENTED**
 **Priority**: MEDIUM  
@@ -317,7 +310,7 @@ dhimpu "./utils" as utils;
 - [x] Support nested objects - ✅ Fully supported (nested structs work automatically)
 - [x] Support struct serialization - ✅ Go-style `json.Marshal()` syntax with automatic compiler-generated functions
 - [x] Add JSON validation - ✅ `json.Validate` and `json.ValidateSchema` implemented
-- [x] Improve error handling - ✅ Error handling with `thappu` pattern implemented
+- [x] Improve error handling - ✅ Error handling with `error` type and `sunyam` checks implemented
 
 **Features:**
 - ✅ Automatic struct marshaling/unmarshaling
@@ -378,31 +371,8 @@ dhimpu "./utils" as utils;
 
 ### Phase 4: Language Enhancements (MEDIUM PRIORITY) ⭐⭐⭐
 
-#### 4.1 Interfaces ✅ **IMPLEMENTED**
-**Priority**: MEDIUM  
-**Status**: Basic implementation complete
-
-**Implementation Tasks:**
-- [x] Add interface definition syntax
-- [x] Generate interface vtable structures (function pointer tables)
-- [x] Support interface method signatures
-- [ ] Automatic interface satisfaction checking (future enhancement)
-- [ ] Interface method calls via vtable (future enhancement)
-- [ ] Add interface embedding (future enhancement)
-
-**Example Syntax:**
-```tl
-interface Writer {
-    Write(data string) int;
-}
-
-interface Reader {
-    Read() string;
-}
-
-// Interfaces are implemented as structs with function pointer tables (vtables)
-// Similar to Go's interface implementation
-```
+#### 4.1 Interfaces ❌ **REMOVED**
+Interface support was removed (was partially implemented). See [interface-analysis.md](interface-analysis.md).
 
 #### 4.2 Error Handling Improvements
 **Priority**: MEDIUM  
@@ -437,7 +407,7 @@ interface Reader {
 - [ ] Add synchronization primitives
 - [ ] Support concurrent data structures
 
-**Note**: This is a major feature requiring significant design decisions.
+**Note**: This is a major feature requiring significant design decisions. Strategy and phased approach: **[Strategy: Concurrency and Generics](strategy-concurrency-generics.md)** (TBD).
 
 #### 5.2 Generics
 **Priority**: LOW  
@@ -449,7 +419,7 @@ interface Reader {
 - [ ] Add generic constraints
 - [ ] Support generic functions and types
 
-**Note**: This is a complex feature that may not be necessary for v1.0.
+**Note**: This is a complex feature that may not be necessary for v1.0. Strategy and design options: **[Strategy: Concurrency and Generics](strategy-concurrency-generics.md)** (TBD).
 
 ---
 
@@ -695,7 +665,7 @@ Tlang has an excellent foundation with:
 - ✅ Full data structure support (arrays, slices, structs, maps)
 - ✅ Borrow checker for memory safety
 - ✅ HTTP/HTTPS networking support
-- ✅ Interface support
+- ❌ Interface support (removed)
 - ✅ Incremental compilation for faster builds
 - ✅ Protocol Buffers for efficient serialization
 - ✅ Real-world examples demonstrating practical usage

@@ -1,6 +1,6 @@
 // Complete guide to looping over maps in Tlang
 
-dhimpu "fmt" as fmt;
+@fmt = #dhimpu("std/fmt");
 
 #prarambham() {
     fmt.Printf("=== Map Looping Guide ===\n\n");

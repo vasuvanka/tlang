@@ -216,9 +216,7 @@ Use '@!x' to declare a mutable variable, or use a new variable declaration inste
 ### Complete Example
 
 ```tl
-samooham adhi;
-
-dhimpu "fmt";
+@fmt = #dhimpu("std/fmt");
 
 #prarambham() {
     // Immutable variable

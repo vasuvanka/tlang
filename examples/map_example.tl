@@ -1,6 +1,6 @@
 // Map example - demonstrates map usage
 
-dhimpu "fmt" as fmt;
+@fmt = #dhimpu("std/fmt");
 
 #prarambham() {
     fmt.Printf("=== Map Example ===\n\n");

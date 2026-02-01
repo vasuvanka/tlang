@@ -4,6 +4,12 @@
 
 ### New Features
 
+#### Standard library path (`std/<package>`)
+- Standard library packages live under **`libs/std/<package>`** and are imported with **`#dhimpu("std/<package>")`**.
+- Use `@fmt = #dhimpu("std/fmt")`, `#dhimpu("std/math")`, etc. (alias inferred from path).
+- Added `libs/std/README.md` describing the layout and available packages.
+- Relative imports unchanged: `#dhimpu("./utils")` for local packages.
+
 #### Testing Library
 - Added `testing` library for unit testing (similar to Go's testing package)
   - `testing.Run(name, testFunc)` - Run test functions
@@ -56,6 +62,10 @@
   - Fallback mechanisms for systems without OpenSSL
 
 ### Changes
+
+#### C compilation (Windows)
+- On Windows, `-static` and `-static-libgcc`/`-static-libstdc++` are no longer passed to gcc by default (MinGW often lacks static CRT).
+- When the C compiler fails with no message, a manual build command is suggested (e.g. `gcc -o output.exe output.c -lm -lws2_32`).
 
 #### Removed Features
 - Removed built-in `print()`, `print_num()`, and `input_num()` functions

@@ -1,6 +1,6 @@
 // Example with adhi function entry point
 
-dhimpu "fmt" as fmt;
+@fmt = #dhimpu("std/fmt");
 
 #prarambham() {
     @x int = 10;

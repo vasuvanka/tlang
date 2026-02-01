@@ -165,10 +165,8 @@ char* value = http_get_query_param(path, "name");
 ## Example: Web Server
 
 ```tl
-samooham adhi;
-
-dhimpu "fmt";
-dhimpu "http";
+@fmt = #dhimpu("std/fmt");
+@http = #dhimpu("std/http");
 
 #handler(method string, path string, body string) string {
     // Home page
@@ -197,11 +195,9 @@ dhimpu "http";
 ## Example: REST API Server
 
 ```tl
-samooham adhi;
-
-dhimpu "fmt";
-dhimpu "http";
-dhimpu "json";
+@fmt = #dhimpu("std/fmt");
+@http = #dhimpu("std/http");
+@json = #dhimpu("std/json");
 
 #handler(method string, path string, body string) string {
     // GET /api/users - List users
@@ -238,10 +234,8 @@ dhimpu "json";
 ## Example: Simple Server (Default Handler)
 
 ```tl
-samooham adhi;
-
-dhimpu "fmt";
-dhimpu "http";
+@fmt = #dhimpu("std/fmt");
+@http = #dhimpu("std/http");
 
 #prarambham() {
     fmt.Printf("Starting server on :8080\n");

@@ -1,7 +1,7 @@
 // Type inference examples
 // Demonstrates automatic type inference from values
 
-dhimpu "fmt" as fmt;
+@fmt = #dhimpu("std/fmt");
 
 #prarambham() {
     // Integer inference
