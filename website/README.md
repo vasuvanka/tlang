@@ -34,9 +34,14 @@ Opening `website/index.html` or `website/docs.html` via `file://` works for the 
 
 To deploy only from `main`, edit the workflow and change the `on.push.branches` and the `deploy` job `if` to reference only `main`.
 
+## Language switch
+
+The **default language is Telugu**. The toolbar has **EN | తెలుగు** to switch. Telugu docs live in `../docs/te/` (and `te/libraries/`). Use `?lang=en` in the URL for English. Existing English docs are unchanged.
+
 ## Contents
 
 - **tlang-logo.png** — Official Tlang logo (used in header).
+- **lang-switch.js** — Sets language links (EN/తెలుగు) and active state from `?lang=` param.
 - **index.html** — Landing: hero, quick start, features, philosophy.
 - **docs.html** — Documentation index; every link opens the doc in the viewer.
 - **view.html** — Renders a single doc: `?doc=getting-started` or `?doc=libraries/fmt`. Uses [marked](https://marked.js.org/) to convert Markdown to HTML. Internal `.md` links in the doc are rewritten to open in the viewer. The doc fetch path works both locally (from `/website/` → `../docs/`) and on GitHub Pages (→ `docs/`).

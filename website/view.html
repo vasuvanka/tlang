@@ -17,6 +17,7 @@
         <a href="index.html">Home</a>
         <a href="playground.html">Playground</a>
         <a href="docs.html">Docs</a>
+        <span class="lang-switch"><a class="lang-en" href="view.html">EN</a><span class="lang-sep">|</span><a class="lang-te" href="view.html?lang=te">తెలుగు</a></span>
         <a href="https://github.com/vasuvanka/tlang" target="_blank" rel="noopener">GitHub</a>
       </nav>
     </div>
@@ -48,6 +49,11 @@
       const errorEl = document.getElementById('error');
       const pathEl = document.getElementById('doc-path');
 
+      function getLang() {
+        const params = new URLSearchParams(window.location.search);
+        return params.get('lang') || 'te';
+      }
+
       function getDocParam() {
         const params = new URLSearchParams(window.location.search);
         const hash = window.location.hash.slice(1);
@@ -71,7 +77,13 @@
       }
 
       function mdUrl(doc) {
-        return docsBase() + doc + '.md';
+        var base = docsBase();
+        var lang = getLang();
+        if (lang === 'te') {
+          if (doc.startsWith('te/')) doc = doc.slice(3);
+          return base + 'te/' + doc + '.md';
+        }
+        return base + doc + '.md';
       }
 
       function showLoading() {
@@ -101,10 +113,11 @@
         breaks: true
       });
 
-      function rewriteMdLinks(html, currentDoc) {
+      function rewriteMdLinks(html, currentDoc, lang) {
         const div = document.createElement('div');
         div.innerHTML = html;
         const baseDir = currentDoc.includes('/') ? currentDoc.replace(/\/[^/]+$/, '/') : '';
+        const langParam = lang === 'en' ? '&lang=en' : '';
         div.querySelectorAll('a[href]').forEach(function(a) {
           const h = a.getAttribute('href');
           if (!h || h.startsWith('http') || h.startsWith('#') || h.startsWith('mailto:')) return;
@@ -112,17 +125,21 @@
           if (docPath.endsWith('.md')) docPath = docPath.slice(0, -3);
           if (docPath.startsWith('./')) docPath = baseDir + docPath.slice(2);
           else if (docPath.startsWith('../')) docPath = docPath.slice(3);
-          a.setAttribute('href', 'view.html?doc=' + encodeURIComponent(docPath));
+          a.setAttribute('href', 'view.html?doc=' + encodeURIComponent(docPath) + langParam);
         });
         return div.innerHTML;
       }
 
+      const lang = getLang();
       const doc = getDocParam();
       if (!doc) {
         showError('No document specified. Use ?doc=getting-started or ?doc=libraries/fmt');
         loadingEl.hidden = true;
         return;
       }
+
+      var backLink = document.querySelector('.back-link');
+      if (backLink) backLink.href = lang === 'en' ? 'docs.html?lang=en' : 'docs.html';
 
       showLoading();
       const url = mdUrl(doc);
@@ -133,7 +150,7 @@
         })
         .then(function(md) {
           let html = marked.parse(md);
-          html = rewriteMdLinks(html, doc);
+          html = rewriteMdLinks(html, doc, lang);
           showContent(html, doc);
         })
         .catch(function(err) {
@@ -141,5 +158,6 @@
         });
     })();
   </script>
+  <script src="lang-switch.js"></script>
 </body>
 </html>

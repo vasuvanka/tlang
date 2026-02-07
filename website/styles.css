@@ -92,6 +92,33 @@ body {
   color: var(--accent);
 }
 
+.lang-switch {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  font-size: 0.9rem;
+}
+
+.lang-switch a {
+  color: var(--text-muted);
+  text-decoration: none;
+  font-weight: 500;
+}
+
+.lang-switch a:hover {
+  color: var(--accent);
+}
+
+.lang-switch a.lang-active {
+  color: var(--accent);
+  font-weight: 600;
+}
+
+.lang-sep {
+  color: var(--border);
+  user-select: none;
+}
+
 /* Hero */
 .hero {
   padding: 3.5rem 0 4rem;

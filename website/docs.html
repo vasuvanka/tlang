@@ -17,6 +17,7 @@
         <a href="index.html">Home</a>
         <a href="playground.html">Playground</a>
         <a href="docs.html">Docs</a>
+        <span class="lang-switch"><a class="lang-en" href="docs.html">EN</a><span class="lang-sep">|</span><a class="lang-te" href="docs.html?lang=te">తెలుగు</a></span>
         <a href="https://github.com/vasuvanka/tlang" target="_blank" rel="noopener">GitHub</a>
       </nav>
     </div>
@@ -24,70 +25,71 @@
 
   <main class="docs-main">
     <div class="wrap wrap--wide">
+      <div id="docs-english">
       <h1>Documentation</h1>
       <p class="lead">Guides, language reference, and standard library. Click any link to open the doc rendered on this site.</p>
 
       <section class="docs-section" id="getting-started">
         <h2>Getting Started</h2>
         <ul class="doc-list">
-          <li><a href="view.html?doc=getting-started">Getting Started Guide</a> — Installation, first program, basics</li>
-          <li><a href="view.html?doc=tutorial">Language Tutorial</a> — Step-by-step from basics to advanced</li>
+          <li><a href="view.html?doc=getting-started&lang=en">Getting Started Guide</a> — Installation, first program, basics</li>
+          <li><a href="view.html?doc=tutorial&lang=en">Language Tutorial</a> — Step-by-step from basics to advanced</li>
         </ul>
       </section>
 
       <section class="docs-section" id="language-reference">
         <h2>Language Reference</h2>
         <ul class="doc-list">
-          <li><a href="view.html?doc=language-reference">Language Reference</a> — Syntax and language features</li>
-          <li><a href="view.html?doc=keywords-operators">Keywords and Operators</a> — Keywords, operators, usage</li>
-          <li><a href="view.html?doc=reserved-keywords">Reserved Keywords</a> — Canonical keyword list (aligned with lexer/parser)</li>
+          <li><a href="view.html?doc=language-reference&lang=en">Language Reference</a> — Syntax and language features</li>
+          <li><a href="view.html?doc=keywords-operators&lang=en">Keywords and Operators</a> — Keywords, operators, usage</li>
+          <li><a href="view.html?doc=reserved-keywords&lang=en">Reserved Keywords</a> — Canonical keyword list (aligned with lexer/parser)</li>
         </ul>
       </section>
 
       <section class="docs-section" id="standard-library">
         <h2>Standard Library</h2>
         <ul class="doc-list">
-          <li><a href="view.html?doc=standard-library">Standard Library Overview</a></li>
+          <li><a href="view.html?doc=standard-library&lang=en">Standard Library Overview</a></li>
           <li><strong>Core:</strong>
-            <a href="view.html?doc=libraries/fmt">fmt</a>,
-            <a href="view.html?doc=libraries/strings">strings</a>,
-            <a href="view.html?doc=libraries/math">math</a>,
-            <a href="view.html?doc=libraries/strconv">strconv</a>
+            <a href="view.html?doc=libraries/fmt&lang=en">fmt</a>,
+            <a href="view.html?doc=libraries/strings&lang=en">strings</a>,
+            <a href="view.html?doc=libraries/math&lang=en">math</a>,
+            <a href="view.html?doc=libraries/strconv&lang=en">strconv</a>
           </li>
           <li><strong>System:</strong>
-            <a href="view.html?doc=libraries/os">os</a>,
-            <a href="view.html?doc=libraries/io">io</a>,
-            <a href="view.html?doc=libraries/filepath">filepath</a>,
-            <a href="view.html?doc=libraries/time">time</a>
+            <a href="view.html?doc=libraries/os&lang=en">os</a>,
+            <a href="view.html?doc=libraries/io&lang=en">io</a>,
+            <a href="view.html?doc=libraries/filepath&lang=en">filepath</a>,
+            <a href="view.html?doc=libraries/time&lang=en">time</a>
           </li>
           <li><strong>Data &amp; encoding:</strong>
-            <a href="view.html?doc=libraries/json">json</a>,
-            <a href="view.html?doc=libraries/bytes">bytes</a>,
-            <a href="view.html?doc=libraries/sort">sort</a>,
-            <a href="view.html?doc=libraries/hex">hex</a>,
-            <a href="view.html?doc=libraries/base64">base64</a>,
-            <a href="view.html?doc=libraries/csv">csv</a>,
-            <a href="view.html?doc=libraries/xml">xml</a>,
-            <a href="view.html?doc=libraries/protobuf">protobuf</a>
+            <a href="view.html?doc=libraries/json&lang=en">json</a>,
+            <a href="view.html?doc=libraries/bytes&lang=en">bytes</a>,
+            <a href="view.html?doc=libraries/sort&lang=en">sort</a>,
+            <a href="view.html?doc=libraries/hex&lang=en">hex</a>,
+            <a href="view.html?doc=libraries/base64&lang=en">base64</a>,
+            <a href="view.html?doc=libraries/csv&lang=en">csv</a>,
+            <a href="view.html?doc=libraries/xml&lang=en">xml</a>,
+            <a href="view.html?doc=libraries/protobuf&lang=en">protobuf</a>
           </li>
           <li><strong>Networking:</strong>
-            <a href="view.html?doc=libraries/http">http</a>
+            <a href="view.html?doc=libraries/http&lang=en">http</a>
           </li>
           <li><strong>Other:</strong>
-            <a href="view.html?doc=libraries/regexp">regexp</a>,
-            <a href="view.html?doc=libraries/rand">rand</a>,
-            <a href="view.html?doc=libraries/log">log</a>,
-            <a href="view.html?doc=libraries/testing">testing</a>,
-            <a href="view.html?doc=libraries/args">args</a>,
-            <a href="view.html?doc=libraries/flag">flag</a>,
-            <a href="view.html?doc=libraries/bufio">bufio</a>,
-            <a href="view.html?doc=libraries/unicode">unicode</a>,
-            <a href="view.html?doc=libraries/neturl">net/url</a>,
-            <a href="view.html?doc=libraries/crypto">crypto</a>,
-            <a href="view.html?doc=libraries/reflect">reflect</a>,
-            <a href="view.html?doc=libraries/doc">doc</a>,
-            <a href="view.html?doc=libraries/benchmark">testing/benchmark</a>,
-            <a href="view.html?doc=libraries/errors">errors</a>
+            <a href="view.html?doc=libraries/regexp&lang=en">regexp</a>,
+            <a href="view.html?doc=libraries/rand&lang=en">rand</a>,
+            <a href="view.html?doc=libraries/log&lang=en">log</a>,
+            <a href="view.html?doc=libraries/testing&lang=en">testing</a>,
+            <a href="view.html?doc=libraries/args&lang=en">args</a>,
+            <a href="view.html?doc=libraries/flag&lang=en">flag</a>,
+            <a href="view.html?doc=libraries/bufio&lang=en">bufio</a>,
+            <a href="view.html?doc=libraries/unicode&lang=en">unicode</a>,
+            <a href="view.html?doc=libraries/neturl&lang=en">net/url</a>,
+            <a href="view.html?doc=libraries/crypto&lang=en">crypto</a>,
+            <a href="view.html?doc=libraries/reflect&lang=en">reflect</a>,
+            <a href="view.html?doc=libraries/doc&lang=en">doc</a>,
+            <a href="view.html?doc=libraries/benchmark&lang=en">testing/benchmark</a>,
+            <a href="view.html?doc=libraries/errors&lang=en">errors</a>
           </li>
         </ul>
       </section>
@@ -95,52 +97,163 @@
       <section class="docs-section" id="packages-and-tools">
         <h2>Packages &amp; Tools</h2>
         <ul class="doc-list">
-          <li><a href="view.html?doc=packages">Packages and Modules</a> — Imports: <code>@var = #dhimpu("path")</code></li>
-          <li><a href="view.html?doc=package-visibility">Package Visibility</a> — Export rules (uppercase = exported)</li>
-          <li><a href="view.html?doc=build-system">Build System</a> — config.toml, dependencies</li>
-          <li><a href="view.html?doc=compile-command">Compile Command</a> — Compile to executable</li>
-          <li><a href="view.html?doc=tlang-run-guide">tlang run</a> — Quick run for development</li>
+          <li><a href="view.html?doc=packages&lang=en">Packages and Modules</a> — Imports: <code>@var = #dhimpu("path")</code></li>
+          <li><a href="view.html?doc=package-visibility&lang=en">Package Visibility</a> — Export rules (uppercase = exported)</li>
+          <li><a href="view.html?doc=build-system&lang=en">Build System</a> — config.toml, dependencies</li>
+          <li><a href="view.html?doc=compile-command&lang=en">Compile Command</a> — Compile to executable</li>
+          <li><a href="view.html?doc=tlang-run-guide&lang=en">tlang run</a> — Quick run for development</li>
         </ul>
       </section>
 
       <section class="docs-section" id="advanced">
         <h2>Advanced &amp; Reference</h2>
         <ul class="doc-list">
-          <li><a href="view.html?doc=type-system">Type System</a></li>
-          <li><a href="view.html?doc=borrow-checker">Borrow Checker</a> — Ownership and <code>&lt;-</code></li>
-          <li><a href="view.html?doc=mutable-variables">Mutable Variables</a> — <code>@!</code></li>
-          <li><a href="view.html?doc=error-handling">Error Handling</a> — <code>error</code> type and <code>sunyam</code></li>
-          <li><a href="view.html?doc=map-iteration">Map Iteration</a> — <code>varasa</code> in for loops</li>
-          <li><a href="view.html?doc=multiple-return-values">Multiple Return Values</a></li>
-          <li><a href="view.html?doc=porting-guide">Porting Guide</a> — Go to Tlang</li>
-          <li><a href="view.html?doc=best-practices">Best Practices</a></li>
+          <li><a href="view.html?doc=type-system&lang=en">Type System</a></li>
+          <li><a href="view.html?doc=borrow-checker&lang=en">Borrow Checker</a> — Ownership and <code>&lt;-</code></li>
+          <li><a href="view.html?doc=mutable-variables&lang=en">Mutable Variables</a> — <code>@!</code></li>
+          <li><a href="view.html?doc=error-handling&lang=en">Error Handling</a> — <code>error</code> type and <code>sunyam</code></li>
+          <li><a href="view.html?doc=map-iteration&lang=en">Map Iteration</a> — <code>varasa</code> in for loops</li>
+          <li><a href="view.html?doc=multiple-return-values&lang=en">Multiple Return Values</a></li>
+          <li><a href="view.html?doc=porting-guide&lang=en">Porting Guide</a> — Go to Tlang</li>
+          <li><a href="view.html?doc=best-practices&lang=en">Best Practices</a></li>
         </ul>
       </section>
 
       <section class="docs-section" id="developer-tools">
         <h2>Developer Tools</h2>
         <ul class="doc-list">
-          <li><a href="view.html?doc=vscode-extension">VS Code / Cursor Extension</a> — LSP, syntax highlighting</li>
-          <li><a href="view.html?doc=linter-warnings">Linter Warnings</a></li>
-          <li><a href="view.html?doc=debugging-guide">Debugging Guide</a></li>
-          <li><a href="view.html?doc=development">Development</a></li>
+          <li><a href="view.html?doc=vscode-extension&lang=en">VS Code / Cursor Extension</a> — LSP, syntax highlighting</li>
+          <li><a href="view.html?doc=linter-warnings&lang=en">Linter Warnings</a></li>
+          <li><a href="view.html?doc=debugging-guide&lang=en">Debugging Guide</a></li>
+          <li><a href="view.html?doc=development&lang=en">Development</a></li>
         </ul>
       </section>
 
       <section class="docs-section" id="examples">
         <h2>Examples</h2>
         <ul class="doc-list">
-          <li><a href="view.html?doc=examples">Examples Guide</a> — Code examples and patterns</li>
+          <li><a href="view.html?doc=examples&lang=en">Examples Guide</a> — Code examples and patterns</li>
         </ul>
       </section>
 
       <section class="docs-section">
         <h2>More</h2>
         <ul class="doc-list">
-          <li><a href="view.html?doc=README">Docs README</a> — Full documentation index</li>
-          <li><a href="view.html?doc=REVIEW_AND_ROADMAP">Review &amp; Roadmap</a> — Status and future work</li>
+          <li><a href="view.html?doc=README&lang=en">Docs README</a> — Full documentation index</li>
+          <li><a href="view.html?doc=REVIEW_AND_ROADMAP&lang=en">Review &amp; Roadmap</a> — Status and future work</li>
         </ul>
       </section>
+      </div>
+
+      <div id="docs-telugu" hidden>
+        <h1>డాక్యుమెంటేషన్ (తెలుగు)</h1>
+        <p class="lead">Tlang గైడ్లు మరియు సూచనలు తెలుగులో. లింక్ పై క్లిక్ చేయండి.</p>
+        <section class="docs-section" id="te-getting-started">
+          <h2>ప్రారంభం</h2>
+          <ul class="doc-list">
+            <li><a href="view.html?doc=README">Tlang పరిచయం</a></li>
+            <li><a href="view.html?doc=getting-started">ప్రారంభ గైడ్</a></li>
+            <li><a href="view.html?doc=tutorial">ట్యుటోరియల్</a></li>
+          </ul>
+        </section>
+        <section class="docs-section" id="te-language-reference">
+          <h2>భాషా సూచన</h2>
+          <ul class="doc-list">
+            <li><a href="view.html?doc=language-reference">భాషా సూచన</a></li>
+            <li><a href="view.html?doc=keywords-operators">కీవర్డ్లు మరియు ఆపరేటర్లు</a></li>
+            <li><a href="view.html?doc=reserved-keywords">రిజర్వ్డ్ కీవర్డ్లు</a></li>
+          </ul>
+        </section>
+        <section class="docs-section" id="te-standard-library">
+          <h2>స్టాండర్డ్ లైబ్రరీ</h2>
+          <ul class="doc-list">
+            <li><a href="view.html?doc=standard-library">అవలోకనం</a></li>
+            <li><strong>కోర్:</strong>
+              <a href="view.html?doc=libraries/fmt">fmt</a>,
+              <a href="view.html?doc=libraries/strings">strings</a>,
+              <a href="view.html?doc=libraries/math">math</a>,
+              <a href="view.html?doc=libraries/strconv">strconv</a>
+            </li>
+            <li><strong>సిస్టమ్:</strong>
+              <a href="view.html?doc=libraries/os">os</a>,
+              <a href="view.html?doc=libraries/io">io</a>,
+              <a href="view.html?doc=libraries/filepath">filepath</a>,
+              <a href="view.html?doc=libraries/time">time</a>
+            </li>
+            <li><strong>డేటా &amp; ఎన్కోడింగ్:</strong>
+              <a href="view.html?doc=libraries/json">json</a>,
+              <a href="view.html?doc=libraries/bytes">bytes</a>,
+              <a href="view.html?doc=libraries/sort">sort</a>,
+              <a href="view.html?doc=libraries/hex">hex</a>,
+              <a href="view.html?doc=libraries/base64">base64</a>,
+              <a href="view.html?doc=libraries/csv">csv</a>,
+              <a href="view.html?doc=libraries/xml">xml</a>,
+              <a href="view.html?doc=libraries/protobuf">protobuf</a>
+            </li>
+            <li><strong>నెట్‌వర్కింగ్:</strong> <a href="view.html?doc=libraries/http">http</a></li>
+            <li><strong>ఇతరం:</strong>
+              <a href="view.html?doc=libraries/regexp">regexp</a>,
+              <a href="view.html?doc=libraries/rand">rand</a>,
+              <a href="view.html?doc=libraries/log">log</a>,
+              <a href="view.html?doc=libraries/testing">testing</a>,
+              <a href="view.html?doc=libraries/args">args</a>,
+              <a href="view.html?doc=libraries/flag">flag</a>,
+              <a href="view.html?doc=libraries/bufio">bufio</a>,
+              <a href="view.html?doc=libraries/unicode">unicode</a>,
+              <a href="view.html?doc=libraries/neturl">net/url</a>,
+              <a href="view.html?doc=libraries/crypto">crypto</a>,
+              <a href="view.html?doc=libraries/reflect">reflect</a>,
+              <a href="view.html?doc=libraries/doc">doc</a>,
+              <a href="view.html?doc=libraries/benchmark">benchmark</a>,
+              <a href="view.html?doc=libraries/errors">errors</a>
+            </li>
+          </ul>
+        </section>
+        <section class="docs-section" id="te-packages">
+          <h2>ప్యాకేజీలు &amp; టూల్స్</h2>
+          <ul class="doc-list">
+            <li><a href="view.html?doc=packages">ప్యాకేజీలు మరియు మాడ్యూల్స్</a></li>
+            <li><a href="view.html?doc=package-visibility">ప్యాకేజీ విదిలిటీ</a></li>
+            <li><a href="view.html?doc=build-system">బిల్డ్ సిస్టమ్</a></li>
+            <li><a href="view.html?doc=compile-command">కంపైల్ కమాండ్</a></li>
+            <li><a href="view.html?doc=tlang-run-guide">tlang run</a></li>
+          </ul>
+        </section>
+        <section class="docs-section" id="te-advanced">
+          <h2>అడ్వాన్స్డ్ &amp; సూచన</h2>
+          <ul class="doc-list">
+            <li><a href="view.html?doc=type-system">టైప్ సిస్టమ్</a></li>
+            <li><a href="view.html?doc=borrow-checker">బొర్రో చెకర్</a></li>
+            <li><a href="view.html?doc=mutable-variables">మ్యూటబుల్ వేరియబుల్స్</a></li>
+            <li><a href="view.html?doc=error-handling">ఎర్రర్ హ్యాండ్లింగ్</a></li>
+            <li><a href="view.html?doc=map-iteration">మ్యాప్ ఇటరేషన్</a></li>
+            <li><a href="view.html?doc=multiple-return-values">మల్టిపుల్ రిటర్న్ వేల్యూస్</a></li>
+            <li><a href="view.html?doc=porting-guide">పోర్టింగ్ గైడ్</a></li>
+            <li><a href="view.html?doc=best-practices">బెస్ట్ ప్రాక్టీసెస్</a></li>
+          </ul>
+        </section>
+        <section class="docs-section" id="te-developer-tools">
+          <h2>డెవలపర్ టూల్స్</h2>
+          <ul class="doc-list">
+            <li><a href="view.html?doc=vscode-extension">VS Code / Cursor ఎక్స్‌టెన్షన్</a></li>
+            <li><a href="view.html?doc=linter-warnings">లింటర్ హెచ్చరికలు</a></li>
+            <li><a href="view.html?doc=debugging-guide">డీబగ్గింగ్ గైడ్</a></li>
+            <li><a href="view.html?doc=development">డెవలప్మెంట్</a></li>
+          </ul>
+        </section>
+        <section class="docs-section" id="te-examples">
+          <h2>ఉదాహరణలు</h2>
+          <ul class="doc-list">
+            <li><a href="view.html?doc=examples">ఉదాహరణల గైడ్</a></li>
+          </ul>
+        </section>
+        <section class="docs-section">
+          <h2>మరింత</h2>
+          <ul class="doc-list">
+            <li><a href="view.html?doc=REVIEW_AND_ROADMAP">రివ్యూ &amp; రోడ్‌మ్యాప్</a></li>
+          </ul>
+        </section>
+      </div>
     </div>
   </main>
 
@@ -149,5 +262,21 @@
       <p><a href="index.html">Home</a> · <a href="docs.html">Docs</a> · <a href="https://github.com/vasuvanka/tlang">GitHub</a></p>
     </div>
   </footer>
+  <script src="lang-switch.js"></script>
+  <script>
+    (function() {
+      var params = new URLSearchParams(window.location.search);
+      var lang = params.get('lang');
+      var enBlock = document.getElementById('docs-english');
+      var teBlock = document.getElementById('docs-telugu');
+      if (lang === 'en' && enBlock && teBlock) {
+        enBlock.hidden = false;
+        teBlock.hidden = true;
+      } else if (enBlock && teBlock) {
+        enBlock.hidden = true;
+        teBlock.hidden = false;
+      }
+    })();
+  </script>
 </body>
 </html>
