@@ -59,7 +59,10 @@
   }
 
   editor.addEventListener('input', updateHighlight);
-  editor.addEventListener('scroll', syncScroll);
+  editor.addEventListener('scroll', function () {
+    syncScroll();
+    positionCompletionListAtCaret();
+  });
   editor.addEventListener('input', syncScroll);
 
   updateHighlight();
@@ -68,14 +71,14 @@
     var div = document.createElement('div');
     var style = div.style;
     var computed = window.getComputedStyle(el);
-    ['fontFamily', 'fontSize', 'fontWeight', 'lineHeight', 'padding', 'border', 'boxSizing'].forEach(function (k) {
+    ['fontFamily', 'fontSize', 'fontWeight', 'lineHeight', 'padding', 'paddingLeft', 'paddingTop', 'border', 'boxSizing', 'letterSpacing'].forEach(function (k) {
       style[k] = computed[k];
     });
     style.position = 'absolute';
     style.visibility = 'hidden';
     style.whiteSpace = 'pre-wrap';
     style.wordWrap = 'break-word';
-    style.width = el.offsetWidth + 'px';
+    style.width = el.clientWidth + 'px';
     document.body.appendChild(div);
     var text = el.value.substring(0, el.selectionStart);
     div.textContent = text || '.';
@@ -88,6 +91,26 @@
     return { x: x, y: y };
   }
 
+  function positionCompletionListAtCaret() {
+    var wrap = completionList.parentElement;
+    if (!wrap || !editor || completionList.hidden) return;
+    var caret = getCaretCoordinates(editor);
+    var editorRect = editor.getBoundingClientRect();
+    var wrapRect = wrap.getBoundingClientRect();
+    var computed = window.getComputedStyle(editor);
+    var paddingTop = parseFloat(computed.paddingTop) || 0;
+    var paddingLeft = parseFloat(computed.paddingLeft) || 0;
+    var lineHeight = parseFloat(computed.lineHeight) || 1.5 * parseFloat(computed.fontSize) || 20;
+    var scrollTop = editor.scrollTop;
+    var scrollLeft = editor.scrollLeft;
+    var top = (editorRect.top - wrapRect.top) + paddingTop + (caret.y - scrollTop) + lineHeight;
+    var left = (editorRect.left - wrapRect.left) + paddingLeft + (caret.x - scrollLeft);
+    top = Math.max(4, top);
+    left = Math.max(4, Math.min(left, wrap.clientWidth - (completionList.offsetWidth || 320) - 4));
+    completionList.style.top = top + 'px';
+    completionList.style.left = left + 'px';
+  }
+
   function getWordBeforeCaret() {
     var text = editor.value;
     var pos = editor.selectionStart;
@@ -98,6 +121,7 @@
 
   var selectedIndex = 0;
   var currentWord = { word: '', start: 0, end: 0 };
+  var savedInsertRange = null;
 
   function showCompletions(prefix) {
     prefix = (prefix || '').toLowerCase();
@@ -106,8 +130,10 @@
     });
     if (filtered.length === 0) {
       completionList.hidden = true;
+      savedInsertRange = null;
       return;
     }
+    savedInsertRange = getWordBeforeCaret();
     selectedIndex = 0;
     completionList.innerHTML = '';
     filtered.forEach(function (c, i) {
@@ -122,10 +148,12 @@
     });
     completionList.hidden = false;
     completionList.style.maxHeight = '200px';
+    positionCompletionListAtCaret();
   }
 
   function hideCompletions() {
     completionList.hidden = true;
+    savedInsertRange = null;
   }
 
   function selectNext(down) {
@@ -138,8 +166,16 @@
   }
 
   function insertCompletion(insertText) {
-    var start = currentWord.start;
-    var end = currentWord.end;
+    var start, end;
+    if (savedInsertRange) {
+      start = savedInsertRange.start;
+      end = savedInsertRange.end;
+      savedInsertRange = null;
+    } else {
+      var word = getWordBeforeCaret();
+      start = word.start;
+      end = word.end;
+    }
     var before = editor.value.substring(0, start);
     var after = editor.value.substring(end);
     editor.value = before + insertText + after;
@@ -153,11 +189,19 @@
     var items = completionList.querySelectorAll('.completion-item');
     if (completionList.hidden || items.length === 0) return false;
     var item = items[selectedIndex];
-    if (item && item.dataset.insert) insertCompletion(item.dataset.insert);
+    if (item && item.dataset.insert) {
+      editor.focus();
+      insertCompletion(item.dataset.insert);
+    }
     return true;
   }
 
   editor.addEventListener('keydown', function (e) {
+    if (e.ctrlKey || e.metaKey) {
+      var key = e.key.toLowerCase();
+      if (key === 'z' || key === 'y') return;
+      if (key === 'z' && e.shiftKey) return;
+    }
     if (!completionList.hidden) {
       if (e.key === 'ArrowDown') { e.preventDefault(); selectNext(true); return; }
       if (e.key === 'ArrowUp') { e.preventDefault(); selectNext(false); return; }
@@ -194,7 +238,7 @@
   if (runBtn) {
     runBtn.addEventListener('click', function () {
       runOutput.hidden = false;
-      runOutput.innerHTML = '<p>To run Tlang code, save the content as a <code>.tl</code> file and use:</p><pre><code>tlang run yourfile.tl</code></pre><p>Or compile to an executable: <code>tlang compile yourfile.tl output</code></p>';
+      runOutput.innerHTML = '<p>Save your code as a <code>.tl</code> file, then format and run:</p><pre><code>tlang format yourfile.tl\ntlang run yourfile.tl</code></pre><p>Or compile to an executable: <code>tlang compile yourfile.tl output</code></p>';
     });
   }
   if (clearBtn) {

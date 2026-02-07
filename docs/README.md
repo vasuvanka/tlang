@@ -1,5 +1,7 @@
 # Tlang Documentation
 
+![Tlang logo](https://vasuvanka.github.io/tlang/tlang-logo.png)
+
 Welcome to the comprehensive documentation for Tlang, a simple compiled programming language inspired by Go, with Telugu keywords.
 
 ## 🚀 Quick Start

@@ -39,46 +39,66 @@
   min-height: 280px;
 }
 
+/* Must match textarea exactly so caret aligns with highlighted text */
 .playground-highlight,
 .playground-textarea {
-  margin: 0;
-  padding: 1rem 1.25rem;
-  font-family: var(--font-mono);
-  font-size: 0.9rem;
-  line-height: 1.5;
-  tab-size: 4;
-  white-space: pre-wrap;
-  word-wrap: break-word;
-}
-
-.playground-highlight {
   position: absolute;
   top: 0;
   left: 0;
   right: 0;
   bottom: 0;
-  overflow: auto;
-  pointer-events: none;
-  color: #e6e4e1;
+  margin: 0;
+  padding: 16px 20px;
+  font-family: var(--font-mono);
+  font-size: 14px;
+  line-height: 21px;
+  tab-size: 4;
+  white-space: pre-wrap;
+  word-wrap: break-word;
+  box-sizing: border-box;
+  letter-spacing: normal;
 }
 
-.playground-highlight code {
-  background: none;
-  padding: 0;
+.playground-highlight {
+  overflow: hidden;
+  pointer-events: none;
+  color: #e6e4e1;
+  /* No extra spacing so first line aligns with textarea */
+  padding: 16px 20px;
+  margin: 0;
+  font-size: 14px;
+  line-height: 21px;
+}
+
+/* Override Prism theme so code uses same metrics as textarea (Prism sets 1em / 1.5) */
+.playground-editor .playground-highlight code,
+.playground-editor .playground-highlight code[class*="language-"] {
+  display: block;
+  background: none !important;
+  padding: 0 !important;
+  margin: 0 !important;
+  font-family: var(--font-mono) !important;
+  font-size: 14px !important;
+  line-height: 21px !important;
   color: inherit;
-  font-size: inherit;
+  vertical-align: top;
+}
+
+.playground-editor .playground-highlight code *,
+.playground-editor .playground-highlight code[class*="language-"] * {
+  line-height: 21px !important;
+  font-size: 14px !important;
+  font-family: var(--font-mono) !important;
 }
 
 .playground-textarea {
-  position: relative;
-  width: 100%;
-  min-height: 260px;
-  resize: vertical;
+  resize: none;
   background: transparent;
   color: transparent;
   caret-color: #fff;
   border: none;
   outline: none;
+  overflow: auto;
 }
 
 .playground-textarea::placeholder {
@@ -87,9 +107,7 @@
 
 .completion-list {
   position: absolute;
-  left: 0;
-  top: 100%;
-  margin-top: 2px;
+  margin-top: 4px;
   width: 100%;
   max-width: 420px;
   max-height: 200px;
@@ -99,6 +117,7 @@
   border-radius: var(--radius);
   box-shadow: 0 4px 12px rgba(0,0,0,0.1);
   z-index: 100;
+  /* top/left set in JS to caret position */
 }
 
 .completion-item {

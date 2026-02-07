@@ -1,5 +1,7 @@
 # Tlang VS Code Extension
 
+![Tlang logo](https://vasuvanka.github.io/tlang/tlang-logo.png)
+
 Language support for Tlang - A compiled programming language for Telugu, inspired by Go.
 
 ## Features

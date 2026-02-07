@@ -1,5 +1,7 @@
 # Building Tlang from Source
 
+![Tlang logo](https://vasuvanka.github.io/tlang/tlang-logo.png)
+
 **New to Tlang?** See the [Getting Started Guide](docs/getting-started.md) for install, your first program, and run/compile—everything you need to get going.
 
 This guide explains how to clone Tlang from GitHub and build it locally to make the `tlang` command line tool available.

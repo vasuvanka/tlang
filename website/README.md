@@ -2,6 +2,10 @@
 
 Static documentation site for Tlang. Markdown docs are rendered in the browser; no build step required.
 
+## Logo
+
+The site uses **`tlang-logo.png`** in the header (logo + “Tlang” wordmark) on every page. Use this asset for the same branding elsewhere (e.g. links to the docs site or social).
+
 ## View locally (with rendered docs)
 
 **Use a local server** so the viewer can fetch `../docs/*.md`:
@@ -32,6 +36,7 @@ To deploy only from `main`, edit the workflow and change the `on.push.branches` 
 
 ## Contents
 
+- **tlang-logo.png** — Official Tlang logo (used in header).
 - **index.html** — Landing: hero, quick start, features, philosophy.
 - **docs.html** — Documentation index; every link opens the doc in the viewer.
 - **view.html** — Renders a single doc: `?doc=getting-started` or `?doc=libraries/fmt`. Uses [marked](https://marked.js.org/) to convert Markdown to HTML. Internal `.md` links in the doc are rewritten to open in the viewer. The doc fetch path works both locally (from `/website/` → `../docs/`) and on GitHub Pages (→ `docs/`).

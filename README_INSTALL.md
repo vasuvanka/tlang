@@ -1,5 +1,7 @@
 # Tlang Installation Guide
 
+![Tlang logo](https://vasuvanka.github.io/tlang/tlang-logo.png)
+
 This guide explains how to install Tlang on Linux and Windows.
 
 ## Prerequisites
