@@ -162,10 +162,17 @@ pub fn infer_type(expr: &Expr) -> Option<Type> {
                 None
             }
         }
-        Expr::Jarugu { expr } => {
-            // Jarugu returns the same type as the expression
-            infer_type(expr)
+        Expr::ChannelRecv { channel } => {
+            // <- ch returns the channel's element type
+            if let Some(crate::ast::Type::Channel { element_type }) = infer_type(channel) {
+                Some(*element_type)
+            } else {
+                // Move: same type as the source expression
+                infer_type(channel)
+            }
         }
+        Expr::ChannelSend { channel: _, value } => infer_type(value), // statement-like; type is unit/ignored
+        Expr::Spawn { name: _, args: _ } => None, // spawn returns void for now
         Expr::TupleLiteral { elements } => {
             // Tuple literal returns a tuple type with inferred element types
             let types: Vec<Type> = elements.iter()
@@ -191,5 +198,203 @@ pub fn infer_type(expr: &Expr) -> Option<Type> {
             // Member assignment returns the type of the assigned value
             infer_type(value)
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::ast::{BinaryOperator, UnaryOperator};
+
+    #[test]
+    fn test_infer_number_int() {
+        let expr = Expr::Number(42.0);
+        assert_eq!(infer_type(&expr), Some(Type::Int));
+    }
+
+    #[test]
+    fn test_infer_number_float() {
+        let expr = Expr::Number(3.14);
+        assert_eq!(infer_type(&expr), Some(Type::Float));
+    }
+
+    #[test]
+    fn test_infer_string() {
+        let expr = Expr::String("hello".to_string());
+        assert_eq!(infer_type(&expr), Some(Type::String));
+    }
+
+    #[test]
+    fn test_infer_bool() {
+        let expr = Expr::Bool(true);
+        assert_eq!(infer_type(&expr), Some(Type::Bool));
+    }
+
+    #[test]
+    fn test_infer_nil() {
+        let expr = Expr::Nil;
+        assert_eq!(infer_type(&expr), Some(Type::Error));
+    }
+
+    #[test]
+    fn test_infer_identifier_returns_none() {
+        let expr = Expr::Identifier("x".to_string());
+        assert_eq!(infer_type(&expr), None);
+    }
+
+    #[test]
+    fn test_infer_binary_op_same_type() {
+        let expr = Expr::BinaryOp {
+            op: BinaryOperator::Add,
+            left: Box::new(Expr::Number(1.0)),
+            right: Box::new(Expr::Number(2.0)),
+        };
+        assert_eq!(infer_type(&expr), Some(Type::Int));
+    }
+
+    #[test]
+    fn test_infer_binary_op_int_float_promotes_to_float() {
+        let expr = Expr::BinaryOp {
+            op: BinaryOperator::Add,
+            left: Box::new(Expr::Number(1.0)),
+            right: Box::new(Expr::Number(2.5)),
+        };
+        assert_eq!(infer_type(&expr), Some(Type::Float));
+    }
+
+    #[test]
+    fn test_infer_unary_op() {
+        let expr = Expr::UnaryOp {
+            op: UnaryOperator::Not,
+            expr: Box::new(Expr::Bool(false)),
+        };
+        assert_eq!(infer_type(&expr), Some(Type::Bool));
+    }
+
+    #[test]
+    fn test_infer_array_literal() {
+        let expr = Expr::ArrayLiteral {
+            elements: vec![
+                Expr::Number(1.0),
+                Expr::Number(2.0),
+                Expr::Number(3.0),
+            ],
+        };
+        assert_eq!(
+            infer_type(&expr),
+            Some(Type::Array {
+                size: 3,
+                element_type: Box::new(Type::Int),
+            })
+        );
+    }
+
+    #[test]
+    fn test_infer_empty_array_literal_returns_none() {
+        let expr = Expr::ArrayLiteral { elements: vec![] };
+        assert_eq!(infer_type(&expr), None);
+    }
+
+    #[test]
+    fn test_infer_struct_literal() {
+        let expr = Expr::StructLiteral {
+            struct_type: "Point".to_string(),
+            fields: vec![
+                ("x".to_string(), Expr::Number(0.0)),
+                ("y".to_string(), Expr::Number(0.0)),
+            ],
+        };
+        assert_eq!(
+            infer_type(&expr),
+            Some(Type::Struct {
+                name: "Point".to_string(),
+            })
+        );
+    }
+
+    #[test]
+    fn test_infer_type_cast() {
+        let expr = Expr::TypeCast {
+            target_type: Type::Float,
+            expr: Box::new(Expr::Number(1.0)),
+        };
+        assert_eq!(infer_type(&expr), Some(Type::Float));
+    }
+
+    #[test]
+    fn test_infer_map_literal() {
+        let expr = Expr::MapLiteral {
+            key_type: Box::new(Type::String),
+            value_type: Box::new(Type::Int),
+            entries: vec![],
+        };
+        assert_eq!(
+            infer_type(&expr),
+            Some(Type::Map {
+                key_type: Box::new(Type::String),
+                value_type: Box::new(Type::Int),
+            })
+        );
+    }
+
+    #[test]
+    fn test_infer_borrow() {
+        let expr = Expr::Borrow {
+            expr: Box::new(Expr::String("x".to_string())),
+            mutable: false,
+        };
+        assert_eq!(
+            infer_type(&expr),
+            Some(Type::Reference {
+                inner: Box::new(Type::String),
+                mutable: false,
+            })
+        );
+    }
+
+    #[test]
+    fn test_infer_deref_identifier_returns_none() {
+        let expr = Expr::Deref {
+            expr: Box::new(Expr::Identifier("p".to_string())),
+        };
+        assert_eq!(infer_type(&expr), None);
+    }
+
+    #[test]
+    fn test_infer_deref_pointer_returns_inner() {
+        let ptr_expr = Expr::Kotha {
+            target_type: Type::Int,
+        };
+        let deref_expr = Expr::Deref {
+            expr: Box::new(ptr_expr),
+        };
+        assert_eq!(infer_type(&deref_expr), Some(Type::Int));
+    }
+
+    #[test]
+    fn test_infer_kotha_returns_pointer() {
+        let expr = Expr::Kotha {
+            target_type: Type::String,
+        };
+        assert_eq!(
+            infer_type(&expr),
+            Some(Type::Pointer(Box::new(Type::String)))
+        );
+    }
+
+    #[test]
+    fn test_infer_tuple_literal() {
+        let expr = Expr::TupleLiteral {
+            elements: vec![
+                Expr::Number(1.0),
+                Expr::String("a".to_string()),
+            ],
+        };
+        assert_eq!(
+            infer_type(&expr),
+            Some(Type::Tuple {
+                types: vec![Type::Int, Type::String],
+            })
+        );
     }
 }

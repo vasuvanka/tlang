@@ -69,7 +69,7 @@ Keywords match the lexer/parser implementation. There is no explicit package key
 
 ### Reserved words (do not use as identifiers)
 
-- Type names: `int`, `float`, `string`, `bool`, `error`
+- Type names: `int`, `float`, `string`, `bool`, `error`, `channel`
 - Boolean literals: `true`, `false`
 - Return type: omit for no value (void); no `void` keyword in source
 
@@ -92,6 +92,34 @@ Keywords match the lexer/parser implementation. There is no explicit package key
 @y *float;      // Pointer to float
 @z **int;       // Pointer to pointer to int
 ```
+
+### Channel Type
+
+Channels are used for concurrency (CSP style). Type: `channel[elementType]`. Unbuffered or buffered (capacity from initializer).
+
+```tl
+@ch channel[int];           // unbuffered
+@ch2 channel[int] = 10;     // buffered, capacity 10
+ch <- 42;                   // send
+@x int = <- ch;             // receive
+sunyam(ch);                 // close (optional)
+```
+
+See [Concurrency Architecture & Patterns](concurrency-architecture-suggestions.md).
+
+### WaitGroup Type
+
+WaitGroup synchronizes completion of spawned tasks: declare with `WaitGroup`, then use `Add(n)`, `Done()`, and `Wait()`.
+
+```tl
+@wg WaitGroup;              // create (no initializer needed)
+wg.Add(2);                  // expect 2 tasks to complete
+tlang #worker(wg);          // worker calls wg.Done() when finished
+tlang #worker2(wg);
+wg.Wait();                  // block until counter reaches 0
+```
+
+In spawned functions that receive the WaitGroup as an argument, call `wg.Done()` (or equivalently `wg.Add(-1)`) when the task is finished. See [Concurrency Architecture & Patterns](concurrency-architecture-suggestions.md).
 
 ### Type Inference
 
@@ -371,6 +399,45 @@ Tlang supports Go-style type conversion syntax:
 ```
 
 So the spec’s `@x int = 10;` is valid, and `@x int = 10` followed by a newline is also valid. There is **no automatic semicolon insertion (ASI)** in the lexer—the parser simply treats newlines between statements as boundaries and optionally consumes semicolons. The effect is similar to Go: you can omit semicolons for cleaner code.
+
+## Concurrency
+
+Tlang supports **channels**, **spawn**, and **WaitGroup** (1:1 OS threads, CSP style). Spawn uses `pthread_create` on Unix; on Windows it runs the function directly (no thread yet).
+
+| Construct | Syntax |
+|-----------|--------|
+| Channel type | `channel[elementType]` (unbuffered) or `channel[elementType] = capacity` (buffered) |
+| Send | `ch <- value` |
+| Receive | `@x = <- ch` |
+| Close | `sunyam(ch)` |
+| Spawn | `tlang #functionName(args)` |
+| WaitGroup | `@wg WaitGroup;` `wg.Add(n);` `wg.Done();` `wg.Wait();` |
+
+The `<-` operator is used both for **move** (ownership transfer) and for **channel send/receive**: send is `ch <- value`, receive is `<- ch`.
+
+**Example: channels, spawn, and WaitGroup**
+
+```tl
+#worker(id int, wg WaitGroup) {
+    fmt.Printf("worker %d\n", id);
+    wg.Done();
+}
+
+#prarambham() {
+    @ch channel[int];
+    ch <- 42;
+    @x int = <- ch;
+    sunyam(ch);
+
+    @wg WaitGroup;
+    wg.Add(2);
+    tlang #worker(1, wg);
+    tlang #worker(2, wg);
+    wg.Wait();
+}
+```
+
+See [Concurrency Architecture & Patterns](concurrency-architecture-suggestions.md).
 
 ## Packages
 

@@ -1,12 +1,12 @@
 # Tlang VS Code Extension
 
-![Tlang logo](https://vasuvanka.github.io/tlang/tlang-logo.png)
+![Tlang logo (అ / Aa)](https://vasuvanka.github.io/tlang/tlang-logo.png)
 
 Language support for Tlang - A compiled programming language for Telugu, inspired by Go.
 
 ## Features
 
-- **Syntax Highlighting** - Full syntax highlighting for `.tl` files
+- **Syntax Highlighting** - Full syntax highlighting for `.tl` files (keywords and operators aligned with [Reserved Keywords](https://vasuvanka.github.io/tlang/docs/reserved-keywords); move/channel use `<-` only, no `jarugu` keyword)
 - **Language Server Protocol (LSP)** - Code completion, hover information, go-to-definition, diagnostics, and formatting
 - **IntelliSense** - Smart code completion and suggestions
 - **Error Diagnostics** - Real-time error detection and reporting

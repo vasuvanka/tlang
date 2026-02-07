@@ -56,11 +56,12 @@ pub enum Token {
     StringType,      // string type
     BoolType,        // boolean type
     ErrorType,       // error type
+    ChannelType,     // channel type (channel[elementType])
     
     // Borrow checker related
     Ampersand,       // & (immutable borrow)
     AmpersandMut,    // &mut (mutable borrow)
-    Jarugu,          // jarugu keyword (explicit ownership transfer)
+    Jarugu,          // <- move / channel send & receive (only from <-, no keyword)
     
     // Special characters
     QuestionMark,    // ? (error propagation)
@@ -318,7 +319,7 @@ impl Lexer {
                     Token::LessThanEqual
                 } else if let Some('-') = self.current_char {
                     self.advance();
-                    Token::Jarugu  // <- move/transfer (replaces jarugu keyword)
+                    Token::Jarugu  // <- move / channel send & receive
                 } else {
                     Token::LessThan
                 }
@@ -455,10 +456,10 @@ impl Lexer {
                     "string" => Token::StringType,
                     "bool" => Token::BoolType,
                     "error" => Token::ErrorType,  // error type
+                    "channel" => Token::ChannelType,
                     "true" => Token::Identifier("true".to_string()), // Boolean literal
                     "false" => Token::Identifier("false".to_string()), // Boolean literal
                     "prarambham" => Token::Identifier("prarambham".to_string()), // Entry point function (Telugu for "beginning")
-                    "jarugu" => Token::Jarugu,     // explicit jarugu keyword
                     _ => Token::Identifier(ident),
                 }
             }
@@ -476,7 +477,7 @@ impl Lexer {
 #[cfg(test)]
 mod tests {
     use super::*;
-    
+
     #[test]
     fn test_basic_tokens() {
         let mut lexer = Lexer::new("+ - * / %");
@@ -486,11 +487,133 @@ mod tests {
         assert_eq!(lexer.next_token(), Token::Divide);
         assert_eq!(lexer.next_token(), Token::Modulo);
     }
-    
+
     #[test]
     fn test_numbers() {
         let mut lexer = Lexer::new("123 45.67");
         assert_eq!(lexer.next_token(), Token::Number(123.0));
         assert_eq!(lexer.next_token(), Token::Number(45.67));
+    }
+
+    #[test]
+    fn test_comparison_and_assign() {
+        let mut lexer = Lexer::new("== != <= >= < > =");
+        assert_eq!(lexer.next_token(), Token::Equal);
+        assert_eq!(lexer.next_token(), Token::NotEqual);
+        assert_eq!(lexer.next_token(), Token::LessThanEqual);
+        assert_eq!(lexer.next_token(), Token::GreaterThanEqual);
+        assert_eq!(lexer.next_token(), Token::LessThan);
+        assert_eq!(lexer.next_token(), Token::GreaterThan);
+        assert_eq!(lexer.next_token(), Token::Assign);
+    }
+
+    #[test]
+    fn test_move_operator() {
+        let mut lexer = Lexer::new("<-");
+        assert_eq!(lexer.next_token(), Token::Jarugu);
+        assert_eq!(lexer.next_token(), Token::EOF);
+    }
+
+    #[test]
+    fn test_less_than_not_move() {
+        let mut lexer = Lexer::new("<  -");
+        assert_eq!(lexer.next_token(), Token::LessThan);
+        assert_eq!(lexer.next_token(), Token::Minus);
+        assert_eq!(lexer.next_token(), Token::EOF);
+    }
+
+    #[test]
+    fn test_keywords() {
+        let mut lexer = Lexer::new("okavela lekapothe malli mallinchu agu konasagu nirmanam jatha sunyam");
+        assert_eq!(lexer.next_token(), Token::Okavela);
+        assert_eq!(lexer.next_token(), Token::Lekapothe);
+        assert_eq!(lexer.next_token(), Token::Malli);
+        assert_eq!(lexer.next_token(), Token::Mallinchu);
+        assert_eq!(lexer.next_token(), Token::Agu);
+        assert_eq!(lexer.next_token(), Token::Konasagu);
+        assert_eq!(lexer.next_token(), Token::Nirmanam);
+        assert_eq!(lexer.next_token(), Token::Jatha);
+        assert_eq!(lexer.next_token(), Token::Sunyam);
+        assert_eq!(lexer.next_token(), Token::EOF);
+    }
+
+    #[test]
+    fn test_varasa_as_identifier() {
+        let mut lexer = Lexer::new("varasa");
+        assert_eq!(lexer.next_token(), Token::Identifier("varasa".to_string()));
+        assert_eq!(lexer.next_token(), Token::EOF);
+    }
+
+    #[test]
+    fn test_type_keywords() {
+        let mut lexer = Lexer::new("int float string bool error channel");
+        assert_eq!(lexer.next_token(), Token::IntType);
+        assert_eq!(lexer.next_token(), Token::FloatType);
+        assert_eq!(lexer.next_token(), Token::StringType);
+        assert_eq!(lexer.next_token(), Token::BoolType);
+        assert_eq!(lexer.next_token(), Token::ErrorType);
+        assert_eq!(lexer.next_token(), Token::ChannelType);
+        assert_eq!(lexer.next_token(), Token::EOF);
+    }
+
+    #[test]
+    fn test_at_identifier() {
+        let mut lexer = Lexer::new("@x");
+        assert_eq!(lexer.next_token(), Token::AtIdentifier("x".to_string()));
+        assert_eq!(lexer.next_token(), Token::EOF);
+    }
+
+    #[test]
+    fn test_at_mut_identifier() {
+        let mut lexer = Lexer::new("@!count");
+        assert_eq!(lexer.next_token(), Token::AtMutIdentifier("count".to_string()));
+        assert_eq!(lexer.next_token(), Token::EOF);
+    }
+
+    #[test]
+    fn test_hash_identifier() {
+        let mut lexer = Lexer::new("#prarambham");
+        assert_eq!(lexer.next_token(), Token::HashIdentifier("prarambham".to_string()));
+        assert_eq!(lexer.next_token(), Token::EOF);
+    }
+
+    #[test]
+    fn test_string_literal() {
+        let mut lexer = Lexer::new(r#""hello""#);
+        assert_eq!(lexer.next_token(), Token::String("hello".to_string()));
+        assert_eq!(lexer.next_token(), Token::EOF);
+    }
+
+    #[test]
+    fn test_delimiters() {
+        let mut lexer = Lexer::new("( ) { } [ ] , ; . :");
+        assert_eq!(lexer.next_token(), Token::LeftParen);
+        assert_eq!(lexer.next_token(), Token::RightParen);
+        assert_eq!(lexer.next_token(), Token::LeftBrace);
+        assert_eq!(lexer.next_token(), Token::RightBrace);
+        assert_eq!(lexer.next_token(), Token::LeftBracket);
+        assert_eq!(lexer.next_token(), Token::RightBracket);
+        assert_eq!(lexer.next_token(), Token::Comma);
+        assert_eq!(lexer.next_token(), Token::Semicolon);
+        assert_eq!(lexer.next_token(), Token::Dot);
+        assert_eq!(lexer.next_token(), Token::Colon);
+        assert_eq!(lexer.next_token(), Token::EOF);
+    }
+
+    #[test]
+    fn test_identifier_and_boolean_literals() {
+        let mut lexer = Lexer::new("true false foo_bar");
+        assert_eq!(lexer.next_token(), Token::Identifier("true".to_string()));
+        assert_eq!(lexer.next_token(), Token::Identifier("false".to_string()));
+        assert_eq!(lexer.next_token(), Token::Identifier("foo_bar".to_string()));
+        assert_eq!(lexer.next_token(), Token::EOF);
+    }
+
+    #[test]
+    fn test_power_and_question_mark() {
+        let mut lexer = Lexer::new("^ ?");
+        assert_eq!(lexer.next_token(), Token::Power);
+        assert_eq!(lexer.next_token(), Token::QuestionMark);
+        assert_eq!(lexer.next_token(), Token::EOF);
     }
 }

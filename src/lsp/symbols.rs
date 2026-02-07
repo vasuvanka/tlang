@@ -190,6 +190,8 @@ impl SymbolTable {
                 format!("[]{}", self.format_type(element_type))
             }
             Type::Struct { name } => name.clone(),
+            Type::Channel { element_type } => format!("channel[{}]", self.format_type(element_type)),
+            Type::WaitGroup => "WaitGroup".to_string(),
             Type::Any => "nirmanam{}".to_string(),
             Type::Map { key_type, value_type } => {
                 format!("jatha[{}]{}", self.format_type(key_type), self.format_type(value_type))

@@ -25,4 +25,8 @@ Tlang సోర్స్ ఫైల్స్ `.tl` ఎక్స్‌టెన్
 
 `#dhimpu("path")` లేదా `@alias = #dhimpu("path");`
 
+## కన్‌కరెన్సీ
+
+ఛానల్స్: `@ch channel[int];` `ch <- value;` `@x = <- ch;` స్పాన్: `tlang #fn(args);` — [Concurrency Architecture](../concurrency-architecture-suggestions.md) చూడండి.
+
 వివరణాత్మక మార్గదర్శి కోసం టూల్‌బార్‌లో **EN** సెలెక్ట్ చేయండి.

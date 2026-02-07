@@ -455,7 +455,8 @@ Congratulations! You've completed the Tlang tutorial. Now you can:
 1. **Explore More Examples**: Check the `examples/` directory
 2. **Read the Reference**: See [Language Reference](language-reference.md)
 3. **Learn Libraries**: Explore [Standard Library](standard-library.md)
-4. **Build Projects**: Start building your own programs!
+4. **Concurrency**: Use channels (`ch <- value`, `@x = <- ch`), spawn (`tlang #fn(args)` runs in a new thread on Unix), and WaitGroup (`@wg WaitGroup;` `wg.Add(n)`, `wg.Done()`, `wg.Wait()`). See [Concurrency Architecture & Patterns](concurrency-architecture-suggestions.md).
+5. **Build Projects**: Start building your own programs!
 
 ## Practice Projects
 

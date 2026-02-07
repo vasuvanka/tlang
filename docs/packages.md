@@ -1,6 +1,6 @@
 # Packages and Modules
 
-Tlang's package system allows you to organize code into reusable modules. There is no package declaration at the top of files; use `#dhimpu` (import) to bring in other packages.
+Tlang's package system allows you to organize code into reusable modules. There is no package declaration at the top of files; use **`@variable = #dhimpu("path")`** to import packages. When you **run** or **compile** a program, the compiler can automatically fetch remote dependencies from `config.toml` (go get style) into `dependencies/` before building.
 
 ## Importing Packages
 
@@ -125,9 +125,10 @@ nirmanam Point {
 The compiler searches for packages in the following order:
 
 1. **Current directory** - Files in the same directory as the source file
-2. **Relative paths** - `./utils`, `../shared`, `../../common`
-3. **Standard library** - `stdlib/` directory (built-in packages)
-4. **Custom search paths** - Additional paths configured via build system
+2. **Project root and dependencies/** - If a `config.toml` is found (in the current directory or the directory of the input file), the project root and `project_root/dependencies/` are added to the search path. Remote dependencies (HTTP/Git) listed in `config.toml` are fetched automatically when you run `tlang run` or `tlang compile`.
+3. **Relative paths** - `./utils`, `../shared`, `../../common`
+4. **Standard library** - `std/<name>` (e.g. `std/fmt`, `std/math`) — built-in packages
+5. **Custom search paths** - Additional paths from the build system
 
 ### Resolution Rules
 
@@ -136,13 +137,14 @@ When you import a package, the compiler tries to find it in this order:
 1. **Single file**: `package.tl` (e.g., `#dhimpu("utils")` → `utils.tl`)
 2. **Directory with mod.tl**: `package/mod.tl` (e.g., `#dhimpu("mypackage")` → `mypackage/mod.tl`)
 3. **Relative file**: `./utils.tl` or `../shared.tl`
-4. **Standard library**: `stdlib/package.tl`
+4. **Standard library**: `std/<name>` (e.g. `std/fmt` → built-in fmt package)
+5. **Fetched dependencies**: When `config.toml` exists, `dependencies/<name>/` (after automatic fetch)
 
 **Examples:**
 
 ```tl
 // Assign import to a variable; use that variable in code:
-@fmt = #dhimpu("std/fmt");           // use as fmt.* (finds stdlib/fmt.tl)
+@fmt = #dhimpu("std/fmt");           // use as fmt.* (built-in std/fmt)
 @utils = #dhimpu("./utils");          // use as utils.* (finds ./utils.tl or ./utils/mod.tl)
 @common = #dhimpu("../common");      // use as common.* (finds ../common.tl or ../common/mod.tl)
 @mypackage = #dhimpu("mypackage");   // use as mypackage.* (finds mypackage.tl or mypackage/mod.tl)
@@ -369,9 +371,29 @@ The compiler detects and prevents circular dependencies:
 
 Future versions may support package-level documentation comments.
 
+## Dependencies and config.toml (go get style)
+
+For projects that depend on remote packages, add a **`config.toml`** in the project root. List dependencies under `[dependencies]` with one of these sources:
+
+| Source | Example | Description |
+|--------|---------|-------------|
+| **path** | `mylib = { path = "./libs/mylib", version = "0.1.0" }` | Local directory; not fetched |
+| **http** | `mylib = { http = "https://github.com/user/repo/archive/main.zip" }` | Downloaded (ZIP or tar.gz) when you run or compile |
+| **git** | `mylib = { git = "https://github.com/user/repo", branch = "main" }` | Fetched from GitHub as an archive (branch or tag optional; default branch is `main`) |
+
+When you run **`tlang run program.tl`** or **`tlang compile program.tl`**, the compiler:
+
+1. Looks for `config.toml` in the current directory or the directory of the input file
+2. If found, downloads any **http** or **git** dependencies that are not already in `dependencies/<name>/`
+3. Adds the project root and `dependencies/` to the package search path
+4. Resolves imports (e.g. `#dhimpu("mylib")`) from local files or `dependencies/mylib/`
+
+You do **not** need to run a separate “get” or “add” command; fetching happens automatically. See [Build System](build-system.md) for the full `config.toml` format and `tlang init` / `tlang add`.
+
 ## See Also
 
 - **[Package Visibility](package-visibility.md)** - Detailed visibility rules and export guidelines
 - **[Language Reference](language-reference.md)** - Complete language syntax
 - **[Porting Guide](porting-guide.md)** - Convert Go packages to Tlang
-- **[Build System](build-system.md)** - Package management and dependencies
+- **[Build System](build-system.md)** - config.toml, dependency management, and go get style fetch
+- **[Getting Started](getting-started.md)** - First program and packages overview

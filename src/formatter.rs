@@ -417,9 +417,26 @@ impl Formatter {
                 try_write!(output, "*");
                 self.format_expr(expr, output)?;
             }
-            Expr::Jarugu { expr } => {
-                try_write!(output, "jarugu ");
-                self.format_expr(expr, output)?;
+            Expr::ChannelRecv { channel } => {
+                try_write!(output, "<- ");
+                self.format_expr(channel, output)?;
+            }
+            Expr::ChannelSend { channel, value } => {
+                self.format_expr(channel, output)?;
+                try_write!(output, " <- ");
+                self.format_expr(value, output)?;
+            }
+            Expr::Spawn { name, args } => {
+                try_write!(output, "tlang #");
+                try_write!(output, "{}", name);
+                try_write!(output, "(");
+                for (i, a) in args.iter().enumerate() {
+                    if i > 0 {
+                        try_write!(output, ", ");
+                    }
+                    self.format_expr(a, output)?;
+                }
+                try_write!(output, ")");
             }
             Expr::TupleLiteral { elements } => {
                 try_write!(output, "(");
@@ -468,6 +485,8 @@ impl Formatter {
                 format!("[]{}", self.format_type(element_type))
             }
             Type::Struct { name } => name.clone(),
+            Type::Channel { element_type } => format!("channel[{}]", self.format_type(element_type)),
+            Type::WaitGroup => "WaitGroup".to_string(),
             Type::Map { key_type, value_type } => {
                 format!("jatha[{}]{}", self.format_type(key_type), self.format_type(value_type))
             }

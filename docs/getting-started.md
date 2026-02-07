@@ -8,7 +8,8 @@ This guide will help you get started with Tlang, from installation to writing yo
 2. [Your First Program](#your-first-program)
 3. [Compiling and Running](#compiling-and-running)
 4. [Understanding the Basics](#understanding-the-basics)
-5. [Next Steps](#next-steps)
+5. [Packages and Dependencies](#packages-and-dependencies)
+6. [Next Steps](#next-steps)
 
 ## Installation
 
@@ -82,6 +83,8 @@ tlangc --version
 Create a file named `hello.tl`:
 
 ```tl
+@fmt = #dhimpu("std/fmt");
+
 #prarambham() {
     fmt.Printf("Hello, World!\n");
 }
@@ -89,32 +92,32 @@ Create a file named `hello.tl`:
 
 ### Understanding the Code
 
+- `@fmt = #dhimpu("std/fmt");` - Import the standard library `fmt` package; use `fmt.Printf` in code
 - `#prarambham()` - Entry point function (like `main` in other languages)
-- `fmt.Printf()` - Formatted print function from the standard library
+- `fmt.Printf()` - Formatted print from the standard library
 - `\n` - Newline character
 
 ### Compile and Run
 
-```bash
-# Compile to a named executable
-tlang compile hello.tl hello
+**Compile to a binary, then run it:**
 
-# Run
+```bash
+tlang compile hello.tl hello
 ./hello
 # Output: Hello, World!
+# Windows: hello.exe
 ```
 
-Or use the `tlang run` command:
+**Or use `tlang run` to compile, build, and run in one step:**
 
 ```bash
-# Explicit file
 tlang run hello.tl
-
-# Auto-detect entry file (prarambham.tl, main.tl, or from config.toml)
-tlang run
+# Compiles to C, builds the binary, runs it. Output: Hello, World!
 ```
 
-For more on run options (e.g. auto-detect entry file, passing arguments), see the [Run Guide](tlang-run-guide.md). Use `tlang run` for quick runs; use `tlang compile` then run the binary when you want to keep the executable.
+If your project has a `config.toml` with dependencies (HTTP or Git), `run` and `compile` automatically fetch missing packages into `dependencies/` before building (go get style). See [Packages and Dependencies](#packages-and-dependencies) and [Build System](build-system.md).
+
+For more on run options (e.g. auto-detect entry file, passing arguments), see the [Run Guide](tlang-run-guide.md).
 
 ## Compiling and Running
 
@@ -155,7 +158,7 @@ tlang compile program.tl
 tlang test
 ```
 
-**Run vs compile-then-run:** Use `tlang run` for quick development and testing (no permanent binary). Use `tlang compile` then run the produced binary when you need a persistent executable or want to distribute it. Both paths work on all supported platforms. The produced binary runs on the same platform where you built it (Linux, Windows, or macOS); see [Compile Command – Supported platforms](compile-command.md#supported-platforms) for details.
+**Run vs compile-then-run:** Use `tlang run` for quick development (compile + build + run in one step; no permanent binary by default). Use `tlang compile` when you want a persistent executable or to distribute it. Both commands automatically fetch remote dependencies from `config.toml` if present. The produced binary runs on the same platform where you built it (Linux, Windows, or macOS); see [Compile Command – Supported platforms](compile-command.md#supported-platforms) for details.
 
 ## Understanding the Basics
 
@@ -213,6 +216,42 @@ malli i < 10; i = i + 1 {
 }
 ```
 
+### Concurrency (channels, spawn, WaitGroup)
+
+Tlang supports **channels** (CSP-style), **spawn** (run a function in a new OS thread), and **WaitGroup** (wait until N tasks finish). On Unix, spawn uses pthreads; on Windows it currently runs the function directly.
+
+```tl
+// Channels: create, send, receive, close
+@ch channel[int];              // unbuffered
+@ch2 channel[int] = 10;        // buffered, capacity 10
+ch <- 42;
+@x int = <- ch;
+sunyam(ch);
+
+// Spawn: run function in a new thread
+tlang #worker(99);
+
+// WaitGroup: wait until N tasks finish
+@wg WaitGroup;
+wg.Add(2);
+tlang #task1(wg);   // task1 calls wg.Done() when done
+tlang #task2(wg);   // task2 calls wg.Done() when done
+wg.Wait();          // blocks until both done
+```
+
+See [Concurrency Architecture & Patterns](concurrency-architecture-suggestions.md) for design and patterns.
+
+### Packages and Dependencies
+
+- **Imports:** Use `@alias = #dhimpu("path")` to import a package, then call `alias.Function()` or use `alias` types. Standard library: `@fmt = #dhimpu("std/fmt")`, `@math = #dhimpu("std/math")`, etc. Local or relative: `@utils = #dhimpu("./utils")`.
+- **Projects with config.toml:** For multi-file or dependency-based projects, add a `config.toml` in the project root. List dependencies (path, HTTP, or Git). When you run `tlang run` or `tlang compile`, the compiler finds `config.toml`, **fetches any missing HTTP/Git dependencies** into `dependencies/`, then compiles. No need to run a separate “get” or “add” step (go get style).
+- **Dependency sources in config.toml:**
+  - **path** – Local directory (e.g. `path = "./libs/utils"`).
+  - **http** – Direct URL to a ZIP or tar.gz (e.g. a GitHub archive URL).
+  - **git** – GitHub repo (e.g. `git = "https://github.com/user/repo"`, optional `branch` or `tag`). Fetched as an archive and extracted to `dependencies/<name>`.
+
+See [Packages and Modules](packages.md) for import rules and visibility, and [Build System](build-system.md) for `config.toml` and dependency management.
+
 ### Output
 
 Use `fmt.Printf` for formatted output:
@@ -229,7 +268,8 @@ fmt.Printf("Welcome to %s v%d!\n", name, version);
 2. **Explore Examples**: Check the `examples/` directory. For **servers, CLIs, and system tools** (MVP scope), the language and standard library are sufficient—see [Real-World Examples](../examples/real-world-examples/README.md) and [HTTP Server Guide](http-server-guide.md), or run `examples/args_example.tl` for command-line arguments. Imports use **`@variable = #dhimpu("path")`** (e.g. `@fmt = #dhimpu("std/fmt")` then `fmt.Printf`); there is no explicit package or alias keyword.
 3. **Read the Reference**: See [Language Reference](language-reference.md)
 4. **Use Libraries**: Explore the [Standard Library](standard-library.md)
-5. **Projects and config:** For multi-file projects, declare dependencies and entry point in `config.toml`; the build system reads it for dependency resolution and entry. See [Build System](build-system.md) and `examples/config.toml.example`.
+5. **Concurrency**: Use channels (`ch <- value`, `@x = <- ch`), spawn (`tlang #fn(args)`), and WaitGroup (`wg.Add(n)`, `wg.Done()`, `wg.Wait()`). See [Concurrency Architecture & Patterns](concurrency-architecture-suggestions.md).
+6. **Projects and config:** For multi-file projects, add `config.toml` with dependencies and optional entry point. When you `tlang run` or `tlang compile`, the compiler fetches remote deps (HTTP/Git) automatically. See [Build System](build-system.md) and `examples/config.toml.example`.
 
 ## Common Issues
 

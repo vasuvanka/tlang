@@ -1,6 +1,6 @@
 # Tlang డాక్యుమెంటేషన్ (తెలుగు)
 
-![Tlang logo](https://vasuvanka.github.io/tlang/tlang-logo.png)
+![Tlang logo (అ / Aa)](https://vasuvanka.github.io/tlang/tlang-logo.png)
 
 Tlang — తెలుగు కీవర్డ్లతో కూడిన సరళమైన కంపైల్డ్ ప్రోగ్రామింగ్ భాష. Go భాష నుండి ప్రేరణ పొందింది.
 

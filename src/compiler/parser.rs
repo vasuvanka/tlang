@@ -172,6 +172,7 @@ impl Parser {
             }
             Token::Nirmanam => self.parse_struct_def(),
             Token::LeftBrace => self.parse_block(),
+            Token::Identifier(ident) if ident.as_str() == "tlang" => self.parse_spawn(),
             _ => {
                 let expr = self.parse_expression()?;
                 if matches!(self.current_token, Token::Semicolon) {
@@ -180,6 +181,33 @@ impl Parser {
                 Ok(Stmt::Expression(expr))
             }
         }
+    }
+    
+    /// Parse spawn: tlang #name(args)
+    fn parse_spawn(&mut self) -> CompileResult<Stmt> {
+        self.advance(); // consume tlang
+        let name = match &self.current_token {
+            Token::HashIdentifier(n) => n.clone(),
+            _ => return Err(self.error("Expected function name after 'tlang' (e.g. tlang #name(args))".to_string())),
+        };
+        self.advance(); // consume #name
+        self.expect(Token::LeftParen)?;
+        let mut args = Vec::new();
+        if !matches!(self.current_token, Token::RightParen) {
+            loop {
+                args.push(self.parse_expression()?);
+                if matches!(self.current_token, Token::Comma) {
+                    self.advance();
+                } else {
+                    break;
+                }
+            }
+        }
+        self.expect(Token::RightParen)?;
+        if matches!(self.current_token, Token::Semicolon) {
+            self.advance();
+        }
+        Ok(Stmt::Expression(Expr::Spawn { name, args }))
     }
     
     /// Parse a type. When allow_any is true, nirmanam{} is allowed (for map value types only).
@@ -221,6 +249,17 @@ impl Parser {
             }
             
             return Ok(crate::ast::Type::Tuple { types });
+        }
+        
+        // Check for channel type: channel[elementType]
+        if matches!(self.current_token, Token::ChannelType) {
+            self.advance(); // Skip channel
+            self.expect(Token::LeftBracket)?;
+            let element_type = Box::new(self.parse_type(false)?);
+            self.expect(Token::RightBracket)?;
+            return Ok(crate::ast::Type::Channel {
+                element_type,
+            });
         }
         
         // Check for map type: jatha[keyType]valueType
@@ -291,13 +330,15 @@ impl Parser {
                 crate::ast::Type::Error
             }
             Token::Identifier(name) => {
-                // Could be struct type name or interface type name
-                // We'll determine this based on context (for now, treat as struct)
-                // In a full implementation, we'd check against known types
                 let type_name = name.clone();
                 self.advance();
-                crate::ast::Type::Struct {
-                    name: type_name,
+                if type_name == "WaitGroup" {
+                    crate::ast::Type::WaitGroup
+                } else {
+                    // Struct type name
+                    crate::ast::Type::Struct {
+                        name: type_name,
+                    }
                 }
             }
             _ => return Err(self.error("Expected type (int, float, string, bool, struct, jatha[key]value, jatha[key]nirmanam{}, *type, or [N]type)".to_string())),
@@ -339,6 +380,7 @@ impl Parser {
             || matches!(self.current_token, Token::StringType)
             || matches!(self.current_token, Token::BoolType) 
             || matches!(self.current_token, Token::ErrorType)
+            || matches!(self.current_token, Token::ChannelType) // Channel
             || matches!(self.current_token, Token::LeftBracket) // Array/Slice
             || matches!(self.current_token, Token::Jatha) // Map
             || matches!(self.current_token, Token::Multiply) // Pointer
@@ -876,6 +918,16 @@ impl Parser {
     fn parse_assignment(&mut self) -> CompileResult<Expr> {
         let expr = self.parse_equality()?;
         
+        // Channel send: ch <- value
+        if matches!(self.current_token, Token::Jarugu) {
+            self.advance(); // consume <-
+            let value = self.parse_assignment()?; // RHS (allows nested expressions and assignment)
+            return Ok(Expr::ChannelSend {
+                channel: Box::new(expr),
+                value: Box::new(value),
+            });
+        }
+        
         if matches!(self.current_token, Token::Assign) {
             // Check if this is an assignment to a variable or member access
             match expr {
@@ -1078,11 +1130,11 @@ impl Parser {
                 })
             }
             Token::Jarugu => {
-                // Move: <- expr (or jarugu expr)
+                // Channel receive or move: <- expr (value from channel, or move)
                 self.advance();
                 let expr = self.parse_unary()?;
-                Ok(Expr::Jarugu {
-                    expr: Box::new(expr),
+                Ok(Expr::ChannelRecv {
+                    channel: Box::new(expr),
                 })
             }
             _ => {
@@ -1433,5 +1485,136 @@ impl Parser {
         }
         
         Ok(expr)
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::ast::{Stmt, Expr, Type};
+
+    fn parse_source(source: &str) -> CompileResult<Program> {
+        let lexer = Lexer::new_with_filename(source, "test.tl".to_string());
+        let mut parser = Parser::new(lexer);
+        parser.parse()
+    }
+
+    #[test]
+    fn test_parse_empty_program() {
+        let program = parse_source("").unwrap();
+        assert!(program.imports.is_empty());
+        assert!(program.statements.is_empty());
+    }
+
+    #[test]
+    fn test_parse_prarambham_empty_body() {
+        let program = parse_source("#prarambham() { }").unwrap();
+        assert_eq!(program.statements.len(), 1);
+        match &program.statements[0] {
+            Stmt::Function { name, params, return_type, body, is_macro } => {
+                assert_eq!(name, "prarambham");
+                assert!(params.is_empty());
+                assert!(return_type.is_none());
+                assert!(body.is_empty());
+                assert!(*is_macro);
+            }
+            _ => panic!("expected Function statement"),
+        }
+    }
+
+    #[test]
+    fn test_parse_variable_decl() {
+        let program = parse_source("@x int = 5").unwrap();
+        assert_eq!(program.statements.len(), 1);
+        match &program.statements[0] {
+            Stmt::VariableDecl { name, type_annot, value, mutable } => {
+                assert_eq!(name, "x");
+                assert_eq!(type_annot.as_ref(), Some(&Type::Int));
+                assert!(value.is_some());
+                assert!(!*mutable);
+            }
+            _ => panic!("expected VariableDecl statement"),
+        }
+    }
+
+    #[test]
+    fn test_parse_mutable_variable_decl() {
+        let program = parse_source("@!n int = 0").unwrap();
+        assert_eq!(program.statements.len(), 1);
+        match &program.statements[0] {
+            Stmt::VariableDecl { name, mutable, .. } => {
+                assert_eq!(name, "n");
+                assert!(*mutable);
+            }
+            _ => panic!("expected VariableDecl statement"),
+        }
+    }
+
+    #[test]
+    fn test_parse_function_with_return_type() {
+        let program = parse_source("#add(a int, b int) int { mallinchu a + b }").unwrap();
+        assert_eq!(program.statements.len(), 1);
+        match &program.statements[0] {
+            Stmt::Function { name, params, return_type, body, .. } => {
+                assert_eq!(name, "add");
+                assert_eq!(params.len(), 2);
+                assert_eq!(params[0].0, "a");
+                assert_eq!(params[1].0, "b");
+                assert!(return_type.as_ref().map(|t| matches!(t, Type::Int)).unwrap_or(false));
+                assert_eq!(body.len(), 1);
+            }
+            _ => panic!("expected Function statement"),
+        }
+    }
+
+    #[test]
+    fn test_parse_if_statement() {
+        let program = parse_source("okavela true { @x int = 1 }").unwrap();
+        assert_eq!(program.statements.len(), 1);
+        match &program.statements[0] {
+            Stmt::If { then_block, else_block, .. } => {
+                assert_eq!(then_block.len(), 1);
+                assert!(else_block.is_none());
+            }
+            _ => panic!("expected If statement"),
+        }
+    }
+
+    #[test]
+    fn test_parse_return_statement() {
+        let program = parse_source("#f() { mallinchu 42 }").unwrap();
+        assert_eq!(program.statements.len(), 1);
+        match &program.statements[0] {
+            Stmt::Function { body, .. } => {
+                assert_eq!(body.len(), 1);
+                match &body[0] {
+                    Stmt::Return(Some(expr)) => {
+                        assert!(matches!(expr, Expr::Number(n) if *n == 42.0));
+                    }
+                    _ => panic!("expected Return(Some(Expr))"),
+                }
+            }
+            _ => panic!("expected Function statement"),
+        }
+    }
+
+    #[test]
+    fn test_parse_break_continue() {
+        let program = parse_source("malli { agu konasagu }").unwrap();
+        assert_eq!(program.statements.len(), 1);
+        match &program.statements[0] {
+            Stmt::For { body, .. } => {
+                assert_eq!(body.len(), 2);
+                assert!(matches!(&body[0], Stmt::Break));
+                assert!(matches!(&body[1], Stmt::Continue));
+            }
+            _ => panic!("expected For statement"),
+        }
+    }
+
+    #[test]
+    fn test_parse_rejects_duplicate_variable_in_scope() {
+        let result = parse_source("@x int = 1\n@x int = 2");
+        assert!(result.is_err());
     }
 }

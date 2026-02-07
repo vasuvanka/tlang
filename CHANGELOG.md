@@ -1,5 +1,13 @@
 # Tlang Changelog
 
+## First public beta (0.1.0)
+
+- **First public beta** release. Compiler (`tlangc`), LSP (`tlang-lsp`), build tool (`tlang-build`), and Go port tool (`tlang-port`) are available. Install via [README_INSTALL.md](README_INSTALL.md) or `cargo install` from this repo.
+- **Language:** Telugu keywords, `@` / `@!` variables, `#` functions, `#prarambham()` entry, `#dhimpu("path")` imports, channels and spawn (`tlang #fn(args)`), WaitGroup, `<-` for move/channel (no `jarugu` keyword). See [Reserved Keywords](docs/reserved-keywords.md).
+- **Tests:** Rust unit tests: `cargo test`. Tlang integration tests: `tests/run_all_tests.sh` (Linux/macOS) or `tests/run_all_tests.bat` (Windows). See [RELEASE.md](RELEASE.md) for pre-release checklist and publish steps.
+
+---
+
 ## Version 0.1.0 - Latest
 
 ### New Features

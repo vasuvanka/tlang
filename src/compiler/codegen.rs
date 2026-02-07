@@ -1,5 +1,5 @@
 use crate::ast::*;
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 
 pub struct CodeGenerator {
     output: String,
@@ -10,6 +10,8 @@ pub struct CodeGenerator {
     current_line: usize, // Track current line number for debug symbols
     variable_types: HashMap<String, crate::ast::Type>, // Track variable types for pointer detection
     struct_definitions: HashMap<String, Vec<(String, crate::ast::Type)>>, // Track struct definitions: struct_name -> fields
+    /// Functions spawned via tlang #fn(args) -> their param (name, type) for pthread wrapper generation
+    spawn_targets: HashMap<String, Vec<(String, crate::ast::Type)>>,
 }
 
 impl CodeGenerator {
@@ -23,6 +25,7 @@ impl CodeGenerator {
             current_line: 1,
             variable_types: HashMap::new(),
             struct_definitions: HashMap::new(),
+            spawn_targets: HashMap::new(),
         }
     }
     
@@ -100,6 +103,9 @@ impl CodeGenerator {
         self.write("#include <stdlib.h>\n");
         self.write("#include <math.h>\n");
         self.write("#include <string.h>\n");
+        self.write("#ifndef _WIN32\n");
+        self.write("#include <pthread.h>\n");
+        self.write("#endif\n");
         self.write("\n");
         
         // Write import statements as comments
@@ -122,6 +128,15 @@ impl CodeGenerator {
         
         // Generate map runtime (before stdlib/runtime functions that use it)
         self.generate_map_runtime();
+
+        // Generate channel runtime (for concurrency)
+        self.generate_channel_runtime();
+        // Generate WaitGroup runtime (wait until N tasks finish)
+        self.generate_waitgroup_runtime();
+
+        // Collect which functions are spawned (tlang #fn) so we can emit pthread wrappers
+        self.collect_spawn_targets(program);
+        self.generate_spawn_wrappers();
 
         // Generate runtime functions
         self.generate_runtime();
@@ -562,6 +577,305 @@ impl CodeGenerator {
         self.write("}\n\n");
     }
     
+    fn generate_channel_runtime(&mut self) {
+        self.write("// Channel (CSP) runtime - requires pthread on non-Windows\n");
+        self.write("#ifndef _WIN32\n");
+        self.write("typedef struct TlangCh {\n");
+        self.write("    pthread_mutex_t mu;\n");
+        self.write("    pthread_cond_t cond_send;\n");
+        self.write("    pthread_cond_t cond_recv;\n");
+        self.write("    void** buf;\n");
+        self.write("    int cap;\n");
+        self.write("    int len;\n");
+        self.write("    int head;\n");
+        self.write("    int closed;\n");
+        self.write("    size_t elem_size;\n");
+        self.write("} TlangCh;\n\n");
+        self.write("TlangCh* tlang_ch_create(int cap, size_t elem_size) {\n");
+        self.write("    TlangCh* ch = (TlangCh*)malloc(sizeof(TlangCh));\n");
+        self.write("    if (!ch) return NULL;\n");
+        self.write("    pthread_mutex_init(&ch->mu, NULL);\n");
+        self.write("    pthread_cond_init(&ch->cond_send, NULL);\n");
+        self.write("    pthread_cond_init(&ch->cond_recv, NULL);\n");
+        self.write("    ch->cap = (cap <= 0) ? 1 : cap;\n");
+        self.write("    ch->len = 0;\n");
+        self.write("    ch->head = 0;\n");
+        self.write("    ch->closed = 0;\n");
+        self.write("    ch->elem_size = elem_size;\n");
+        self.write("    ch->buf = (void**)malloc((size_t)ch->cap * sizeof(void*));\n");
+        self.write("    return ch;\n");
+        self.write("}\n\n");
+        self.write("void tlang_ch_send(TlangCh* ch, void* val) {\n");
+        self.write("    pthread_mutex_lock(&ch->mu);\n");
+        self.write("    while (ch->closed == 0 && ch->cap >= 0 && ch->len >= ch->cap) {\n");
+        self.write("        pthread_cond_wait(&ch->cond_send, &ch->mu);\n");
+        self.write("    }\n");
+        self.write("    if (ch->closed) { pthread_mutex_unlock(&ch->mu); return; }\n");
+        self.write("    void* copy = malloc(ch->elem_size);\n");
+        self.write("    if (copy) memcpy(copy, val, ch->elem_size);\n");
+        self.write("    if (ch->cap > 0 && ch->buf) {\n");
+        self.write("        int idx = (ch->head + ch->len) % ch->cap;\n");
+        self.write("        ch->buf[idx] = copy;\n");
+        self.write("        ch->len++;\n");
+        self.write("    }\n");
+        self.write("    pthread_cond_signal(&ch->cond_recv);\n");
+        self.write("    pthread_mutex_unlock(&ch->mu);\n");
+        self.write("}\n\n");
+        self.write("int tlang_ch_recv(TlangCh* ch, void* out) {\n");
+        self.write("    pthread_mutex_lock(&ch->mu);\n");
+        self.write("    while (ch->len == 0 && ch->closed == 0) {\n");
+        self.write("        pthread_cond_wait(&ch->cond_recv, &ch->mu);\n");
+        self.write("    }\n");
+        self.write("    int ok = 1;\n");
+        self.write("    if (ch->len > 0 && ch->buf) {\n");
+        self.write("        void* p = ch->buf[ch->head];\n");
+        self.write("        ch->head = (ch->head + 1) % ch->cap;\n");
+        self.write("        ch->len--;\n");
+        self.write("        if (out && p) memcpy(out, p, ch->elem_size);\n");
+        self.write("        free(p);\n");
+        self.write("    } else { ok = 0; }\n");
+        self.write("    pthread_cond_signal(&ch->cond_send);\n");
+        self.write("    pthread_mutex_unlock(&ch->mu);\n");
+        self.write("    return ok;\n");
+        self.write("}\n\n");
+        self.write("void tlang_ch_close(TlangCh* ch) {\n");
+        self.write("    if (!ch) return;\n");
+        self.write("    pthread_mutex_lock(&ch->mu);\n");
+        self.write("    ch->closed = 1;\n");
+        self.write("    pthread_cond_broadcast(&ch->cond_send);\n");
+        self.write("    pthread_cond_broadcast(&ch->cond_recv);\n");
+        self.write("    pthread_mutex_unlock(&ch->mu);\n");
+        self.write("}\n\n");
+        self.write("#else\n");
+        self.write("typedef void* TlangCh;\n");
+        self.write("TlangCh* tlang_ch_create(int cap, size_t elem_size) { (void)cap; (void)elem_size; return NULL; }\n");
+        self.write("void tlang_ch_send(TlangCh* ch, void* val) { (void)ch; (void)val; }\n");
+        self.write("int tlang_ch_recv(TlangCh* ch, void* out) { (void)ch; (void)out; return 0; }\n");
+        self.write("void tlang_ch_close(TlangCh* ch) { (void)ch; }\n");
+        self.write("#endif\n\n");
+    }
+
+    fn generate_waitgroup_runtime(&mut self) {
+        self.write("// WaitGroup - wait until N tasks finish (pthread on non-Windows)\n");
+        self.write("#ifndef _WIN32\n");
+        self.write("typedef struct TlangWg {\n");
+        self.write("    pthread_mutex_t mu;\n");
+        self.write("    pthread_cond_t cond;\n");
+        self.write("    int n;\n");
+        self.write("} TlangWg;\n\n");
+        self.write("TlangWg* tlang_wg_create(void) {\n");
+        self.write("    TlangWg* wg = (TlangWg*)malloc(sizeof(TlangWg));\n");
+        self.write("    if (!wg) return NULL;\n");
+        self.write("    pthread_mutex_init(&wg->mu, NULL);\n");
+        self.write("    pthread_cond_init(&wg->cond, NULL);\n");
+        self.write("    wg->n = 0;\n");
+        self.write("    return wg;\n");
+        self.write("}\n\n");
+        self.write("void tlang_wg_add(TlangWg* wg, int delta) {\n");
+        self.write("    if (!wg) return;\n");
+        self.write("    pthread_mutex_lock(&wg->mu);\n");
+        self.write("    wg->n += delta;\n");
+        self.write("    if (wg->n <= 0) pthread_cond_broadcast(&wg->cond);\n");
+        self.write("    pthread_mutex_unlock(&wg->mu);\n");
+        self.write("}\n\n");
+        self.write("void tlang_wg_done(TlangWg* wg) {\n");
+        self.write("    tlang_wg_add(wg, -1);\n");
+        self.write("}\n\n");
+        self.write("void tlang_wg_wait(TlangWg* wg) {\n");
+        self.write("    if (!wg) return;\n");
+        self.write("    pthread_mutex_lock(&wg->mu);\n");
+        self.write("    while (wg->n > 0) pthread_cond_wait(&wg->cond, &wg->mu);\n");
+        self.write("    pthread_mutex_unlock(&wg->mu);\n");
+        self.write("}\n\n");
+        self.write("#else\n");
+        self.write("typedef void* TlangWg;\n");
+        self.write("TlangWg* tlang_wg_create(void) { return NULL; }\n");
+        self.write("void tlang_wg_add(TlangWg* wg, int delta) { (void)wg; (void)delta; }\n");
+        self.write("void tlang_wg_done(TlangWg* wg) { (void)wg; }\n");
+        self.write("void tlang_wg_wait(TlangWg* wg) { (void)wg; }\n");
+        self.write("#endif\n\n");
+    }
+
+    /// Collect set of function names that appear in tlang #fn(...) spawn calls.
+    fn collect_spawned_names(stmts: &[Stmt], set: &mut HashSet<String>) {
+        for stmt in stmts {
+            match stmt {
+                Stmt::Expression(expr) => Self::collect_spawned_names_expr(expr, set),
+                Stmt::VariableDecl { value: Some(v), .. } => Self::collect_spawned_names_expr(v, set),
+                Stmt::Assignment { value, .. } => Self::collect_spawned_names_expr(value, set),
+                Stmt::MultiAssignment { value, .. } => Self::collect_spawned_names_expr(value, set),
+                Stmt::If { condition, then_block, else_block } => {
+                    Self::collect_spawned_names_expr(condition, set);
+                    Self::collect_spawned_names(then_block, set);
+                    if let Some(eb) = else_block {
+                        Self::collect_spawned_names(eb, set);
+                    }
+                }
+                Stmt::For { init: Some(i), condition, update, body } => {
+                    Self::collect_spawned_names_stmt(i, set);
+                    if let Some(c) = condition {
+                        Self::collect_spawned_names_expr(c, set);
+                    }
+                    if let Some(u) = update {
+                        Self::collect_spawned_names_stmt(u, set);
+                    }
+                    Self::collect_spawned_names(body, set);
+                }
+                Stmt::For { init: None, condition, update, body } => {
+                    if let Some(c) = condition {
+                        Self::collect_spawned_names_expr(c, set);
+                    }
+                    if let Some(u) = update {
+                        Self::collect_spawned_names_stmt(u, set);
+                    }
+                    Self::collect_spawned_names(body, set);
+                }
+                Stmt::ForRange { iterable, body, .. } => {
+                    Self::collect_spawned_names_expr(iterable, set);
+                    Self::collect_spawned_names(body, set);
+                }
+                Stmt::Function { body, .. } => Self::collect_spawned_names(body, set),
+                Stmt::Block(stmts_inner) => Self::collect_spawned_names(stmts_inner, set),
+                _ => {}
+            }
+        }
+    }
+    
+    fn collect_spawned_names_stmt(stmt: &Stmt, set: &mut HashSet<String>) {
+        match stmt {
+            Stmt::Expression(expr) => Self::collect_spawned_names_expr(expr, set),
+            Stmt::Assignment { value, .. } => Self::collect_spawned_names_expr(value, set),
+            Stmt::For { body, .. } => Self::collect_spawned_names(body, set),
+            _ => {}
+        }
+    }
+    
+    fn collect_spawned_names_expr(expr: &Expr, set: &mut HashSet<String>) {
+        match expr {
+            Expr::Spawn { name, args } => {
+                set.insert(name.clone());
+                for a in args {
+                    Self::collect_spawned_names_expr(a, set);
+                }
+            }
+            Expr::BinaryOp { left, right, .. } => {
+                Self::collect_spawned_names_expr(left, set);
+                Self::collect_spawned_names_expr(right, set);
+            }
+            Expr::UnaryOp { expr: e, .. } => Self::collect_spawned_names_expr(e, set),
+            Expr::FunctionCall { args, .. } => {
+                for a in args {
+                    Self::collect_spawned_names_expr(a, set);
+                }
+            }
+            Expr::Assignment { value, .. } => Self::collect_spawned_names_expr(value, set),
+            Expr::MemberAssignment { object, value, .. } => {
+                Self::collect_spawned_names_expr(object, set);
+                Self::collect_spawned_names_expr(value, set);
+            }
+            Expr::ErrorCheck { expr: e } => Self::collect_spawned_names_expr(e, set),
+            Expr::ArrayIndex { array, index, .. } => {
+                Self::collect_spawned_names_expr(array, set);
+                Self::collect_spawned_names_expr(index, set);
+            }
+            Expr::ArrayLiteral { elements } => {
+                for e in elements {
+                    Self::collect_spawned_names_expr(e, set);
+                }
+            }
+            Expr::SliceExpr { array, start, end, .. } => {
+                Self::collect_spawned_names_expr(array, set);
+                if let Some(s) = start {
+                    Self::collect_spawned_names_expr(s, set);
+                }
+                if let Some(e) = end {
+                    Self::collect_spawned_names_expr(e, set);
+                }
+            }
+            Expr::MemberAccess { object, .. } => Self::collect_spawned_names_expr(object, set),
+            Expr::MapIndex { map, key, .. } => {
+                Self::collect_spawned_names_expr(map, set);
+                Self::collect_spawned_names_expr(key, set);
+            }
+            Expr::StructLiteral { fields, .. } => {
+                for (_, e) in fields {
+                    Self::collect_spawned_names_expr(e, set);
+                }
+            }
+            Expr::MapLiteral { entries, .. } => {
+                for (k, v) in entries {
+                    Self::collect_spawned_names_expr(k, set);
+                    Self::collect_spawned_names_expr(v, set);
+                }
+            }
+            Expr::TypeCast { expr: e, .. } => Self::collect_spawned_names_expr(e, set),
+            Expr::Borrow { expr: e, .. } => Self::collect_spawned_names_expr(e, set),
+            Expr::Deref { expr: e } => Self::collect_spawned_names_expr(e, set),
+            Expr::TupleLiteral { elements } => {
+                for e in elements {
+                    Self::collect_spawned_names_expr(e, set);
+                }
+            }
+            Expr::ErrorPropagate { expr: e } => Self::collect_spawned_names_expr(e, set),
+            Expr::SunyamFree { expr: e } => Self::collect_spawned_names_expr(e, set),
+            Expr::ChannelSend { channel, value } => {
+                Self::collect_spawned_names_expr(channel, set);
+                Self::collect_spawned_names_expr(value, set);
+            }
+            Expr::ChannelRecv { channel } => Self::collect_spawned_names_expr(channel, set),
+            _ => {}
+        }
+    }
+    
+    /// Build spawn_targets from program: for each spawned function name, get its params from the function def.
+    fn collect_spawn_targets(&mut self, program: &Program) {
+        let mut spawned = HashSet::new();
+        Self::collect_spawned_names(&program.statements, &mut spawned);
+        for stmt in &program.statements {
+            if let Stmt::Function { name, params, .. } = stmt {
+                if spawned.contains(name) {
+                    self.spawn_targets.insert(name.clone(), params.clone());
+                }
+            }
+        }
+    }
+    
+    /// Emit pthread wrapper struct and function for each spawn target (non-Windows).
+    fn generate_spawn_wrappers(&mut self) {
+        if self.spawn_targets.is_empty() {
+            return;
+        }
+        self.write("// Spawn (tlang #fn) pthread wrappers\n");
+        self.write("#ifndef _WIN32\n");
+        let targets: Vec<_> = self.spawn_targets.iter()
+            .map(|(fn_name, params)| (fn_name.clone(), params.clone()))
+            .collect();
+        for (fn_name, params) in targets {
+            let struct_name = format!("tlang_spawn_args_{}", fn_name);
+            let wrapper_name = format!("tlang_wrapper_{}", fn_name);
+            // Struct with one field per param (_0, _1, ...)
+            self.write(&format!("typedef struct {} {{\n", struct_name));
+            for (i, (_pname, ptype)) in params.iter().enumerate() {
+                let ctype = self.type_to_c_string(ptype, false);
+                self.write(&format!("    {} _{};\n", ctype, i));
+            }
+            self.write("} ");
+            self.write(&struct_name);
+            self.write(";\n\n");
+            // Wrapper: void* tlang_wrapper_X(void* arg) { ... fn(a->_0, a->_1); free(a); return NULL; }
+            self.write(&format!("static void* {} (void* arg) {{\n", wrapper_name));
+            self.indent();
+            self.write(&format!("    {}* a = ({}*)arg;\n", struct_name, struct_name));
+            let args: Vec<String> = (0..params.len()).map(|i| format!("a->_{}", i)).collect();
+            self.write(&format!("    {}({});\n", fn_name, args.join(", ")));
+            self.writeln("free(a);");
+            self.writeln("return NULL;");
+            self.dedent();
+            self.write("}\n\n");
+        }
+        self.write("#endif\n\n");
+    }
+    
     fn generate_runtime(&mut self) {
         // Generate standard library functions
         self.writeln("// ========== Standard Library ==========");
@@ -914,24 +1228,23 @@ impl CodeGenerator {
     fn generate_statement(&mut self, stmt: &Stmt) {
         match stmt {
             Stmt::Expression(expr) => {
-                // Check if this is error propagation: expr? (Rust/Zig-style)
-                if let Expr::ErrorPropagate { expr: inner_expr } = expr {
+                if let Expr::Spawn { name, args } = expr {
+                    self.generate_spawn_statement(name, args);
+                } else if let Expr::ErrorPropagate { expr: inner_expr } = expr {
                     let expr_str = self.generate_expression(inner_expr);
-                    // Current function must return (value, error) tuple; propagate error on non-nil
                     if let Some(crate::ast::Type::Tuple { types }) = &self.current_function_return_type {
                         let error_field = types.len() - 1;
                         self.writeln(&format!("auto _err_prop_tmp = {};", expr_str));
                         self.writeln(&format!("if (_err_prop_tmp.field{} != NULL)", error_field));
                         self.write_return_error_tuple(&format!("_err_prop_tmp.field{}", error_field));
                     } else {
-                        // Function returns single value (e.g. just error): simple check
                         self.writeln(&format!("auto _err_prop_tmp = {};", expr_str));
                         self.writeln("if (_err_prop_tmp != NULL) return _err_prop_tmp;");
                     }
                 } else {
-                let expr_str = self.generate_expression(expr);
-                self.writeln(&format!("{};", expr_str));
-            }
+                    let expr_str = self.generate_expression(expr);
+                    self.writeln(&format!("{};", expr_str));
+                }
             }
             Stmt::VariableDecl { name, type_annot, value, mutable } => {
                 // If type is not specified, infer from value
@@ -1001,6 +1314,20 @@ impl CodeGenerator {
                         format!("const {}", type_str)
                     }
                 };
+                
+                if let Some(crate::ast::Type::Channel { element_type }) = &inferred_type {
+                    let (_, size_str) = self.elem_size_and_ctype(element_type);
+                    let cap_str = value.as_ref()
+                        .map(|v| self.generate_expression(v))
+                        .unwrap_or_else(|| "0".to_string());
+                    self.writeln(&format!("TlangCh* {} = tlang_ch_create({}, {});", name, cap_str, size_str));
+                    return;
+                }
+
+                if let Some(crate::ast::Type::WaitGroup) = &inferred_type {
+                    self.writeln(&format!("TlangWg* {} = tlang_wg_create();", name));
+                    return;
+                }
                 
                 if let Some(val) = value {
                     // Single-variable with ?: @data = readFile(path)?
@@ -1306,6 +1633,8 @@ impl CodeGenerator {
                                     format!("{}[{}]", elem_str, size)
                                 }
                                 Some(crate::ast::Type::Slice { .. }) => "Slice*".to_string(),
+                                Some(crate::ast::Type::Channel { .. }) => "TlangCh*".to_string(),
+                                Some(crate::ast::Type::WaitGroup) => "TlangWg*".to_string(),
                                 Some(crate::ast::Type::Struct { name }) => format!("{}", name),
                                 Some(crate::ast::Type::Map { .. }) => "Map*".to_string(),
                                 Some(crate::ast::Type::Any) => "void*".to_string(),
@@ -1422,6 +1751,9 @@ impl CodeGenerator {
                     }
                     self.write(") {\n");
                     self.indent();
+                    for (param_name, param_type) in params {
+                        self.variable_types.insert(param_name.clone(), param_type.clone());
+                    }
                     for stmt in body {
                         self.generate_statement(stmt);
                     }
@@ -1444,6 +1776,9 @@ impl CodeGenerator {
                 }
                 self.write(") {\n");
                 self.indent();
+                for (param_name, param_type) in params {
+                    self.variable_types.insert(param_name.clone(), param_type.clone());
+                }
                 for stmt in body {
                     self.generate_statement(stmt);
                 }
@@ -1540,6 +1875,12 @@ impl CodeGenerator {
                 // Map type - use a generic Map struct (we'll implement this)
                 format!("{}Map*", const_prefix)
             }
+            crate::ast::Type::Channel { element_type: _ } => {
+                format!("{}TlangCh*", const_prefix)
+            }
+            crate::ast::Type::WaitGroup => {
+                format!("{}TlangWg*", const_prefix)
+            }
             crate::ast::Type::Any => {
                 // nirmanam{} - any type (map value), use void* in C
                 format!("{}void*", const_prefix)
@@ -1597,6 +1938,12 @@ impl CodeGenerator {
             }
             crate::ast::Type::Map { key_type: _, value_type: _ } => {
                 // Map defaults to NULL (empty map)
+                "NULL".to_string()
+            }
+            crate::ast::Type::Channel { element_type: _ } => {
+                "NULL".to_string()
+            }
+            crate::ast::Type::WaitGroup => {
                 "NULL".to_string()
             }
             crate::ast::Type::Any => {
@@ -1659,7 +2006,16 @@ impl CodeGenerator {
             Expr::Nil => "NULL".to_string(), // Sunyam -> NULL
             Expr::SunyamFree { expr } => {
                 let inner = self.generate_expression(expr);
-                format!("free({})", inner)
+                let is_channel = if let Expr::Identifier(name) = expr.as_ref() {
+                    self.variable_types.get(name).map(|t| matches!(t, crate::ast::Type::Channel { .. })).unwrap_or(false)
+                } else {
+                    false
+                };
+                if is_channel {
+                    format!("tlang_ch_close({})", inner)
+                } else {
+                    format!("free({})", inner)
+                }
             }
             Expr::Kotha { target_type } => {
                 // nirmanam(Type) -> malloc(sizeof(Type)) or map_create for jatha
@@ -1731,6 +2087,30 @@ impl CodeGenerator {
                 }
             }
             Expr::FunctionCall { name, args } => {
+                // WaitGroup methods: wg.Add(n), wg.Done(), wg.Wait()
+                if let Some(dot) = name.find('.') {
+                    let (obj_name, method) = name.split_at(dot);
+                    let method = &method[1..]; // skip '.'
+                    if let Some(crate::ast::Type::WaitGroup) = self.variable_types.get(obj_name) {
+                        return match method {
+                            "Add" if args.len() == 1 => {
+                                let n_str = self.generate_expression(&args[0]);
+                                format!("tlang_wg_add({}, {})", obj_name, n_str)
+                            }
+                            "Done" if args.is_empty() => {
+                                format!("tlang_wg_done({})", obj_name)
+                            }
+                            "Wait" if args.is_empty() => {
+                                format!("tlang_wg_wait({})", obj_name)
+                            }
+                            _ => {
+                                let args_str: Vec<String> = args.iter().map(|a| self.generate_expression(a)).collect();
+                                format!("{}({})", name.replace(".", "_"), args_str.join(", "))
+                            }
+                        };
+                    }
+                }
+
                 // Special handling for len() function for arrays, slices, and maps
                 if name == "len" && args.len() == 1 {
                     let arr_expr = self.generate_expression(&args[0]);
@@ -2148,13 +2528,95 @@ impl CodeGenerator {
                 let expr_str = self.generate_expression(expr);
                 format!("*{}", expr_str)
             }
-            Expr::Jarugu { expr } => {
-                // Move: <- expr (or jarugu expr)
-                // In C, moves are just assignments
-                // The borrow checker handles ownership tracking at compile time
-                self.generate_expression(expr)
+            Expr::ChannelRecv { channel } => {
+                // <- ch: channel receive or move. If channel type -> tlang_ch_recv; else move (evaluate expr).
+                if let Expr::Identifier(name) = channel.as_ref() {
+                    if let Some(crate::ast::Type::Channel { element_type }) = self.variable_types.get(name) {
+                        return self.generate_channel_recv(name, element_type);
+                    }
+                }
+                // Move: just evaluate the expression (ownership tracked by borrow checker)
+                self.generate_expression(channel)
+            }
+            Expr::ChannelSend { channel, value } => {
+                self.generate_channel_send(channel, value)
+            }
+            Expr::Spawn { name, args } => {
+                self.generate_spawn(name, args)
             }
         }
+    }
+    
+    fn elem_size_and_ctype(&self, element_type: &crate::ast::Type) -> (String, String) {
+        let ctype = self.type_to_c_string(element_type, false);
+        let size = match element_type {
+            crate::ast::Type::Int => "sizeof(int)",
+            crate::ast::Type::Float => "sizeof(double)",
+            crate::ast::Type::String => "sizeof(char*)",
+            crate::ast::Type::Bool => "sizeof(int)",
+            crate::ast::Type::Error => "sizeof(char*)",
+            _ => "sizeof(void*)",
+        };
+        (ctype, size.to_string())
+    }
+    
+    fn generate_channel_recv(&self, ch_name: &str, element_type: &crate::ast::Type) -> String {
+        let (ctype, _) = self.elem_size_and_ctype(element_type);
+        format!("({{ {} _t; tlang_ch_recv({}, &_t); _t; }})", ctype, ch_name)
+    }
+    
+    fn generate_channel_send(&mut self, channel: &Expr, value: &Expr) -> String {
+        let ch_str = self.generate_expression(channel);
+        let val_str = self.generate_expression(value);
+        format!("tlang_ch_send({}, (void*)&({}))", ch_str, val_str)
+    }
+    
+    /// Emit spawn as a statement: pthread path on Unix, direct call on Windows.
+    fn generate_spawn_statement(&mut self, name: &str, args: &[Expr]) {
+        let args_str: Vec<String> = args.iter().map(|e| self.generate_expression(e)).collect();
+        let direct_call = format!("{}({});", name, args_str.join(", "));
+        let Some(params) = self.spawn_targets.get(name) else {
+            self.writeln(&direct_call);
+            return;
+        };
+        if params.len() != args.len() {
+            self.writeln(&direct_call);
+            return;
+        }
+        let struct_name = format!("tlang_spawn_args_{}", name);
+        let wrapper_name = format!("tlang_wrapper_{}", name);
+        self.writeln("#ifndef _WIN32");
+        self.writeln(&format!("{{ pthread_t _tid; {}* _a = ({}*)malloc(sizeof({}));", struct_name, struct_name, struct_name));
+        for (i, ex) in args_str.iter().enumerate() {
+            self.writeln(&format!("_a->_{} = ({});", i, ex));
+        }
+        self.writeln(&format!("pthread_create(&_tid, NULL, {}, _a);", wrapper_name));
+        self.writeln("pthread_detach(_tid);");
+        self.writeln("}");
+        self.writeln("#else");
+        self.writeln(&direct_call);
+        self.writeln("#endif");
+    }
+    
+    fn generate_spawn(&mut self, name: &str, args: &[Expr]) -> String {
+        let args_str: Vec<String> = args.iter().map(|e| self.generate_expression(e)).collect();
+        let direct = format!("{}({})", name, args_str.join(", "));
+        let Some(params) = self.spawn_targets.get(name) else {
+            return direct;
+        };
+        if params.len() != args.len() {
+            return direct;
+        }
+        let struct_name = format!("tlang_spawn_args_{}", name);
+        let wrapper_name = format!("tlang_wrapper_{}", name);
+        let mut inits = String::new();
+        for (i, ex) in args_str.iter().enumerate() {
+            inits.push_str(&format!("_a->_{} = ({}); ", i, ex));
+        }
+        format!(
+            "({{ pthread_t _tid; {}* _a = ({}*)malloc(sizeof({})); {}pthread_create(&_tid, NULL, {}, _a); pthread_detach(_tid); (void)0; }})",
+            struct_name, struct_name, struct_name, inits, wrapper_name
+        )
     }
     
     fn generate_struct_json_marshal(&mut self, struct_name: &str, fields: &[(String, crate::ast::Type)]) {

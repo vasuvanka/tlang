@@ -1,11 +1,13 @@
 use std::env;
 use std::fs;
+use std::path::Path;
 use std::process;
 use std::process::Command;
 use tlang::lexer::Lexer;
 use tlang::parser::Parser;
 use tlang::codegen::CodeGenerator;
 use tlang::package::PackageResolver;
+use tlang::build::{fetch, config::ProjectConfig};
 
 fn main() {
     let args: Vec<String> = env::args().collect();
@@ -34,12 +36,13 @@ fn main() {
         eprintln!("Usage: tlangc [run|build|compile] <input_file> [output_file]");
         eprintln!("       tlangc --version  Show version");
         eprintln!("\nCommands:");
-        eprintln!("  compile  Compile to C and then to executable binary");
-        eprintln!("  run      Compile to C only (for running with tlang run)");
+        eprintln!("  run      Compile to C, build binary, then run it (fetches deps from config.toml)");
+        eprintln!("  compile  Compile to C and then to executable (fetches deps from config.toml)");
         eprintln!("  build    Compile to C only (for build system)");
         eprintln!("\nExamples:");
-        eprintln!("  tlangc program.tl              # Compile to output.c");
-        eprintln!("  tlangc compile program.tl      # Compile to executable");
+        eprintln!("  tlangc run program.tl          # Compile and run");
+        eprintln!("  tlangc run program.tl myapp    # Compile to myapp.exe and run");
+        eprintln!("  tlangc compile program.tl     # Compile to executable");
         eprintln!("  tlangc compile program.tl app # Compile to app.exe");
         process::exit(1);
     }
@@ -52,6 +55,26 @@ fn main() {
             process::exit(1);
         }
     };
+
+    // Go-get style: find config.toml, fetch dependencies from HTTP/Git, then build/run
+    let project_root = env::current_dir()
+        .ok()
+        .and_then(|cwd| ProjectConfig::find_project_root(&cwd))
+        .or_else(|| {
+            Path::new(filename).parent().and_then(|p| {
+                p.canonicalize().ok().and_then(|canon| ProjectConfig::find_project_root(&canon))
+            })
+        });
+    if let Some(ref root) = project_root {
+        if let Ok(config) = ProjectConfig::load(root) {
+            if !config.dependencies.is_empty() {
+                if let Err(e) = fetch::ensure_dependencies(root, &config) {
+                    eprintln!("\n{}", e);
+                    process::exit(1);
+                }
+            }
+        }
+    }
     
     // Lexical analysis
     let lexer = Lexer::new_with_filename(&source, filename.clone());
@@ -71,8 +94,12 @@ fn main() {
         }
     };
     
-    // Resolve packages
+    // Resolve packages (include dependencies/ when config.toml was used)
     let mut resolver = PackageResolver::new(filename);
+    if let Some(ref root) = project_root {
+        resolver.add_search_path(root.clone());
+        resolver.add_search_path(root.join("dependencies"));
+    }
     let imported_packages = match resolver.resolve_imports(&program) {
         Ok(packages) => packages,
         Err(e) => {
@@ -90,9 +117,8 @@ fn main() {
     // Determine output file names
     let output_c_file = if args.len() > arg_idx + 1 {
         let user_output = &args[arg_idx + 1];
-        // If user provided output without .c extension and command is compile, add .c for intermediate file
-        if command.as_ref().map(|c| c == "compile").unwrap_or(false) && !user_output.ends_with(".c") {
-            // Use a temporary .c filename, binary will use the user's name
+        // For compile or run: add .c for intermediate file when user gives a binary name
+        if command.as_ref().map(|c| c == "compile" || c == "run").unwrap_or(false) && !user_output.ends_with(".c") {
             format!("{}.c", user_output)
         } else {
             user_output.clone()
@@ -122,8 +148,8 @@ fn main() {
         }
     }
     
-    // If command is "compile", also compile C to binary
-    if command.as_ref().map(|c| c == "compile").unwrap_or(false) {
+    // If command is "compile" or "run", compile C to binary (run will then execute it)
+    if command.as_ref().map(|c| c == "compile" || c == "run").unwrap_or(false) {
         // Determine binary name
         let binary_name = if args.len() > arg_idx + 1 {
             let user_output = &args[arg_idx + 1];
@@ -215,8 +241,17 @@ fn main() {
                     };
                     println!("✓ Binary compiled successfully!");
                     println!("  Binary location: {}", absolute_binary_path);
-                    // Optionally clean up intermediate C file (user can keep it if they want)
-                    // fs::remove_file(&output_c_file).ok(); // Uncomment to auto-delete .c file
+                    // If "run", execute the binary and exit with its status
+                    if command.as_ref().map(|c| c == "run").unwrap_or(false) {
+                        let run_status = Command::new(&binary_path).status();
+                        match run_status {
+                            Ok(s) => process::exit(s.code().unwrap_or(1)),
+                            Err(e) => {
+                                eprintln!("Error running binary: {}", e);
+                                process::exit(1);
+                            }
+                        }
+                    }
                 } else {
                     let stderr = String::from_utf8_lossy(&output.stderr);
                     let stdout = String::from_utf8_lossy(&output.stdout);
@@ -279,7 +314,7 @@ fn main() {
         };
         println!("Compilation successful! Output written to {}", absolute_c_path);
         if command.is_none() {
-            println!("Use 'tlangc compile {}' to compile to binary.", output_c_file);
+            println!("Use 'tlangc run {}' or 'tlangc compile {}' to build and run.", output_c_file, output_c_file);
         }
     }
 }

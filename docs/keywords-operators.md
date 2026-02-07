@@ -338,7 +338,7 @@ Use **`@variable = #dhimpu("path")`** (no explicit package keyword). See [Packag
 | `&` | Immutable borrow | `@ref = &value` |
 | `&mut` | Mutable borrow | `@ref = &mut value` |
 | `*` | Dereference | `@copy = *ref` |
-| `<-` | Move / ownership transfer | `@new = <- old` (replaces former `jarugu` keyword) |
+| `<-` | Move / channel send & receive | `@new = <- old` (move); `ch <- value` (send); `@x = <- ch` (receive) |
 
 **Immutable Borrow (`&`)** - Create a read-only reference
 
@@ -364,15 +364,20 @@ fmt.Printf("Value: %d\n", *ref);
 @copy int = *ref;  // Dereference to get value
 ```
 
-**Move (`<-`)** - Explicitly transfer ownership
+**Move and channels (`<-`)** - Ownership transfer and channel operations
 
 ```tl
 @original string = "hello";
 @moved string = <- original;
-// original is no longer valid
+// original is no longer valid (move)
+
+// Channels: send and receive use the same operator
+@ch channel[int];
+ch <- 42;           // send
+@x int = <- ch;     // receive
 ```
 
-Use `<-` for move; the `jarugu` keyword was replaced by `<-`.
+Use `<-` for move; for channels, `ch <- value` is send and `<- ch` is receive.
 
 ### Arithmetic Operators
 
@@ -506,7 +511,7 @@ Operators are evaluated in the following order (highest to lowest):
 
 For the full list and usage, see **[Reserved Keywords](reserved-keywords.md)** (matches lexer/parser).
 
-- **Lexer keywords:** okavela, lekapothe, malli, mallinchu, agu, konasagu, nirmanam, jatha, sunyam; types: int, float, string, bool, error. Move: `<-` (replaced `jarugu`).
+- **Lexer keywords:** okavela, lekapothe, malli, mallinchu, agu, konasagu, nirmanam, jatha, sunyam; types: int, float, string, bool, error, channel. Move/channel: `<-` only (no `jarugu` keyword).
 - **Declaration symbols:** `@`, `@!`, `#`. No explicit package or alias keyword.
 - **Special identifiers:** prarambham (entry), varasa (range loop); true, false (boolean literals).
 

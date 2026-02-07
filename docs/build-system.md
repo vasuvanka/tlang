@@ -46,6 +46,17 @@ This will:
 4. Compile C to static binary
 5. Output to `target/` directory
 
+### Go get style: automatic dependency fetch
+
+When you **run** or **compile** a program, the compiler looks for `config.toml` in the current directory or the directory of the input file. If it finds one and it lists **HTTP** or **Git** dependencies, it automatically downloads any missing packages into `dependencies/` before building (like `go get`).
+
+- **`tlang run program.tl`** or **`tlang compile program.tl`** will fetch remote deps from `config.toml` if present.
+- **HTTP**: `http = "https://github.com/user/repo/archive/main.zip"` (or any `.zip`/`.tar.gz` URL).
+- **Git** (GitHub only for now): `git = "https://github.com/user/repo"` or `git = "https://github.com/user/repo", branch = "main"` or `tag = "v1.0"`. The compiler downloads the repo as a ZIP from GitHub and extracts it to `dependencies/<name>`.
+- Path dependencies are not fetched; they must already exist on disk.
+
+You do not need to run `tlang add` first when using run/compile; fetching happens automatically.
+
 ### Clean Build Artifacts
 
 ```bash

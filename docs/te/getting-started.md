@@ -67,7 +67,10 @@ tlang compile hello.tl hello
 | `mallinchu`     | return  | రిటర్న్ |
 | `#prarambham()` | main()  | ప్రవేశ బిందువు |
 | `#dhimpu`       | import  | ఇంపోర్ట్ |
+| `channel`       | channel | ఛానల్ (కన్‌కరెన్సీ) |
+| `<-`            | send/receive | ఛానల్‌కు పంపడం/స్వీకరించడం |
+| `tlang #fn()`   | spawn   | కొత్త థ్రెడ్‌లో ఫంక్షన్ అమలు (Unix: pthread) |
 
 ## తరువాతి అడుగులు
 
-[భాషా సూచన](language-reference.md) మరియు [ఇతర గైడ్లు](README.md) చూడండి. ఇంగ్లీష్ వెర్షన్ కోసం టూల్‌బార్‌లో **EN** సెలెక్ట్ చేయండి.
+[భాషా సూచన](language-reference.md) మరియు [ఇతర గైడ్లు](README.md) చూడండి. కన్‌కరెన్సీ (ఛానల్స్, స్పాన్) కోసం [Concurrency Architecture](../concurrency-architecture-suggestions.md) చూడండి. ఇంగ్లీష్ వెర్షన్ కోసం టూల్‌బార్‌లో **EN** సెలెక్ట్ చేయండి.

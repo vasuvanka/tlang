@@ -124,7 +124,7 @@ Tlang is a well-designed programming language that compiles to C, featuring Telu
 
 3. **Advanced Features**
    - No generics/templates
-   - No concurrency (goroutines/channels)
+   - Concurrency: channels (`channel[T]`, `ch <- value`, `@x = <- ch`, `sunyam(ch)`) and spawn (`tlang #fn(args)`) — see [Concurrency Architecture & Patterns](concurrency-architecture-suggestions.md)
    - ✅ **Borrow Checker** - Rust-style ownership and borrowing for memory safety
    - ✅ **Memory Safety** - Compile-time memory management without GC
 
@@ -401,13 +401,21 @@ Interface support was removed (was partially implemented). See [interface-analys
 **Priority**: LOW  
 **Estimated Effort**: Very High (6-8 weeks)
 
-**Implementation Tasks:**
-- [ ] Add goroutine-like constructs
-- [ ] Implement channels
-- [ ] Add synchronization primitives
-- [ ] Support concurrent data structures
+**Design (decided):** See **[Concurrency Architecture & Patterns](concurrency-architecture-suggestions.md)**.
 
-**Note**: This is a major feature requiring significant design decisions. Strategy and phased approach: **[Strategy: Concurrency and Generics](strategy-concurrency-generics.md)** (TBD).
+- **Model:** 1:1 OS threads + channels (CSP); optional M:N lightweight tasks later.
+- **Channels:** Unbuffered and buffered; **send** `ch <- value`, **receive** `@data = <- ch` (reuse existing `<-` move operator).
+- **Spawn:** `tlang #fn(args);` to run a function in a new OS thread.
+- **Close:** `sunyam(ch);` (optional). **Next target to close:** WaitGroup/join for “wait N tasks”.
+
+**Implementation Tasks:**
+- [x] Implement channel type and create (unbuffered / buffered)
+- [x] Implement send (`ch <- value`) and receive (`@x = <- ch`) with C runtime (queue + mutex + cond)
+- [x] Implement spawn (`tlang #fn(...)`) mapping to pthreads (wrapper + pthread_create on Unix; direct call on Windows)
+- [x] Add optional close; [x] **WaitGroup/join** (`WaitGroup`, Add/Done/Wait)
+- [ ] Document patterns (producer-consumer, worker pool, pipeline)
+
+**References:** [Strategy: Concurrency and Generics](strategy-concurrency-generics.md), [Concurrency Architecture & Patterns](concurrency-architecture-suggestions.md).
 
 #### 5.2 Generics
 **Priority**: LOW  
@@ -535,15 +543,16 @@ The following have been implemented:
 - ✅ Real-World Examples (5 comprehensive examples)
 
 ### Month 1: Concurrency Foundation
-1. **Week 1-2**: Design concurrency model
-   - Research goroutine-like constructs
-   - Design channel syntax
-   - Plan C runtime for concurrency
+1. **Week 1-2**: Concurrency model (design decided)
+   - **Model:** 1:1 OS threads + channels (CSP) — see [Concurrency Architecture & Patterns](concurrency-architecture-suggestions.md)
+   - **Channels:** `ch <- value` (send), `@x = <- ch` (receive); reuse `<-` move operator
+   - **Spawn:** `tlang #fn(args);` → pthreads
+   - Plan C runtime (channel struct: queue + mutex + cond)
 
-2. **Week 3-4**: Implement basic concurrency
-   - Add async/parallel keyword
-   - Implement basic thread spawning
-   - Add synchronization primitives
+2. **Week 3-4**: Implement basic concurrency ✅
+   - Implement channel type (unbuffered / buffered) and `<-` send/receive ✅
+   - Implement `tlang #fn(...)` (spawn → pthread on Unix, direct call on Windows) ✅
+   - Add channel close ✅; **next target to close: WaitGroup/join**
 
 ### Month 2: Generics Design
 3. **Week 1-2**: Design generics syntax
@@ -673,7 +682,7 @@ Tlang has an excellent foundation with:
 **Core data structures are now fully implemented!** Arrays, structs, and maps are all working.
 
 **Recommended Focus**: 
-1. Improve concurrency support (goroutines/channels)
+1. Implement concurrency (1:1 threads + channels; `ch <- value` / `@x = <- ch`; `tlang #fn(...)` spawn)
 2. Add generics/templates for more flexible code
 3. Continue enhancing the standard library
 4. Build real-world applications to validate the language (5 examples provided as starting point)

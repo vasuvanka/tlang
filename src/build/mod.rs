@@ -5,6 +5,7 @@ pub mod config;
 pub mod cache;
 pub mod builder;
 pub mod dependencies;
+pub mod fetch;
 pub mod lockfile;
 
 pub use config::ProjectConfig;

@@ -1,6 +1,6 @@
 # Tlang Documentation
 
-![Tlang logo](https://vasuvanka.github.io/tlang/tlang-logo.png)
+![Tlang logo (అ / Aa)](https://vasuvanka.github.io/tlang/tlang-logo.png)
 
 Welcome to the comprehensive documentation for Tlang, a simple compiled programming language inspired by Go, with Telugu keywords.
 
@@ -50,7 +50,7 @@ See [Porting Guide](porting-guide.md) for details.
 ## 📚 Documentation Index
 
 ### Getting Started
-- **[Getting Started Guide](getting-started.md)** - Installation, first program, and basic concepts
+- **[Getting Started Guide](getting-started.md)** - Installation, first program, run/compile, and packages & dependencies
 - **[Language Tutorial](tutorial.md)** - Step-by-step learning guide from basics to advanced
 
 ### Language Reference
@@ -89,7 +89,8 @@ See [Porting Guide](porting-guide.md) for details.
 - **[Examples Guide](examples.md)** - Code examples and patterns
 
 ### Advanced Topics
-- **[Packages and Modules](packages.md)** - Package system, imports, and module organization
+- **[Concurrency Architecture & Patterns](concurrency-architecture-suggestions.md)** - Channels and spawn (CSP style)
+- **[Packages and Modules](packages.md)** - Package system, imports, and dependencies (config.toml, go get style fetch)
 - **[Package Visibility](package-visibility.md)** - Export rules and visibility guidelines
 - **[Type System](type-system.md)** - Types, type inference, and pointers
 - **[Borrow Checker](borrow-checker.md)** - Ownership and borrowing for memory safety
@@ -122,6 +123,7 @@ Tlang follows Go's philosophy:
 - Type inference from values
 - Comprehensive standard library
 - Compiles to C for portability
+- **Concurrency**: channels (`ch <- value`, `@x = <- ch`), spawn (`tlang #fn(args)` → pthread on Unix), WaitGroup (`wg.Add`/`Done`/`Wait`)
 - Clear error messages with stack traces
 
 ## 📝 File Extension

@@ -54,6 +54,11 @@ tlang-port ./go-package
 | `struct` | `nirmanam` | `struct Person` → `nirmanam Person` |
 | `map` | `jatha` | `map[string]int` → `jatha[string]int` |
 | `nil` | `sunyam` | `nil` → `sunyam` |
+| `chan T` | `channel[T]` | `chan int` → `channel[int]` |
+| `ch <- x` | `ch <- x` | Send: same syntax |
+| `x := <-ch` | `@x = <- ch` | Receive: declare then `<- ch` |
+| `go f()` | `tlang #f()` | Spawn: `tlang #functionName(args)` |
+| `sync.WaitGroup` | `WaitGroup` | `var wg sync.WaitGroup` → `@wg WaitGroup;` then `wg.Add(n)`, `wg.Done()`, `wg.Wait()` |
 
 ### Types
 
@@ -185,7 +190,7 @@ The porting tool uses regex-based conversion, which has some limitations:
 1. **Complex Expressions**: May not handle all edge cases in complex expressions
 2. **Struct Methods**: Go struct methods need manual conversion to Tlang function syntax
 3. **Interfaces**: Interface definitions may need manual adjustment
-4. **Channels/Goroutines**: Not supported (Tlang doesn't have concurrency yet)
+4. **Channels/Goroutines/WaitGroup**: Supported. Use `channel[elementType]` for channels, `ch <- value` to send, `@x = <- ch` to receive, `sunyam(ch)` to close, and `tlang #fn(args)` to spawn (real thread on Unix via pthread; direct call on Windows). For “wait N tasks,” use `WaitGroup`: `@wg WaitGroup;` `wg.Add(n)`, `wg.Done()`, `wg.Wait()` (like Go’s `sync.WaitGroup`). See [Concurrency Architecture & Patterns](concurrency-architecture-suggestions.md).
 5. **Generics**: Not supported (Tlang doesn't have generics yet)
 6. **Defer/Recover**: Not supported (Tlang doesn't have defer/recover)
 

@@ -64,7 +64,7 @@ Use `<-` for explicit ownership transfer:
 // fmt.Printf("%s", original);  // ERROR: use after move
 ```
 
-Use `<-` for move/ownership transfer; the `jarugu` keyword was replaced by `<-`.
+Use `<-` for move/ownership transfer. The lexer does not recognize a `jarugu` keyword; only the `<-` operator is used.
 
 ## Ownership Rules
 

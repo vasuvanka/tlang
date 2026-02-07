@@ -35,6 +35,12 @@ pub enum Type {
         inner: Box<Type>,
         lifetime: Option<String>, // Named lifetime like 'a
     },
+    /// Channel type: channel[elementType], unbuffered or buffered (capacity from initializer)
+    Channel {
+        element_type: Box<Type>,
+    },
+    /// WaitGroup: wait until N spawned tasks finish (Add(n), Done(), Wait())
+    WaitGroup,
 }
 
 #[derive(Debug, Clone)]
@@ -111,10 +117,6 @@ pub enum Expr {
     Deref {
         expr: Box<Expr>,                 // Reference being dereferenced
     },
-    /// Jarugu expression: explicit jarugu(expr)
-    Jarugu {
-        expr: Box<Expr>,                 // Expression being moved
-    },
     /// Tuple literal: (expr1, expr2, ...)
     TupleLiteral {
         elements: Vec<Expr>,             // Tuple elements
@@ -130,6 +132,20 @@ pub enum Expr {
     /// sunyam(ptr): free/release memory (same keyword as nil value)
     SunyamFree {
         expr: Box<Expr>,                  // Pointer expression to free
+    },
+    /// Channel send: ch <- value (move value into channel)
+    ChannelSend {
+        channel: Box<Expr>,
+        value: Box<Expr>,
+    },
+    /// Channel receive: <- ch (value moves out of channel); also parsed as Jarugu when type is channel
+    ChannelRecv {
+        channel: Box<Expr>,
+    },
+    /// Spawn: tlang #name(args) — run function in new OS thread
+    Spawn {
+        name: String,
+        args: Vec<Expr>,
     },
 }
 

@@ -4,7 +4,7 @@ Static documentation site for Tlang. Markdown docs are rendered in the browser; 
 
 ## Logo
 
-The site uses **`tlang-logo.png`** in the header (logo + “Tlang” wordmark) on every page. Use this asset for the same branding elsewhere (e.g. links to the docs site or social).
+The site uses **`tlang-logo.png`** in the header (logo + “Tlang” wordmark) on every page. The logo is based on the Telugu first letter **అ (Aa)**. Use this asset for the same branding elsewhere (e.g. links to the docs site or social).
 
 ## View locally (with rendered docs)
 
@@ -40,7 +40,7 @@ The **default language is Telugu**. The toolbar has **EN | తెలుగు** 
 
 ## Contents
 
-- **tlang-logo.png** — Official Tlang logo (used in header).
+- **tlang-logo.png** — Official Tlang logo (Telugu అ / Aa), used in header.
 - **lang-switch.js** — Sets language links (EN/తెలుగు) and active state from `?lang=` param.
 - **index.html** — Landing: hero, quick start, features, philosophy.
 - **docs.html** — Documentation index; every link opens the doc in the viewer.

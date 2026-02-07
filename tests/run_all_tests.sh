@@ -44,7 +44,12 @@ for test in "${TESTS[@]}"; do
     echo "Running: $test"
     echo "----------------------------------------"
     
-    if $TLANG_CMD compile "$test" 2>&1 | tee /tmp/tlang_test_output.txt; then
+    $TLANG_CMD compile "$test" 2>&1 | tee /tmp/tlang_test_output.txt
+    COMPILE_EXIT=${PIPESTATUS[0]}
+    if [ "$COMPILE_EXIT" -ne 0 ]; then
+        echo -e "${RED}❌ FAILED: $test (Tlang compilation error)${NC}"
+        FAILED=$((FAILED + 1))
+    else
         # Compile the generated C code
         if gcc -o /tmp/test_binary output.c -lm -lssl -lcrypto 2>&1 | tee -a /tmp/tlang_test_output.txt; then
             # Run the test
@@ -65,9 +70,6 @@ for test in "${TESTS[@]}"; do
             echo -e "${RED}❌ FAILED: $test (C compilation error)${NC}"
             FAILED=$((FAILED + 1))
         fi
-    else
-        echo -e "${RED}❌ FAILED: $test (Tlang compilation error)${NC}"
-        FAILED=$((FAILED + 1))
     fi
     echo ""
 done

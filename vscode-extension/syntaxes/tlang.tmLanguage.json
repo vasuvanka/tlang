@@ -69,9 +69,9 @@
           "match": "\\b(jatha)\\b"
         },
         {
-          "comment": "Interface definition",
-          "name": "keyword.declaration.emaina.tlang",
-          "match": "\\b(emaina)\\b"
+          "comment": "Spawn - run function in new thread (tlang #fn(args))",
+          "name": "keyword.control.spawn.tlang",
+          "match": "\\b(tlang)\\b"
         },
         {
           "comment": "Nil keyword (error type uses sunyam for nil)",
@@ -107,11 +107,21 @@
         },
         {
           "comment": "Variable declaration with @ followed by name and type",
-          "match": "(@)(\\w+)\\s+(int|float|string|bool|void|byte|rune|error)",
+          "match": "(@)(\\w+)\\s+(int|float|string|bool|void|byte|rune|error|WaitGroup)",
           "captures": {
             "1": { "name": "storage.modifier.tlang" },
             "2": { "name": "variable.other.tlang" },
             "3": { "name": "support.type.primitive.tlang" }
+          }
+        },
+        {
+          "comment": "Variable declaration @ name channel[type]",
+          "match": "(@)(\\w+)\\s+(channel)\\s*(\\[)",
+          "captures": {
+            "1": { "name": "storage.modifier.tlang" },
+            "2": { "name": "variable.other.tlang" },
+            "3": { "name": "support.type.primitive.tlang" },
+            "4": { "name": "punctuation.bracket.square.tlang" }
           }
         },
         {
@@ -174,12 +184,12 @@
         {
           "comment": "Built-in primitive types",
           "name": "support.type.primitive.tlang",
-          "match": "\\b(int|float|string|bool|void|byte|rune|error)\\b"
+          "match": "\\b(int|float|string|bool|void|byte|rune|error|channel|WaitGroup)\\b"
         },
         {
           "comment": "Pointer type modifier",
           "name": "storage.modifier.pointer.tlang",
-          "match": "\\*(?=\\s*(int|float|string|bool|void|byte|rune|error|\\w))"
+          "match": "\\*(?=\\s*(int|float|string|bool|void|byte|rune|error|channel|WaitGroup|\\w))"
         },
         {
           "comment": "Mutable borrow &mut",

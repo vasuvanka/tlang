@@ -19,9 +19,10 @@ Complete list of reserved keywords and symbols, **aligned with the lexer/parser 
 | `#dhimpu("path")` | import | Package | ⭐⭐ Common |
 | `nirmanam` | struct | Type | ⭐⭐ Common |
 | `jatha` | map | Type | ⭐⭐ Common |
+| `channel` | channel type | Type | ⭐⭐ Common |
 | `agu` | break | Control Flow | ⭐ Common |
 | `konasagu` | continue | Control Flow | ⭐ Common |
-| `<-` | move | Ownership | ⚡ Advanced |
+| `<-` | move / channel send & receive | Ownership & Concurrency | ⚡ Advanced |
 | `varasa` | for loop over map (key/value) | Loop | ⚡ Advanced |
 | `Type{}` / `Type{ field: value }` | struct literal | Create/allocate | ⚡ Advanced |
 
@@ -160,13 +161,18 @@ For map values of any type, use **`nirmanam{}`** (only as map value): `jatha[str
 | Keyword | Description | Example | Priority |
 |---------|-------------|---------|----------|
 | `!` | Mutable modifier | `@!x int = 10;` | ⭐⭐ |
-| `<-` | Move / ownership transfer | `@y = <- x;` (replaces former `jarugu` keyword) | ⚡ |
+| `<-` | Move / channel send & receive | `@y = <- x` (move); `ch <- value` (send); `@x = <- ch` (receive) | ⚡ |
 
-**Move (`<-`):**
+**Move and channels (`<-`):**
 ```tl
 @original string = "hello"
 @moved string = <- original
 // original is no longer valid (ownership transferred)
+
+// Channels: same operator for send and receive
+@ch channel[int];
+ch <- 42;           // send
+@x int = <- ch;     // receive
 ```
 
 ### Error Handling Keywords
@@ -228,7 +234,7 @@ These are not strictly reserved keywords but have special meaning:
 | `prarambham` | Entry point function name | `#prarambham() { ... }` | ⭐⭐⭐ |
 | `varasa` | For loop over map only (key/value) | `malli key := varasa map { ... }` or `malli key, value := varasa map { ... }` | ⚡ |
 
-**Note:** `sunyam` is used two ways: (1) **nil value** — `@x *int = sunyam`, `okavela err != sunyam`; (2) **free** — `sunyam(ptr)` to release memory. `nil` is **not** a keyword. `prarambham` is the entry point; `varasa` is used only in for loops over a map (key, or key and value). **Removed:** samooham, thappu, jarugu (use `<-` instead of jarugu).
+**Note:** `sunyam` is used two ways: (1) **nil value** — `@x *int = sunyam`, `okavela err != sunyam`; (2) **free** — `sunyam(ptr)` to release memory. `nil` is **not** a keyword. `prarambham` is the entry point; `varasa` is used only in for loops over a map (key, or key and value). **Removed:** samooham, thappu. There is **no** `jarugu` keyword; use the `<-` operator only for move and channel send/receive.
 
 ## Common Patterns
 
@@ -372,7 +378,7 @@ These symbols are reserved and cannot be used as identifiers:
 - `int`, `float`, `string`, `bool`, `error` — type names in lexer. No `void` keyword; omit return type for no value.
 
 ### Memory/Ownership
-- `!`, `<-` (move; `jarugu` was replaced by `<-`)
+- `!`, `<-` (move and channel send/receive; no `jarugu` keyword)
 - Struct: `Type{}`, `Type{ field: value }` (no separate keyword). Maps: `nirmanam(jatha[K]V)` for empty map.
 
 ### Error Handling
@@ -389,10 +395,10 @@ These symbols are reserved and cannot be used as identifiers:
 
 ## Total count (matches lexer/parser)
 
-- **Lexer keywords:** okavela, lekapothe, malli, mallinchu, agu, konasagu, nirmanam, jatha, sunyam; types: int, float, string, bool, error. Move: `<-` (replaced `jarugu`).
+- **Lexer keywords:** okavela, lekapothe, malli, mallinchu, agu, konasagu, nirmanam, jatha, sunyam; types: int, float, string, bool, error, channel. Move/channel: `<-` only (no `jarugu` keyword).
 - **Declaration symbols:** `@`, `@!`, `#` (and `#prarambham`, `#dhimpu` as identifiers after `#`).
 - **Special identifiers:** prarambham (entry), varasa (for loop over map only); true, false (boolean literals).
-- **Removed:** samooham, thappu, jarugu (use `<-` instead of jarugu).
+- **Removed:** samooham, thappu. **No** `jarugu` keyword—use `<-` for move and channel send/receive.
 
 ## Rules for Identifiers
 

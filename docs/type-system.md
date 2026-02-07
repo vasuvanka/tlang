@@ -121,6 +121,34 @@ Pointers allow indirect access to values.
 @ptr = &x;            // Assign address
 ```
 
+## Channel Type
+
+Channels are used for concurrency (CSP style). Declare with `channel[elementType]`; optional capacity for buffered channels.
+
+```tl
+@ch channel[int];           // unbuffered
+@ch2 channel[int] = 10;     // buffered, capacity 10
+ch <- 42;                   // send
+@x int = <- ch;             // receive
+sunyam(ch);                 // close (optional)
+```
+
+See [Concurrency Architecture & Patterns](concurrency-architecture-suggestions.md).
+
+## WaitGroup Type
+
+WaitGroup lets you wait until a number of spawned tasks have finished. Declare with `WaitGroup`; no initializer needed.
+
+```tl
+@wg WaitGroup;       // create
+wg.Add(2);           // expect 2 tasks to complete
+tlang #worker(wg);   // worker receives wg and calls wg.Done() when done
+tlang #worker2(wg);
+wg.Wait();           // block until counter reaches 0
+```
+
+Methods: `Add(n)` (add n to the counter), `Done()` (decrement by one), `Wait()` (block until counter is 0). See [Concurrency Architecture & Patterns](concurrency-architecture-suggestions.md).
+
 ## Composite Types
 
 ### Structs
