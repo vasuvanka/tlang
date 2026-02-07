@@ -53,7 +53,7 @@ cargo build --release
 
 ```powershell
 # Clone the repository
-git clone https://github.com/yourusername/tlang.git
+git clone https://github.com/vasuvanka/tlang.git
 cd tlang
 
 # Build the compiler

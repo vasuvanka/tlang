@@ -1,0 +1,153 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Documentation — Tlang</title>
+  <link rel="stylesheet" href="styles.css">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+</head>
+<body>
+  <header class="site-header">
+    <div class="wrap">
+      <a href="index.html" class="logo">Tlang</a>
+      <nav>
+        <a href="index.html">Home</a>
+        <a href="playground.html">Playground</a>
+        <a href="docs.html">Docs</a>
+        <a href="https://github.com/vasuvanka/tlang" target="_blank" rel="noopener">GitHub</a>
+      </nav>
+    </div>
+  </header>
+
+  <main class="docs-main">
+    <div class="wrap wrap--wide">
+      <h1>Documentation</h1>
+      <p class="lead">Guides, language reference, and standard library. Click any link to open the doc rendered on this site.</p>
+
+      <section class="docs-section" id="getting-started">
+        <h2>Getting Started</h2>
+        <ul class="doc-list">
+          <li><a href="view.html?doc=getting-started">Getting Started Guide</a> — Installation, first program, basics</li>
+          <li><a href="view.html?doc=tutorial">Language Tutorial</a> — Step-by-step from basics to advanced</li>
+        </ul>
+      </section>
+
+      <section class="docs-section" id="language-reference">
+        <h2>Language Reference</h2>
+        <ul class="doc-list">
+          <li><a href="view.html?doc=language-reference">Language Reference</a> — Syntax and language features</li>
+          <li><a href="view.html?doc=keywords-operators">Keywords and Operators</a> — Keywords, operators, usage</li>
+          <li><a href="view.html?doc=reserved-keywords">Reserved Keywords</a> — Canonical keyword list (aligned with lexer/parser)</li>
+        </ul>
+      </section>
+
+      <section class="docs-section" id="standard-library">
+        <h2>Standard Library</h2>
+        <ul class="doc-list">
+          <li><a href="view.html?doc=standard-library">Standard Library Overview</a></li>
+          <li><strong>Core:</strong>
+            <a href="view.html?doc=libraries/fmt">fmt</a>,
+            <a href="view.html?doc=libraries/strings">strings</a>,
+            <a href="view.html?doc=libraries/math">math</a>,
+            <a href="view.html?doc=libraries/strconv">strconv</a>
+          </li>
+          <li><strong>System:</strong>
+            <a href="view.html?doc=libraries/os">os</a>,
+            <a href="view.html?doc=libraries/io">io</a>,
+            <a href="view.html?doc=libraries/filepath">filepath</a>,
+            <a href="view.html?doc=libraries/time">time</a>
+          </li>
+          <li><strong>Data &amp; encoding:</strong>
+            <a href="view.html?doc=libraries/json">json</a>,
+            <a href="view.html?doc=libraries/bytes">bytes</a>,
+            <a href="view.html?doc=libraries/sort">sort</a>,
+            <a href="view.html?doc=libraries/hex">hex</a>,
+            <a href="view.html?doc=libraries/base64">base64</a>,
+            <a href="view.html?doc=libraries/csv">csv</a>,
+            <a href="view.html?doc=libraries/xml">xml</a>,
+            <a href="view.html?doc=libraries/protobuf">protobuf</a>
+          </li>
+          <li><strong>Networking:</strong>
+            <a href="view.html?doc=libraries/http">http</a>
+          </li>
+          <li><strong>Other:</strong>
+            <a href="view.html?doc=libraries/regexp">regexp</a>,
+            <a href="view.html?doc=libraries/rand">rand</a>,
+            <a href="view.html?doc=libraries/log">log</a>,
+            <a href="view.html?doc=libraries/testing">testing</a>,
+            <a href="view.html?doc=libraries/args">args</a>,
+            <a href="view.html?doc=libraries/flag">flag</a>,
+            <a href="view.html?doc=libraries/bufio">bufio</a>,
+            <a href="view.html?doc=libraries/unicode">unicode</a>,
+            <a href="view.html?doc=libraries/neturl">net/url</a>,
+            <a href="view.html?doc=libraries/crypto">crypto</a>,
+            <a href="view.html?doc=libraries/reflect">reflect</a>,
+            <a href="view.html?doc=libraries/doc">doc</a>,
+            <a href="view.html?doc=libraries/benchmark">testing/benchmark</a>,
+            <a href="view.html?doc=libraries/errors">errors</a>
+          </li>
+        </ul>
+      </section>
+
+      <section class="docs-section" id="packages-and-tools">
+        <h2>Packages &amp; Tools</h2>
+        <ul class="doc-list">
+          <li><a href="view.html?doc=packages">Packages and Modules</a> — Imports: <code>@var = #dhimpu("path")</code></li>
+          <li><a href="view.html?doc=package-visibility">Package Visibility</a> — Export rules (uppercase = exported)</li>
+          <li><a href="view.html?doc=build-system">Build System</a> — config.toml, dependencies</li>
+          <li><a href="view.html?doc=compile-command">Compile Command</a> — Compile to executable</li>
+          <li><a href="view.html?doc=tlang-run-guide">tlang run</a> — Quick run for development</li>
+        </ul>
+      </section>
+
+      <section class="docs-section" id="advanced">
+        <h2>Advanced &amp; Reference</h2>
+        <ul class="doc-list">
+          <li><a href="view.html?doc=type-system">Type System</a></li>
+          <li><a href="view.html?doc=borrow-checker">Borrow Checker</a> — Ownership and <code>&lt;-</code></li>
+          <li><a href="view.html?doc=mutable-variables">Mutable Variables</a> — <code>@!</code></li>
+          <li><a href="view.html?doc=error-handling">Error Handling</a> — <code>error</code> type and <code>sunyam</code></li>
+          <li><a href="view.html?doc=map-iteration">Map Iteration</a> — <code>varasa</code> in for loops</li>
+          <li><a href="view.html?doc=multiple-return-values">Multiple Return Values</a></li>
+          <li><a href="view.html?doc=porting-guide">Porting Guide</a> — Go to Tlang</li>
+          <li><a href="view.html?doc=best-practices">Best Practices</a></li>
+        </ul>
+      </section>
+
+      <section class="docs-section" id="developer-tools">
+        <h2>Developer Tools</h2>
+        <ul class="doc-list">
+          <li><a href="view.html?doc=vscode-extension">VS Code / Cursor Extension</a> — LSP, syntax highlighting</li>
+          <li><a href="view.html?doc=linter-warnings">Linter Warnings</a></li>
+          <li><a href="view.html?doc=debugging-guide">Debugging Guide</a></li>
+          <li><a href="view.html?doc=development">Development</a></li>
+        </ul>
+      </section>
+
+      <section class="docs-section" id="examples">
+        <h2>Examples</h2>
+        <ul class="doc-list">
+          <li><a href="view.html?doc=examples">Examples Guide</a> — Code examples and patterns</li>
+        </ul>
+      </section>
+
+      <section class="docs-section">
+        <h2>More</h2>
+        <ul class="doc-list">
+          <li><a href="view.html?doc=README">Docs README</a> — Full documentation index</li>
+          <li><a href="view.html?doc=REVIEW_AND_ROADMAP">Review &amp; Roadmap</a> — Status and future work</li>
+        </ul>
+      </section>
+    </div>
+  </main>
+
+  <footer class="site-footer">
+    <div class="wrap">
+      <p><a href="index.html">Home</a> · <a href="docs.html">Docs</a> · <a href="https://github.com/vasuvanka/tlang">GitHub</a></p>
+    </div>
+  </footer>
+</body>
+</html>

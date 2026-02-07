@@ -728,7 +728,14 @@ impl Parser {
             None
         };
         
+        // Block scope for function body: variables (and params) are local to this function
+        self.push_scope();
+        for (param_name, _) in &params {
+            self.current_scope().insert(param_name.clone());
+            self.mutable_vars.insert(param_name.clone(), false);
+        }
         let body = self.parse_block_statements()?;
+        self.pop_scope();
         
         self.pop_context();
         Ok(Stmt::Function { name, params, return_type, body, is_macro })

@@ -44,8 +44,32 @@ impl SymbolTable {
         Ok(symbol_table)
     }
     
-    /// Extract symbols from AST
+    /// Extract symbols from AST (imports + statements)
     fn extract_symbols(&mut self, program: &Program, uri: &Url) {
+        // Import bindings: @var = #dhimpu("path") — expose as MODULE so completion/hover know the name
+        for import_info in &program.imports {
+            let name = import_info
+                .alias
+                .as_deref()
+                .unwrap_or_else(|| {
+                    import_info.path.split('/').last().unwrap_or(import_info.path.as_str())
+                });
+            let detail = format!("import \"{}\"", import_info.path);
+            let symbol = SymbolInfo {
+                name: name.to_string(),
+                kind: SymbolKind::MODULE,
+                location: Location {
+                    uri: uri.clone(),
+                    range: Range {
+                        start: Position { line: 0, character: 0 },
+                        end: Position { line: 0, character: 0 },
+                    },
+                },
+                detail: Some(detail),
+                documentation: None,
+            };
+            self.add_symbol(symbol);
+        }
         for stmt in &program.statements {
             self.extract_symbol_from_stmt(stmt, uri);
         }

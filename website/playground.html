@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Playground — Tlang</title>
+  <link rel="stylesheet" href="styles.css">
+  <link rel="stylesheet" href="playground.css">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <link href="https://cdn.jsdelivr.net/npm/prismjs@1.29.0/themes/prism-tomorrow.min.css" rel="stylesheet">
+</head>
+<body>
+  <header class="site-header">
+    <div class="wrap">
+      <a href="index.html" class="logo">Tlang</a>
+      <nav>
+        <a href="index.html">Home</a>
+        <a href="playground.html">Playground</a>
+        <a href="docs.html">Docs</a>
+        <a href="https://github.com/vasuvanka/tlang" target="_blank" rel="noopener">GitHub</a>
+      </nav>
+    </div>
+  </header>
+
+  <main class="playground-main">
+    <div class="wrap wrap--wide">
+      <h1>Playground</h1>
+      <p class="playground-intro">Try Tlang with syntax highlighting and code completion. Type <kbd>Ctrl</kbd>+<kbd>Space</kbd> or start typing to see suggestions; <kbd>Tab</kbd> or <kbd>Enter</kbd> to insert.</p>
+
+      <div class="playground-editor-wrap">
+        <div class="playground-editor">
+          <pre class="playground-highlight" aria-hidden="true"><code id="highlight-code" class="language-tlang"></code></pre>
+          <textarea id="editor" class="playground-textarea" spellcheck="false" placeholder="// Try Tlang&#10;@fmt = #dhimpu(&quot;std/fmt&quot;);&#10;&#10;#prarambham() {&#10;    fmt.Printf(&quot;Hello!\n&quot;);&#10;}"></textarea>
+        </div>
+        <div id="completion-list" class="completion-list" role="listbox" hidden></div>
+      </div>
+
+      <div class="playground-actions">
+        <button type="button" id="run-btn" class="btn btn-primary">Run</button>
+        <button type="button" id="clear-btn" class="btn btn-secondary">Clear</button>
+        <span class="playground-hint">Run locally: save as <code>.tl</code> and use <code>tlang run file.tl</code></span>
+      </div>
+      <div id="run-output" class="playground-output" hidden></div>
+    </div>
+  </main>
+
+  <footer class="site-footer">
+    <div class="wrap">
+      <p><a href="docs.html">Docs</a> · <a href="index.html">Home</a></p>
+    </div>
+  </footer>
+
+  <script src="https://cdn.jsdelivr.net/npm/prismjs@1.29.0/prism.min.js"></script>
+  <script src="tlang-prism.js"></script>
+  <script src="playground.js"></script>
+</body>
+</html>

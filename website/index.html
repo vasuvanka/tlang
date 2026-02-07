@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Tlang — A compiled language for Telugu, inspired by Go</title>
+  <link rel="stylesheet" href="styles.css">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+</head>
+<body>
+  <header class="site-header">
+    <div class="wrap">
+      <a href="index.html" class="logo">Tlang</a>
+      <nav>
+        <a href="index.html">Home</a>
+        <a href="playground.html">Playground</a>
+        <a href="docs.html">Docs</a>
+        <a href="https://github.com/vasuvanka/tlang" target="_blank" rel="noopener">GitHub</a>
+      </nav>
+    </div>
+  </header>
+
+  <main>
+    <section class="hero">
+      <div class="wrap">
+        <h1>A compiled language for Telugu, inspired by Go</h1>
+        <p class="tagline">Simple, explicit, and fast. Telugu keywords with a full standard library. Compiles to C.</p>
+        <div class="hero-actions">
+          <a href="playground.html" class="btn btn-primary">Try Playground</a>
+          <a href="docs.html" class="btn btn-secondary">Documentation</a>
+        </div>
+      </div>
+    </section>
+
+    <section class="quick-start" id="quick-start">
+      <div class="wrap">
+        <h2>Quick Start</h2>
+        <p>Your first program:</p>
+        <pre class="code-block"><code>@fmt = #dhimpu("std/fmt");
+
+#prarambham() {
+    fmt.Printf("Hello, Tlang!\n");
+}</code></pre>
+        <p>Save as <code>hello.tl</code>, then:</p>
+        <pre class="code-block code-block--small"><code>tlang run hello.tl
+# or compile to executable
+tlang compile hello.tl hello && ./hello</code></pre>
+        <p><a href="docs.html#getting-started">Getting Started Guide →</a></p>
+      </div>
+    </section>
+
+    <section class="features">
+      <div class="wrap">
+        <h2>Why Tlang</h2>
+        <ul class="feature-grid">
+          <li>
+            <strong>Telugu keywords</strong>
+            <span>Readable syntax: <code>okavela</code>, <code>lekapothe</code>, <code>malli</code>, <code>mallinchu</code></span>
+          </li>
+          <li>
+            <strong>Compiles to C</strong>
+            <span>Portable binaries, no runtime. Use any C compiler and platform.</span>
+          </li>
+          <li>
+            <strong>Standard library</strong>
+            <span>fmt, strings, json, http, crypto, testing, and 30+ modules.</span>
+          </li>
+          <li>
+            <strong>Go-like design</strong>
+            <span>Immutability by default, explicit imports, clear error handling.</span>
+          </li>
+        </ul>
+      </div>
+    </section>
+
+    <section class="philosophy">
+      <div class="wrap">
+        <h2>Philosophy</h2>
+        <p>Tlang follows Go’s principles: <strong>simplicity</strong> (one clear way), <strong>explicitness</strong> (readable code), <strong>compile-time safety</strong>, and <strong>fast compilation</strong>.</p>
+      </div>
+    </section>
+
+    <footer class="site-footer">
+      <div class="wrap">
+        <p><a href="docs.html">Documentation</a> · <a href="https://github.com/vasuvanka/tlang">GitHub</a></p>
+        <p class="muted">Tlang — source files use the <code>.tl</code> extension.</p>
+      </div>
+    </footer>
+  </main>
+</body>
+</html>

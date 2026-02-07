@@ -17,7 +17,7 @@
     @flag int = 1;  // bool as int
     
     testing.Assert(x == 10, "Immutable int variable");
-    testing.Assert(y > 3.0 && y < 4.0, "Immutable float variable");
+    testing.AssertEqualFloat(3.14, y, 0.001, "Immutable float variable");
     testing.AssertEqualString("hello", z, "Immutable string variable");
     testing.Assert(flag == 1, "Boolean as int");
     
@@ -49,9 +49,9 @@
     @f1 float = 3.14;
     @f2 float = -0.5;
     @f3 float = 0.0;
-    testing.Assert(f1 > 3.0 && f1 < 4.0, "Positive float");
-    testing.Assert(f2 < 0.0, "Negative float");
-    testing.Assert(f3 == 0.0, "Zero float");
+    testing.AssertEqualFloat(3.14, f1, 0.001, "Positive float");
+    testing.AssertEqualFloat(-0.5, f2, 0.001, "Negative float");
+    testing.AssertEqualFloat(0.0, f3, 0.001, "Zero float");
     
     // Strings
     @s1 string = "hello";

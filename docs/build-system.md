@@ -247,7 +247,7 @@ The dependency path can be:
 ```toml
 [[dependencies]]
 name = "http-client"
-path = "https://github.com/user/tlang-http-client"
+path = "https://github.com/vasuvanka/tlang-http-client"
 version = "1.0.0"
 ```
 

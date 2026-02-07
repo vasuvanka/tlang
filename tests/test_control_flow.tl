@@ -11,7 +11,7 @@
     testing.Log("Testing if/else statements");
     
     @x int = 10;
-    @result int = 0;
+    @!result int = 0;
     
     okavela x > 5 {
         result = 1;
@@ -36,7 +36,7 @@
     testing.Log("Testing else-if chains");
     
     @x int = 15;
-    @result int = 0;
+    @!result int = 0;
     
     okavela x < 10 {
         result = 1;
@@ -55,7 +55,7 @@
 #testForLoop() {
     testing.Log("Testing C-style for loop");
     
-    @sum int = 0;
+    @!sum int = 0;
     malli (@!i int = 1; i <= 10; i = i + 1) {
         sum = sum + i;
     }
@@ -69,7 +69,7 @@
 #testInfiniteLoop() {
     testing.Log("Testing infinite loop with break");
     
-    @count int = 0;
+    @!count int = 0;
     malli {
         count = count + 1;
         okavela count >= 5 {
@@ -86,7 +86,7 @@
 #testContinue() {
     testing.Log("Testing continue statement");
     
-    @sum int = 0;
+    @!sum int = 0;
     malli (@!i int = 1; i <= 10; i = i + 1) {
         okavela i % 2 == 0 {
             konasagu;  // Skip even numbers
@@ -104,7 +104,7 @@
 #testNestedLoops() {
     testing.Log("Testing nested loops");
     
-    @count int = 0;
+    @!count int = 0;
     malli (@!i int = 0; i < 3; i = i + 1) {
         malli (@!j int = 0; j < 3; j = j + 1) {
             count = count + 1;
@@ -120,7 +120,7 @@
 #testNestedIfInLoop() {
     testing.Log("Testing nested if in loop");
     
-    @even_count int = 0;
+    @!even_count int = 0;
     malli (@!i int = 1; i <= 10; i = i + 1) {
         okavela i % 2 == 0 {
             even_count = even_count + 1;
@@ -136,7 +136,7 @@
 #testComplexControlFlow() {
     testing.Log("Testing complex control flow");
     
-    @result int = 0;
+    @!result int = 0;
     malli (@!i int = 1; i <= 20; i = i + 1) {
         okavela i % 3 == 0 {
             okavela i % 5 == 0 {

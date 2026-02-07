@@ -1,0 +1,145 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Doc — Tlang</title>
+  <link rel="stylesheet" href="styles.css">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+</head>
+<body>
+  <header class="site-header">
+    <div class="wrap">
+      <a href="index.html" class="logo">Tlang</a>
+      <nav>
+        <a href="index.html">Home</a>
+        <a href="playground.html">Playground</a>
+        <a href="docs.html">Docs</a>
+        <a href="https://github.com/vasuvanka/tlang" target="_blank" rel="noopener">GitHub</a>
+      </nav>
+    </div>
+  </header>
+
+  <main class="view-main">
+    <div class="wrap wrap--wide">
+      <div class="view-toolbar">
+        <a href="docs.html" class="back-link">← Docs</a>
+        <span class="view-doc-path" id="doc-path"></span>
+      </div>
+      <div id="loading">Loading…</div>
+      <div id="error" class="view-error" hidden></div>
+      <article id="content" class="prose" hidden></article>
+    </div>
+  </main>
+
+  <footer class="site-footer">
+    <div class="wrap">
+      <p><a href="docs.html">Docs</a> · <a href="index.html">Home</a></p>
+    </div>
+  </footer>
+
+  <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+  <script>
+    (function() {
+      const contentEl = document.getElementById('content');
+      const loadingEl = document.getElementById('loading');
+      const errorEl = document.getElementById('error');
+      const pathEl = document.getElementById('doc-path');
+
+      function getDocParam() {
+        const params = new URLSearchParams(window.location.search);
+        const hash = window.location.hash.slice(1);
+        let doc = params.get('doc') || params.get('file') || params.get('path');
+        if (!doc && hash) {
+          const hashParams = new URLSearchParams(hash);
+          doc = hashParams.get('doc') || hashParams.get('file') || hashParams.get('path');
+        }
+        if (!doc) return null;
+        doc = doc.replace(/^\/+|\/+$/g, '');
+        if (doc.endsWith('.md')) doc = doc.slice(0, -3);
+        if (doc.startsWith('docs/')) doc = doc.slice(5);
+        return doc;
+      }
+
+      function docsBase() {
+        var path = window.location.pathname;
+        if (path.indexOf('/website/') !== -1) return '../docs/';
+        var base = path.replace(/\/[^/]*$/, '/');
+        return base + 'docs/';
+      }
+
+      function mdUrl(doc) {
+        return docsBase() + doc + '.md';
+      }
+
+      function showLoading() {
+        loadingEl.hidden = false;
+        errorEl.hidden = true;
+        contentEl.hidden = true;
+      }
+
+      function showError(msg) {
+        loadingEl.hidden = true;
+        contentEl.hidden = true;
+        errorEl.textContent = msg;
+        errorEl.hidden = false;
+      }
+
+      function showContent(html, doc) {
+        loadingEl.hidden = true;
+        errorEl.hidden = true;
+        contentEl.innerHTML = html;
+        contentEl.hidden = false;
+        pathEl.textContent = doc + '.md';
+        document.title = (contentEl.querySelector('h1')?.textContent || doc) + ' — Tlang';
+      }
+
+      marked.setOptions({
+        gfm: true,
+        breaks: true
+      });
+
+      function rewriteMdLinks(html, currentDoc) {
+        const div = document.createElement('div');
+        div.innerHTML = html;
+        const baseDir = currentDoc.includes('/') ? currentDoc.replace(/\/[^/]+$/, '/') : '';
+        div.querySelectorAll('a[href]').forEach(function(a) {
+          const h = a.getAttribute('href');
+          if (!h || h.startsWith('http') || h.startsWith('#') || h.startsWith('mailto:')) return;
+          let docPath = h;
+          if (docPath.endsWith('.md')) docPath = docPath.slice(0, -3);
+          if (docPath.startsWith('./')) docPath = baseDir + docPath.slice(2);
+          else if (docPath.startsWith('../')) docPath = docPath.slice(3);
+          a.setAttribute('href', 'view.html?doc=' + encodeURIComponent(docPath));
+        });
+        return div.innerHTML;
+      }
+
+      const doc = getDocParam();
+      if (!doc) {
+        showError('No document specified. Use ?doc=getting-started or ?doc=libraries/fmt');
+        loadingEl.hidden = true;
+        return;
+      }
+
+      showLoading();
+      const url = mdUrl(doc);
+      fetch(url)
+        .then(function(res) {
+          if (!res.ok) throw new Error(res.status === 404 ? 'Document not found: ' + doc : 'Failed to load');
+          return res.text();
+        })
+        .then(function(md) {
+          let html = marked.parse(md);
+          html = rewriteMdLinks(html, doc);
+          showContent(html, doc);
+        })
+        .catch(function(err) {
+          showError(err.message + '. Use a local server from repo root (e.g. python -m http.server 8000) and open /website/ so docs can load.');
+        });
+    })();
+  </script>
+</body>
+</html>
