@@ -24,8 +24,8 @@ Opening `website/index.html` or `website/docs.html` via `file://` works for the 
 
 ## Deploy on GitHub Pages
 
-1. In the repo go to **Settings → Pages**. Under "Build and deployment", set **Source** to **GitHub Actions**.
-2. Push to `main` (or `dev`). The workflow [`.github/workflows/deploy-pages.yml`](../.github/workflows/deploy-pages.yml) builds the site (website + `docs/` as `docs/`) and deploys it. No branch/folder selection needed.
+1. **Enable GitHub Pages (required first):** Go to [**Settings → Pages**](https://github.com/vasuvanka/tlang/settings/pages). Under **Build and deployment**, set **Source** to **GitHub Actions** (not "Deploy from a branch"). Save. If this isn’t done, the deploy job will fail with a 404.
+2. Push to `main` (or `dev`). The workflow [`.github/workflows/deploy-pages.yml`](../.github/workflows/deploy-pages.yml) builds the site (website + `docs/` as `docs/`) and deploys it.
 3. The site will be at **https://vasuvanka.github.io/tlang/** (repo: [github.com/vasuvanka/tlang](https://github.com/vasuvanka/tlang)). Doc viewer and MD rendering work there; internal doc links open in the viewer.
 
 To deploy only from `main`, edit the workflow and change the `on.push.branches` and the `deploy` job `if` to reference only `main`.

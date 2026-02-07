@@ -1,5 +1,9 @@
 # Deploy website + docs to GitHub Pages.
-# Enable in repo: Settings → Pages → Source: GitHub Actions.
+#
+# REQUIRED (one-time): Enable Pages and set source to GitHub Actions, or deploy will fail with 404.
+#   1. Open https://github.com/vasuvanka/tlang/settings/pages
+#   2. Under "Build and deployment" → Source, select "GitHub Actions"
+#   3. Save. Then push to main/dev or re-run this workflow.
 name: Deploy to GitHub Pages
 
 on:
