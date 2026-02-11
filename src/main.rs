@@ -1,6 +1,6 @@
 use std::env;
 use std::fs;
-use std::path::Path;
+use std::path::{Path, PathBuf};
 use std::process;
 use std::process::Command;
 use tlang::lexer::Lexer;
@@ -188,7 +188,7 @@ fn main() {
                 }
             };
             eprintln!("Warning: No C compiler found. C file generated but binary not compiled.");
-            eprintln!("Install gcc, clang, or MSVC to compile to binary.");
+            eprintln!("Use a full Tlang install (with bundled GCC), or install gcc/clang/MSVC.");
             eprintln!("C file available at: {}", absolute_c_path);
             process::exit(0);
         }
@@ -197,7 +197,18 @@ fn main() {
         println!("Compiling C to binary using {}...", compiler);
         
         let mut cmd = Command::new(&compiler);
-        let is_gcc_or_clang = compiler == "gcc" || compiler == "clang";
+        // When using bundled gcc (absolute path), add its libexec to PATH so gcc finds cc1
+        if compiler.contains(std::path::MAIN_SEPARATOR) {
+            if let Some(libexec) = bundled_gcc_libexec_path() {
+                let path_var = env::var_os("PATH").unwrap_or_default();
+                let new_path = env::join_paths(
+                    std::iter::once(libexec.into_os_string())
+                        .chain(env::split_paths(&path_var).map(PathBuf::into_os_string)),
+                ).unwrap_or(path_var);
+                cmd.env("PATH", new_path);
+            }
+        }
+        let is_gcc_or_clang = compiler == "gcc" || compiler == "clang" || compiler.contains("gcc");
         if is_gcc_or_clang {
             cmd.arg("-Os");   // Optimize for size
             cmd.arg("-s");    // Strip symbols (smaller binary)
@@ -319,23 +330,67 @@ fn main() {
     }
 }
 
+/// Find a C compiler, preferring a bundled one next to this executable (single-install).
 fn find_c_compiler() -> Option<String> {
-    // Try gcc first
+    if let Some(bundled) = find_bundled_c_compiler() {
+        return Some(bundled);
+    }
+    find_system_c_compiler()
+}
+
+/// Look for gcc/gcc.exe in the same directory as the tlangc executable (bundled GCC from install).
+fn find_bundled_c_compiler() -> Option<String> {
+    let exe = env::current_exe().ok()?;
+    let exe_dir = exe.parent()?;
+    let gcc_name = if cfg!(windows) { "gcc.exe" } else { "gcc" };
+    let gcc_path = exe_dir.join(gcc_name);
+    if gcc_path.is_file() {
+        if Command::new(&gcc_path).arg("--version").output().is_ok() {
+            return Some(gcc_path.to_string_lossy().into_owned());
+        }
+    }
+    None
+}
+
+/// Path to bundled GCC libexec (so gcc can find cc1). Used to set PATH when invoking bundled gcc on Windows.
+fn bundled_gcc_libexec_path() -> Option<PathBuf> {
+    let exe = env::current_exe().ok()?;
+    let exe_dir = exe.parent()?;
+    let tlang_dir = exe_dir.parent()?;
+    let mingw = tlang_dir.join("mingw").join("libexec").join("gcc");
+    if !mingw.is_dir() {
+        return None;
+    }
+    // First level: e.g. x86_64-w64-mingw32
+    let read = fs::read_dir(&mingw).ok()?;
+    for e in read.flatten() {
+        let path = e.path();
+        if path.is_dir() {
+            // Second level: version e.g. 13.2.0
+            if let Ok(ver_dir) = fs::read_dir(&path) {
+                for v in ver_dir.flatten() {
+                    let ver_path = v.path();
+                    if ver_path.is_dir() {
+                        return Some(ver_path);
+                    }
+                }
+            }
+        }
+    }
+    None
+}
+
+fn find_system_c_compiler() -> Option<String> {
     if Command::new("gcc").arg("--version").output().is_ok() {
         return Some("gcc".to_string());
     }
-    
-    // Try clang
     if Command::new("clang").arg("--version").output().is_ok() {
         return Some("clang".to_string());
     }
-    
-    // Try cl on Windows (MSVC)
     if cfg!(windows) {
         if Command::new("cl").arg("/?").output().is_ok() {
             return Some("cl".to_string());
         }
     }
-    
     None
 }

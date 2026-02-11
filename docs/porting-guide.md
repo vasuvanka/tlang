@@ -1,39 +1,115 @@
-# Go to Tlang Porting Guide
+# Go and Rust to Tlang Porting Guide
 
-The `tlang-port` tool helps convert Go packages to Tlang syntax automatically.
+The `tlang-port` tool converts **Go** (`.go`) or **Rust** (`.rs`) source code to Tlang syntax. Language is auto-detected by file extension, or you can pass `--from go` or `--from rust`.
 
 ## Installation
 
-The `tlang-port` binary is included with the Tlang installation. After installing Tlang, you can use it directly:
+The `tlang-port` binary is included with the Tlang installation:
 
 ```bash
-tlang-port <go_file> [output_file]
-tlang-port <directory> [output_directory]
+cargo build --bin tlang-port
+# or: cargo install --path .  (if you install the tlang crate)
 ```
 
 ## Usage
 
+```bash
+tlang-port [--from go|rust] <input_file> [output_file]
+tlang-port [--from go|rust] <input_directory> [output_directory]
+```
+
 ### Convert Single File
 
 ```bash
-# Convert main.go to main.tl
+# Go: convert main.go to main.tl
 tlang-port main.go main.tl
-
-# Convert with auto-generated output name (main.go -> main.tl)
 tlang-port main.go
+
+# Rust: convert main.rs to main.tl
+tlang-port main.rs main.tl
+tlang-port main.rs
+
+# Force language when extension is non-standard
+tlang-port --from rust ./src/app.rs ./out/app.tl
 ```
 
 ### Convert Directory
 
 ```bash
-# Convert entire Go package directory
+# Convert entire package (Go or Rust; detected from .go/.rs files inside)
 tlang-port ./go-package ./tlang-package
+tlang-port ./rust-crate ./tlang_out
 
-# Convert with auto-generated output directory
-tlang-port ./go-package
+# Force source language
+tlang-port --from rust ./src ./tlang_src
 ```
 
-## Conversion Mappings
+---
+
+## Rust to Tlang
+
+### Rust conversion mappings
+
+| Rust | Tlang |
+|------|-------|
+| `use std::fmt;` | `@fmt = #dhimpu("std/fmt");` |
+| `use crate::foo::bar;` | `@bar = #dhimpu("foo/bar");` |
+| `fn name(...) -> Ret {` | `#name(...) Ret {` |
+| `fn main()` | `#prarambham()` |
+| `let x = v;` | `@x = v;` |
+| `let mut x = v;` | `@!x = v;` |
+| `let x: Type = v;` | `@x Type = v;` |
+| `if` / `else` | `okavela` / `lekapothe` |
+| `loop {` | `malli {` |
+| `while cond {` | `malli cond {` |
+| `for x in iter {` | `malli x varasa iter {` |
+| `return` | `mallinchu` |
+| `struct Name {` | `nirmanam Name {` |
+| `field: Type` (in struct) | `@field Type;` |
+| `true` / `false` | `1` / `0` |
+| `None` | `sunyam` |
+| `i32`, `u32`, `i64`, etc. | `int` |
+| `f32`, `f64` | `float` |
+| `bool` | `int` |
+| `String`, `&str` | `string` |
+| `println!("...", x)` | `fmt.Printf("...\n", x)` |
+| `#![...]` / `#[...]` | Commented out |
+
+### Rust example
+
+**Rust (`main.rs`):**
+```rust
+use std::fmt;
+
+fn main() {
+    let x: i32 = 10;
+    println!("x = {}", x);
+}
+```
+
+**Converted Tlang (`main.tl`):**
+```tl
+@fmt = #dhimpu("std/fmt");
+
+#prarambham() {
+    @x int = 10;
+    fmt.Printf("x = {}\n", x);
+}
+```
+
+### Rust porting limitations
+
+- **Match expressions** are left as `match`; convert to `okavela`/`lekapothe` by hand if needed.
+- **Option/Result** are mapped to `optional`/`result` type names; unwrapping and error handling need manual adjustment.
+- **Traits and impl** are not converted; methods become standalone functions and need manual binding.
+- **Macros** other than `println!`/`print!`/`panic!` are not converted.
+- **Lifetimes, ref, &** are stripped; review borrow semantics manually.
+
+---
+
+## Go to Tlang
+
+## Conversion Mappings (Go)
 
 ### Keywords
 

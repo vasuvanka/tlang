@@ -1257,12 +1257,22 @@ impl Parser {
                 }
                 
                 // Check for struct literal: Person{field: value, ...}
+                // Only treat Identifier{ as struct literal when the identifier looks like a type (starts with uppercase)
                 if matches!(self.current_token, Token::LeftBrace) {
+                    let is_type_name = qualified_name.chars().next().map(|c| c.is_uppercase()).unwrap_or(false);
+                    if !is_type_name {
+                        // e.g. pathPattern { - the { is start of block, not struct literal
+                        return Ok(Expr::Identifier(qualified_name));
+                    }
                     self.advance(); // Skip {
                     let mut fields = Vec::new();
                     
                     if !matches!(self.current_token, Token::RightBrace) {
                         loop {
+                            // Skip newlines between fields (e.g. after comma)
+                            while matches!(self.current_token, Token::Newline) {
+                                self.advance();
+                            }
                             let field_name = match &self.current_token {
                                 Token::Identifier(name) => {
                                     let n = name.clone();

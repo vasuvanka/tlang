@@ -15,6 +15,7 @@
       <a href="index.html" class="logo"><img src="tlang-logo.png" alt="Tlang (అ)" class="logo-img">Tlang</a>
       <nav>
         <a href="index.html">Home</a>
+        <a href="index.html#install">Install</a>
         <a href="playground.html">Playground</a>
         <a href="docs.html">Docs</a>
         <span class="lang-switch"><a class="lang-en" href="docs.html">EN</a><span class="lang-sep">|</span><a class="lang-te" href="docs.html?lang=te">తెలుగు</a></span>
@@ -27,7 +28,7 @@
     <div class="wrap wrap--wide">
       <div id="docs-english">
       <h1>Documentation</h1>
-      <p class="lead">Guides, language reference, and standard library. Click any link to open the doc rendered on this site.</p>
+      <p class="lead">Guides, language reference, and standard library. <strong>New here?</strong> Start with <a href="view.html?doc=getting-started&lang=en">Getting Started</a> or the <a href="view.html?doc=tutorial&lang=en">Tutorial</a>. Click any link below to open the doc on this site.</p>
 
       <section class="docs-section" id="getting-started">
         <h2>Getting Started</h2>
@@ -260,21 +261,24 @@
   <footer class="site-footer">
     <div class="wrap">
       <p><a href="index.html">Home</a> · <a href="docs.html">Docs</a> · <a href="https://github.com/vasuvanka/tlang">GitHub</a></p>
+      <p class="muted">© VasuVanka</p>
     </div>
   </footer>
   <script src="lang-switch.js"></script>
   <script>
     (function() {
       var params = new URLSearchParams(window.location.search);
-      var lang = params.get('lang');
+      var lang = params.get('lang') || 'en';
       var enBlock = document.getElementById('docs-english');
       var teBlock = document.getElementById('docs-telugu');
-      if (lang === 'en' && enBlock && teBlock) {
-        enBlock.hidden = false;
-        teBlock.hidden = true;
-      } else if (enBlock && teBlock) {
-        enBlock.hidden = true;
-        teBlock.hidden = false;
+      if (enBlock && teBlock) {
+        if (lang === 'te') {
+          enBlock.hidden = true;
+          teBlock.hidden = false;
+        } else {
+          enBlock.hidden = false;
+          teBlock.hidden = true;
+        }
       }
     })();
   </script>

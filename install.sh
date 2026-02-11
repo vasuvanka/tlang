@@ -1,7 +1,28 @@
 #!/bin/bash
 # Tlang Installation Script for Linux/Unix
+# Single-link install: curl -fsSL https://raw.githubusercontent.com/vasuvanka/tlang/main/install.sh | bash
+# Or with options: curl -fsSL https://raw.githubusercontent.com/vasuvanka/tlang/main/install.sh | bash -s -- --install-method git
 
 set -e
+
+# Bootstrap: if not run from repo, clone and re-exec install.sh from clone
+if [ ! -f "Cargo.toml" ] || [ ! -f "install.sh" ]; then
+    REPO_URL="${TLANG_REPO_URL:-https://github.com/vasuvanka/tlang.git}"
+    BRANCH="${TLANG_BRANCH:-main}"
+    INSTALL_TEMP="${TMPDIR:-/tmp}/tlang-install-$$"
+    echo "=== Tlang single-link install ==="
+    echo "Cloning $REPO_URL (branch: $BRANCH)..."
+    if ! command -v git &>/dev/null; then
+        echo "Error: git is required. Install git and try again."
+        exit 1
+    fi
+    git clone --depth 1 --branch "$BRANCH" "$REPO_URL" "$INSTALL_TEMP"
+    cd "$INSTALL_TEMP"
+    export USER_INSTALL=1
+    export TLANG_NONINTERACTIVE=1
+    chmod +x install.sh
+    exec ./install.sh "$@"
+fi
 
 echo "=== Tlang Installation Script ==="
 echo ""

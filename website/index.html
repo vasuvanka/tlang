@@ -15,6 +15,7 @@
       <a href="index.html" class="logo"><img src="tlang-logo.png" alt="Tlang (అ)" class="logo-img">Tlang</a>
       <nav>
         <a href="index.html">Home</a>
+        <a href="index.html#install">Install</a>
         <a href="playground.html">Playground</a>
         <a href="docs.html">Docs</a>
         <span class="lang-switch"><a class="lang-en" href="index.html">EN</a><span class="lang-sep">|</span><a class="lang-te" href="index.html?lang=te">తెలుగు</a></span>
@@ -35,10 +36,45 @@
       </div>
     </section>
 
+    <section class="install" id="install">
+      <div class="wrap">
+        <h2>Install</h2>
+        <p class="install-intro">One command per platform. Requires Rust, a C compiler (or bundled GCC on Windows), and OpenSSL. <a href="https://github.com/vasuvanka/tlang/blob/main/README_INSTALL.md">Full guide</a></p>
+        <div class="install-tabs">
+          <button type="button" class="install-tab install-tab--active" data-tab="bash" aria-selected="true">Linux / macOS / WSL</button>
+          <button type="button" class="install-tab" data-tab="ps1" aria-selected="false">Windows (PowerShell)</button>
+          <button type="button" class="install-tab" data-tab="cmd" aria-selected="false">Windows (CMD)</button>
+        </div>
+        <div class="install-panels">
+          <div class="install-panel install-panel--active" id="panel-bash" role="tabpanel">
+            <label class="install-label">Bash</label>
+            <div class="install-code-wrap">
+              <pre class="code-block install-code"><code id="copy-bash">curl -fsSL https://raw.githubusercontent.com/vasuvanka/tlang/main/install.sh | bash</code></pre>
+              <button type="button" class="install-copy" data-copy="bash" aria-label="Copy">Copy</button>
+            </div>
+          </div>
+          <div class="install-panel" id="panel-ps1" role="tabpanel" hidden>
+            <label class="install-label">PowerShell</label>
+            <div class="install-code-wrap">
+              <pre class="code-block install-code"><code id="copy-ps1">iwr -useb https://raw.githubusercontent.com/vasuvanka/tlang/main/install.ps1 | iex</code></pre>
+              <button type="button" class="install-copy" data-copy="ps1" aria-label="Copy">Copy</button>
+            </div>
+          </div>
+          <div class="install-panel" id="panel-cmd" role="tabpanel" hidden>
+            <label class="install-label">CMD</label>
+            <div class="install-code-wrap">
+              <pre class="code-block install-code"><code id="copy-cmd">curl -fsSL https://raw.githubusercontent.com/vasuvanka/tlang/main/install.cmd -o install.cmd && install.cmd && del install.cmd</code></pre>
+              <button type="button" class="install-copy" data-copy="cmd" aria-label="Copy">Copy</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
     <section class="quick-start" id="quick-start">
       <div class="wrap">
         <h2>Quick Start</h2>
-        <p>Your first program:</p>
+        <p>Your first program: <code>#dhimpu</code> imports a package, <code>#prarambham</code> is the entry point (like <code>main</code>).</p>
         <pre class="code-block"><code>@fmt = #dhimpu("std/fmt");
 
 #prarambham() {
@@ -48,7 +84,7 @@
         <pre class="code-block code-block--small"><code>tlang run hello.tl
 # or compile to executable
 tlang compile hello.tl hello && ./hello</code></pre>
-        <p><a href="docs.html#getting-started">Getting Started Guide →</a></p>
+        <p><strong>New to Tlang?</strong> <a href="docs.html#getting-started">Getting Started</a> · <a href="view.html?doc=tutorial&lang=en">Tutorial</a></p>
       </div>
     </section>
 
@@ -87,9 +123,46 @@ tlang compile hello.tl hello && ./hello</code></pre>
       <div class="wrap">
         <p><a href="docs.html">Documentation</a> · <a href="https://github.com/vasuvanka/tlang">GitHub</a></p>
         <p class="muted">Tlang — source files use the <code>.tl</code> extension.</p>
+        <p class="muted">© VasuVanka</p>
       </div>
     </footer>
   </main>
   <script src="lang-switch.js"></script>
+  <script>
+    (function () {
+      var tabs = document.querySelectorAll('.install-tab');
+      var panels = document.querySelectorAll('.install-panel');
+      var copyBtns = document.querySelectorAll('.install-copy');
+      var copyText = {
+        bash: 'curl -fsSL https://raw.githubusercontent.com/vasuvanka/tlang/main/install.sh | bash',
+        ps1: 'iwr -useb https://raw.githubusercontent.com/vasuvanka/tlang/main/install.ps1 | iex',
+        cmd: 'curl -fsSL https://raw.githubusercontent.com/vasuvanka/tlang/main/install.cmd -o install.cmd && install.cmd && del install.cmd'
+      };
+      tabs.forEach(function (tab) {
+        tab.addEventListener('click', function () {
+          var t = this.getAttribute('data-tab');
+          tabs.forEach(function (tb) { tb.classList.remove('install-tab--active'); tb.setAttribute('aria-selected', 'false'); });
+          panels.forEach(function (p) { p.classList.remove('install-panel--active'); p.hidden = p.id !== 'panel-' + t; });
+          this.classList.add('install-tab--active');
+          this.setAttribute('aria-selected', 'true');
+          document.getElementById('panel-' + t).classList.add('install-panel--active');
+          document.getElementById('panel-' + t).hidden = false;
+        });
+      });
+      copyBtns.forEach(function (btn) {
+        btn.addEventListener('click', function () {
+          var id = this.getAttribute('data-copy');
+          var text = copyText[id];
+          if (navigator.clipboard && navigator.clipboard.writeText) {
+            navigator.clipboard.writeText(text).then(function () {
+              btn.textContent = 'Copied!';
+              btn.classList.add('copied');
+              setTimeout(function () { btn.textContent = 'Copy'; btn.classList.remove('copied'); }, 2000);
+            });
+          }
+        });
+      });
+    })();
+  </script>
 </body>
 </html>

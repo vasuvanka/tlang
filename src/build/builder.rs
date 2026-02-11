@@ -1,5 +1,6 @@
 // Main build system - orchestrates compilation, caching, and bundling
 
+use std::env;
 use std::fs;
 use std::path::{Path, PathBuf};
 use std::process::Command;
@@ -392,6 +393,17 @@ impl Builder {
         
         // Build compiler command
         let mut cmd = Command::new(&compiler);
+        if compiler.contains(std::path::MAIN_SEPARATOR) {
+            if let Some(libexec) = self.bundled_gcc_libexec_path() {
+                let path_var = env::var_os("PATH").unwrap_or_default();
+                if let Ok(new_path) = env::join_paths(
+                    std::iter::once(libexec.into_os_string())
+                        .chain(env::split_paths(&path_var).map(PathBuf::into_os_string)),
+                ) {
+                    cmd.env("PATH", new_path);
+                }
+            }
+        }
         
         // Add optimization flags
         match self.config.build.optimize.as_str() {
@@ -465,29 +477,64 @@ impl Builder {
         Ok(binary_path)
     }
     
-    /// Find available C compiler
+    /// Find available C compiler (bundled next to executable first, then system).
     fn find_c_compiler(&self) -> CompileResult<String> {
-        // Try gcc first
-        if Command::new("gcc").arg("--version").output().is_ok() {
-            return Ok("gcc".to_string());
+        if let Some(bundled) = self.find_bundled_c_compiler() {
+            return Ok(bundled);
         }
-        
-        // Try clang
-        if Command::new("clang").arg("--version").output().is_ok() {
-            return Ok("clang".to_string());
+        if let Some(system) = self.find_system_c_compiler() {
+            return Ok(system);
         }
-        
-        // Try cl on Windows
-        if cfg!(windows) {
-            if Command::new("cl").arg("/?").output().is_ok() {
-                return Ok("cl".to_string());
-            }
-        }
-        
         Err(CompileError::codegen(
-            "No C compiler found. Please install gcc, clang, or MSVC.".to_string(),
+            "No C compiler found. Install gcc/clang, or use the full Tlang install (with bundled GCC).".to_string(),
             None,
         ))
+    }
+
+    fn find_bundled_c_compiler(&self) -> Option<String> {
+        let exe = env::current_exe().ok()?;
+        let exe_dir = exe.parent()?;
+        let gcc_name = if cfg!(windows) { "gcc.exe" } else { "gcc" };
+        let gcc_path = exe_dir.join(gcc_name);
+        if gcc_path.is_file() && Command::new(&gcc_path).arg("--version").output().is_ok() {
+            return Some(gcc_path.to_string_lossy().into_owned());
+        }
+        None
+    }
+
+    fn find_system_c_compiler(&self) -> Option<String> {
+        if Command::new("gcc").arg("--version").output().is_ok() {
+            return Some("gcc".to_string());
+        }
+        if Command::new("clang").arg("--version").output().is_ok() {
+            return Some("clang".to_string());
+        }
+        if cfg!(windows) && Command::new("cl").arg("/?").output().is_ok() {
+            return Some("cl".to_string());
+        }
+        None
+    }
+
+    fn bundled_gcc_libexec_path(&self) -> Option<PathBuf> {
+        let exe = env::current_exe().ok()?;
+        let exe_dir = exe.parent()?;
+        let tlang_dir = exe_dir.parent()?;
+        let mingw = tlang_dir.join("mingw").join("libexec").join("gcc");
+        if !mingw.is_dir() {
+            return None;
+        }
+        for e in fs::read_dir(&mingw).ok()?.flatten() {
+            let path = e.path();
+            if path.is_dir() {
+                for v in fs::read_dir(&path).ok()?.flatten() {
+                    let ver_path = v.path();
+                    if ver_path.is_dir() {
+                        return Some(ver_path);
+                    }
+                }
+            }
+        }
+        None
     }
     
     /// Get the output binary path

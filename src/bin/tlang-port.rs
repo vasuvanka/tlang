@@ -1,5 +1,5 @@
-// tlang-port - Porting tool to convert Go packages to Tlang
-// Converts Go source code to Tlang syntax
+// tlang-port - Porting tool to convert Go or Rust to Tlang
+// Converts Go (.go) or Rust (.rs) source code to Tlang syntax
 
 use std::env;
 use std::fs;
@@ -8,58 +8,120 @@ use std::collections::HashMap;
 use std::process;
 use regex::Regex;
 
+#[derive(Clone, Copy, PartialEq)]
+enum SourceLang {
+    Go,
+    Rust,
+}
+
+fn detect_lang(path: &Path) -> Option<SourceLang> {
+    path.extension()
+        .and_then(|e| e.to_str())
+        .and_then(|ext| match ext {
+            "go" => Some(SourceLang::Go),
+            "rs" => Some(SourceLang::Rust),
+            _ => None,
+        })
+}
+
 fn main() {
     let args: Vec<String> = env::args().collect();
-    
-    if args.len() < 2 {
-        eprintln!("Usage: tlang-port <go_file> [output_file]");
-        eprintln!("       tlang-port <directory> [output_directory]");
-        eprintln!("\nConverts Go source files to Tlang syntax.");
+    let mut from_arg: Option<SourceLang> = None;
+    let mut rest = Vec::new();
+    let mut i = 1;
+    while i < args.len() {
+        if args[i] == "--from" {
+            i += 1;
+            if i < args.len() {
+                from_arg = match args[i].as_str() {
+                    "go" => Some(SourceLang::Go),
+                    "rust" | "rs" => Some(SourceLang::Rust),
+                    _ => {
+                        eprintln!("Error: --from must be 'go' or 'rust'");
+                        process::exit(1);
+                    }
+                };
+                i += 1;
+            }
+        } else {
+            rest.push(args[i].clone());
+            i += 1;
+        }
+    }
+
+    if rest.len() < 1 {
+        eprintln!("Usage: tlang-port [--from go|rust] <input_file> [output_file]");
+        eprintln!("       tlang-port [--from go|rust] <input_directory> [output_directory]");
+        eprintln!("\nConverts Go (.go) or Rust (.rs) source to Tlang (.tl).");
+        eprintln!("Language is auto-detected by extension unless --from is given.");
         eprintln!("\nExamples:");
         eprintln!("  tlang-port main.go main.tl");
-        eprintln!("  tlang-port ./go-package ./tlang-package");
+        eprintln!("  tlang-port main.rs main.tl");
+        eprintln!("  tlang-port --from rust ./src ./tlang_out");
+        eprintln!("  tlang-port ./go-pkg ./tlang-pkg");
         process::exit(1);
     }
-    
-    let input = &args[1];
-    let output = args.get(2).map(|s| s.as_str());
-    
+
+    let input = &rest[0];
+    let output = rest.get(1).map(|s| s.as_str());
     let input_path = Path::new(input);
-    
-    if input_path.is_file() {
-        // Convert single file
-        if !input_path.extension().map(|e| e == "go").unwrap_or(false) {
-            eprintln!("Error: Input file must have .go extension");
+
+    let lang = if let Some(l) = from_arg {
+        l
+    } else if input_path.is_file() {
+        match detect_lang(input_path) {
+            Some(l) => l,
+            None => {
+                eprintln!("Error: Unknown file extension. Use .go or .rs, or pass --from go|rust");
+                process::exit(1);
+            }
+        }
+    } else {
+        // Directory: detect from presence of .rs or .go files (prefer Rust if both exist)
+        let has_rs = fs::read_dir(input_path)
+            .ok()
+            .map(|rd| rd.filter_map(Result::ok).any(|e| e.path().extension().map(|x| x == "rs").unwrap_or(false)))
+            .unwrap_or(false);
+        let has_go = fs::read_dir(input_path)
+            .ok()
+            .map(|rd| rd.filter_map(Result::ok).any(|e| e.path().extension().map(|x| x == "go").unwrap_or(false)))
+            .unwrap_or(false);
+        if has_rs {
+            SourceLang::Rust
+        } else if has_go {
+            SourceLang::Go
+        } else {
+            eprintln!("Error: No .go or .rs files found in directory. Use --from go or --from rust.");
             process::exit(1);
         }
-        
-        let output_path = if let Some(out) = output {
-            PathBuf::from(out)
-        } else {
-            input_path.with_extension("tl")
+    };
+
+    if input_path.is_file() {
+        let ext_ok = input_path.extension().map(|e| e == "go" || e == "rs").unwrap_or(false);
+        if !ext_ok {
+            eprintln!("Error: Input file must have .go or .rs extension");
+            process::exit(1);
+        }
+        let output_path = output.map(PathBuf::from).unwrap_or_else(|| input_path.with_extension("tl"));
+        let result = match lang {
+            SourceLang::Go => convert_go_file(input_path, &output_path),
+            SourceLang::Rust => convert_rust_file(input_path, &output_path),
         };
-        
-        match convert_go_file(input_path, &output_path) {
-            Ok(_) => {
-                println!("Converted {} to {}", input_path.display(), output_path.display());
-            }
+        match result {
+            Ok(_) => println!("Converted {} to {}", input_path.display(), output_path.display()),
             Err(e) => {
                 eprintln!("Error converting file: {}", e);
                 process::exit(1);
             }
         }
     } else if input_path.is_dir() {
-        // Convert directory
-        let output_dir = if let Some(out) = output {
-            PathBuf::from(out)
-        } else {
-            input_path.join("tlang_output")
+        let output_dir = output.map(PathBuf::from).unwrap_or_else(|| input_path.join("tlang_output"));
+        let result = match lang {
+            SourceLang::Go => convert_go_directory(input_path, &output_dir),
+            SourceLang::Rust => convert_rust_directory(input_path, &output_dir),
         };
-        
-        match convert_go_directory(input_path, &output_dir) {
-            Ok(_) => {
-                println!("Converted directory {} to {}", input_path.display(), output_dir.display());
-            }
+        match result {
+            Ok(_) => println!("Converted directory {} to {}", input_path.display(), output_dir.display()),
             Err(e) => {
                 eprintln!("Error converting directory: {}", e);
                 process::exit(1);
@@ -105,6 +167,34 @@ fn convert_go_directory(input_dir: &Path, output_dir: &Path) -> Result<(), Box<d
         }
     }
     
+    Ok(())
+}
+
+fn convert_rust_file(input: &Path, output: &Path) -> Result<(), Box<dyn std::error::Error>> {
+    let content = fs::read_to_string(input)?;
+    let converted = convert_rust_to_tlang(&content);
+    fs::write(output, converted)?;
+    Ok(())
+}
+
+fn convert_rust_directory(input_dir: &Path, output_dir: &Path) -> Result<(), Box<dyn std::error::Error>> {
+    fs::create_dir_all(output_dir)?;
+    for entry in fs::read_dir(input_dir)? {
+        let entry = entry?;
+        let path = entry.path();
+        if path.is_file() && path.extension().map(|e| e == "rs").unwrap_or(false) {
+            let relative_path = path.strip_prefix(input_dir)?;
+            let output_path = output_dir.join(relative_path).with_extension("tl");
+            if let Some(parent) = output_path.parent() {
+                fs::create_dir_all(parent)?;
+            }
+            convert_rust_file(&path, &output_path)?;
+            println!("Converted: {} -> {}", path.display(), output_path.display());
+        } else if path.is_dir() {
+            let sub_output = output_dir.join(path.file_name().unwrap());
+            convert_rust_directory(&path, &sub_output)?;
+        }
+    }
     Ok(())
 }
 
@@ -430,5 +520,276 @@ fn cleanup_formatting(code: &str) -> String {
     result = result.replace("  ", " ");
     result = result.replace("\n\n\n", "\n\n");
     
+    result
+}
+
+// ---------- Rust to Tlang conversion ----------
+
+fn convert_rust_to_tlang(rust_code: &str) -> String {
+    let mut result = rust_code.to_string();
+
+    // Step 1: Comment out or remove crate attributes
+    result = convert_rust_attributes(&result);
+
+    // Step 2: Convert use/mod (before keyword conversion)
+    result = convert_rust_imports(&result);
+
+    // Step 3: Convert types (before keywords to avoid touching e.g. "fn" inside "refinement")
+    let rust_type_map: HashMap<&str, &str> = [
+        ("i8", "int"),
+        ("i16", "int"),
+        ("i32", "int"),
+        ("i64", "int"),
+        ("isize", "int"),
+        ("u8", "int"),
+        ("u16", "int"),
+        ("u32", "int"),
+        ("u64", "int"),
+        ("usize", "int"),
+        ("f32", "float"),
+        ("f64", "float"),
+        ("bool", "int"),
+        ("String", "string"),
+        ("str", "string"),
+        ("Option", "optional"), // Option<T> -> optional; manual follow-up may be needed
+        ("Result", "result"),   // Result<T,E> -> result or (T, error)
+    ]
+    .iter()
+    .cloned()
+    .collect();
+    result = convert_types(&result, &rust_type_map);
+
+    // Step 4: Convert keywords
+    let rust_keyword_map: HashMap<&str, &str> = [
+        ("fn", "#"),
+        ("if", "okavela"),
+        ("else", "lekapothe"),
+        ("loop", "malli"),
+        ("return", "mallinchu"),
+        ("struct", "nirmanam"),
+        ("break", "agu"),
+        ("continue", "konasagu"),
+        ("match", "match"), // keep; can convert to okavela/lekapothe later
+        ("None", "sunyam"),
+        ("Some", "Some"), // keep for now; manual unwrap
+        ("true", "1"),
+        ("false", "0"),
+        ("self", "self"),
+        ("Self", "Self"),
+    ]
+    .iter()
+    .cloned()
+    .collect();
+    result = convert_keywords(&result, &rust_keyword_map);
+
+    // Step 5: Convert let/let mut
+    result = convert_rust_let(&result);
+
+    // Step 6: Convert while/for
+    result = convert_rust_loops(&result);
+
+    // Step 7: Convert fn and impl
+    result = convert_rust_fns(&result);
+
+    // Step 7b: Rust param style (name: Type) -> Tlang (name Type)
+    result = result.replace(": int", " int");
+    result = result.replace(": float", " float");
+    result = result.replace(": string", " string");
+
+    // Step 8: Convert struct and impl blocks
+    result = convert_rust_structs(&result);
+
+    // Step 9: Remove pub, mut (standalone), ref, &
+    result = convert_rust_modifiers(&result);
+
+    // Step 10: Macros -> comments or fmt
+    result = convert_rust_macros(&result);
+
+    // Step 11: Cleanup
+    result = cleanup_formatting(&result);
+
+    result
+}
+
+fn convert_rust_attributes(code: &str) -> String {
+    // Comment out #![...] and #[...] so they don't break Tlang
+    let re_inner = Regex::new(r"(?m)^#!\[.*\]\s*$").unwrap();
+    let mut result = re_inner.replace_all(code, |caps: &regex::Captures| format!("// {}", &caps[0])).to_string();
+    let re_attr = Regex::new(r"(?m)^#\[.*\]\s*$").unwrap();
+    result = re_attr.replace_all(&result, |caps: &regex::Captures| format!("// {}", &caps[0])).to_string();
+    result
+}
+
+fn convert_rust_imports(code: &str) -> String {
+    let mut result = code.to_string();
+    // use std::fmt; -> @fmt = #dhimpu("std/fmt");
+    let re_std = Regex::new(r"(?m)^\s*use\s+std::(\w+)\s*;\s*$").unwrap();
+    result = re_std.replace_all(&result, |caps: &regex::Captures| {
+        let m = &caps[1];
+        format!(r#"@{} = #dhimpu("std/{}");"#, m, m)
+    }).to_string();
+    // use crate::foo::bar -> @bar = #dhimpu("crate/foo/bar");
+    let re_crate = Regex::new(r"(?m)^\s*use\s+crate::([\w:]+)\s*;\s*$").unwrap();
+    result = re_crate.replace_all(&result, |caps: &regex::Captures| {
+        let path = caps[1].replace("::", "/");
+        let name = path.split('/').last().unwrap_or(&path);
+        format!(r#"@{} = #dhimpu("{}");"#, name, path)
+    }).to_string();
+    // use path as alias;
+    let re_alias = Regex::new(r"(?m)^\s*use\s+([\w:]+)\s+as\s+(\w+)\s*;\s*$").unwrap();
+    result = re_alias.replace_all(&result, |caps: &regex::Captures| {
+        let path = caps[1].replace("::", "/");
+        format!(r#"@{} = #dhimpu("{}");"#, &caps[2], path)
+    }).to_string();
+    result
+}
+
+fn convert_rust_let(code: &str) -> String {
+    let mut result = code.to_string();
+    // let mut x = ...; -> @!x = ...;
+    let re_let_mut = Regex::new(r"(?m)^\s*let\s+mut\s+(\w+)\s*(?::\s*([^=]+))?\s*=\s*(.+);\s*$").unwrap();
+    result = re_let_mut.replace_all(&result, |caps: &regex::Captures| {
+        let name = &caps[1];
+        let typ = caps.get(2).map(|m| m.as_str().trim());
+        let value = caps[3].trim();
+        match typ {
+            Some(t) => format!("@!{} {} = {};", name, t, value),
+            None => format!("@!{} = {};", name, value),
+        }
+    }).to_string();
+    // let x: Type = ...; -> @x Type = ...;
+    let re_let_typed = Regex::new(r"(?m)^\s*let\s+(\w+)\s*:\s*([^=]+)=\s*(.+);\s*$").unwrap();
+    result = re_let_typed.replace_all(&result, |caps: &regex::Captures| {
+        let name = &caps[1];
+        let typ = caps[2].trim();
+        let value = caps[3].trim();
+        format!("@{} {} = {};", name, typ, value)
+    }).to_string();
+    // let x = ...; -> @x = ...;
+    let re_let = Regex::new(r"(?m)^\s*let\s+(\w+)\s*=\s*(.+);\s*$").unwrap();
+    result = re_let.replace_all(&result, |caps: &regex::Captures| {
+        format!("@{} = {};", &caps[1], caps[2].trim())
+    }).to_string();
+    result
+}
+
+fn convert_rust_loops(code: &str) -> String {
+    let mut result = code.to_string();
+    // while cond { -> malli cond {
+    let re_while = Regex::new(r"(?m)\bwhile\s+(.+)\s*\{").unwrap();
+    result = re_while.replace_all(&result, "malli $1 {").to_string();
+    // for x in iter { -> malli x varasa iter {
+    let re_for = Regex::new(r"(?m)\bfor\s+(\w+)\s+in\s+(.+)\s*\{").unwrap();
+    result = re_for.replace_all(&result, "malli $1 varasa $2 {").to_string();
+    // i += 1 -> i = i + 1 (and similar)
+    let re_plus_eq = Regex::new(r"(\w+)\s*\+=\s*1\b").unwrap();
+    result = re_plus_eq.replace_all(&result, "$1 = $1 + 1").to_string();
+    let re_minus_eq = Regex::new(r"(\w+)\s*-=\s*1\b").unwrap();
+    result = re_minus_eq.replace_all(&result, "$1 = $1 - 1").to_string();
+    result
+}
+
+fn convert_rust_fns(code: &str) -> String {
+    let mut result = code.to_string();
+    // Do main first so it isn't turned into #main by the general fn regex
+    let re_main = Regex::new(r"(?m)^\s*#\s+main\s*\([^)]*\)\s*(?:->[^{]*)?\s*\{").unwrap();
+    result = re_main.replace_all(&result, "#prarambham() {").to_string();
+    // Also catch #main() { (no space) in case it was produced earlier
+    let re_main2 = Regex::new(r"(?m)^\s*#main\s*\([^)]*\)\s*\{").unwrap();
+    result = re_main2.replace_all(&result, "#prarambham() {").to_string();
+    // # name(...) -> Ret { -> #name(...) Ret {
+    let re_fn = Regex::new(r"(?m)^\s*#\s+(\w+)\s*\(([^)]*)\)\s*->\s*([^{]+)\s*\{").unwrap();
+    result = re_fn.replace_all(&result, "#$1($2) $3 {").to_string();
+    // # name(...) { (no return type)
+    let re_fn_no_ret = Regex::new(r"(?m)^\s*#\s+(\w+)\s*\(([^)]*)\)\s*\{").unwrap();
+    result = re_fn_no_ret.replace_all(&result, "#$1($2) {").to_string();
+    result
+}
+
+fn convert_rust_structs(code: &str) -> String {
+    let lines: Vec<&str> = code.lines().collect();
+    let mut new_lines = Vec::new();
+    let mut in_struct = false;
+    let mut brace_count = 0;
+
+    for line in lines {
+        let trimmed = line.trim();
+        if trimmed.starts_with("nirmanam ") && trimmed.contains('{') {
+            in_struct = true;
+            brace_count = trimmed.matches('{').count() - trimmed.matches('}').count();
+            new_lines.push(line.to_string());
+            continue;
+        }
+        if in_struct {
+            brace_count += line.matches('{').count();
+            brace_count -= line.matches('}').count();
+            if brace_count <= 0 {
+                in_struct = false;
+            }
+            if in_struct && !trimmed.is_empty() && !trimmed.starts_with("//") {
+                let re_field = Regex::new(r"^(\s+)(\w+)\s*:\s*([^,]+)(?:,\s*)?$").unwrap();
+                if let Some(caps) = re_field.captures(line) {
+                    let indent = &caps[1];
+                    let field = &caps[2];
+                    let typ = caps[3].trim().trim_end_matches(',');
+                    new_lines.push(format!("{}@{} {};", indent, field, typ));
+                    continue;
+                }
+            }
+        }
+        new_lines.push(line.to_string());
+    }
+    new_lines.join("\n")
+}
+
+fn convert_rust_modifiers(code: &str) -> String {
+    let mut result = code.to_string();
+    result = result.replace(" pub ", " ");
+    result = result.replace(" pub\n", " \n");
+    result = result.replace(" pub(", " (");
+    result = result.replace("pub #", "#");  // pub fn -> pub # after keyword conversion
+    result = result.replace("pub nirmanam", "nirmanam");
+    result = result.replace("pub struct", "nirmanam");
+    result = result.replace(" ref ", " ");
+    result = result.replace(" mut ", " ");
+    result = result.replace(" &mut ", " ");
+    result = result.replace(" & ", " ");
+    result = result.replace(" *const ", " ");
+    result = result.replace(" *mut ", " ");
+    result
+}
+
+fn convert_rust_macros(code: &str) -> String {
+    let mut result = code.to_string();
+    // println!("...", ...) -> fmt.Printf("...\n", ...)
+    let re_println = Regex::new(r#"println!\s*\(\s*"([^"]*)"\s*(?:,\s*(.+))?\)"#).unwrap();
+    result = re_println.replace_all(&result, |caps: &regex::Captures| {
+        let fmt = &caps[1];
+        let rest = caps.get(2).map(|m| m.as_str()).unwrap_or("");
+        let fmt_esc = fmt.replace('\\', "\\\\").replace('"', "\\\"");
+        let fmt_new = format!("{}\\n", fmt_esc);
+        if rest.is_empty() {
+            format!("fmt.Printf(\"{}\")", fmt_new)
+        } else {
+            format!("fmt.Printf(\"{}\", {})", fmt_new, rest)
+        }
+    }).to_string();
+    // print!("...") -> fmt.Printf("...")
+    let re_print = Regex::new(r#"print!\s*\(\s*"([^"]*)"\s*(?:,\s*(.+))?\)"#).unwrap();
+    result = re_print.replace_all(&result, |caps: &regex::Captures| {
+        let fmt = &caps[1];
+        let rest = caps.get(2).map(|m| m.as_str()).unwrap_or("");
+        let fmt_esc = fmt.replace('\\', "\\\\").replace('"', "\\\"");
+        if rest.is_empty() {
+            format!("fmt.Printf(\"{}\")", fmt_esc)
+        } else {
+            format!("fmt.Printf(\"{}\", {})", fmt_esc, rest)
+        }
+    }).to_string();
+    // panic!("...") -> leave as comment or simple error
+    let re_panic = Regex::new(r#"panic!\s*\(\s*"([^"]*)"\s*\)"#).unwrap();
+    result = re_panic.replace_all(&result, |caps: &regex::Captures| {
+        format!("/* panic: {} */ mallinchu sunyam", &caps[1])
+    }).to_string();
     result
 }

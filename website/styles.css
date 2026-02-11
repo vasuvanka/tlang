@@ -180,6 +180,123 @@ body {
   background: var(--border);
 }
 
+/* Install section */
+.install {
+  padding: 2.5rem 0;
+  background: var(--bg-card);
+  border-top: 1px solid var(--border);
+}
+
+.install h2 {
+  font-size: 1.35rem;
+  font-weight: 600;
+  margin: 0 0 0.5rem;
+}
+
+.install-intro {
+  margin: 0 0 1.25rem;
+  color: var(--text-muted);
+  font-size: 0.95rem;
+}
+
+.install-intro a {
+  color: var(--accent);
+  text-decoration: none;
+}
+
+.install-intro a:hover {
+  text-decoration: underline;
+}
+
+.install-tabs {
+  display: flex;
+  gap: 0.25rem;
+  margin-bottom: 0.75rem;
+  flex-wrap: wrap;
+}
+
+.install-tab {
+  padding: 0.5rem 1rem;
+  font-family: var(--font-sans);
+  font-size: 0.9rem;
+  font-weight: 500;
+  color: var(--text-muted);
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s, border-color 0.15s;
+}
+
+.install-tab:hover {
+  color: var(--text);
+  background: var(--code-bg);
+}
+
+.install-tab.install-tab--active {
+  color: var(--accent);
+  background: var(--bg-card);
+  border-color: var(--accent);
+}
+
+.install-panels {
+  position: relative;
+}
+
+.install-panel {
+  display: none;
+}
+
+.install-panel.install-panel--active {
+  display: block;
+}
+
+.install-code-wrap {
+  position: relative;
+}
+
+.install-label {
+  display: block;
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  margin-bottom: 0.35rem;
+}
+
+.install-code {
+  position: relative;
+  margin: 0 0 0.5rem;
+  padding-right: 3.5rem;
+}
+
+.install-copy {
+  position: absolute;
+  top: 0.75rem;
+  right: 0.75rem;
+  padding: 0.35rem 0.65rem;
+  font-family: var(--font-sans);
+  font-size: 0.8rem;
+  font-weight: 500;
+  color: var(--text-muted);
+  background: rgba(255,255,255,0.12);
+  border: 1px solid rgba(255,255,255,0.25);
+  border-radius: 6px;
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s;
+}
+
+.install-copy:hover {
+  color: #fff;
+  background: rgba(255,255,255,0.2);
+}
+
+.install-copy.copied {
+  color: #86efac;
+  border-color: #86efac;
+}
+
 /* Sections */
 .quick-start,
 .features,
@@ -188,7 +305,7 @@ body {
 }
 
 .quick-start {
-  background: var(--bg-card);
+  background: var(--bg);
   border-top: 1px solid var(--border);
 }
 

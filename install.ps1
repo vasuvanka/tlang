@@ -1,5 +1,25 @@
 # Tlang Installation Script for Windows
-# Run with: powershell -ExecutionPolicy Bypass -File install.ps1
+# Run from repo: powershell -ExecutionPolicy Bypass -File install.ps1
+# Single-link:   iwr -useb https://raw.githubusercontent.com/vasuvanka/tlang/main/install.ps1 | iex
+
+# Bootstrap: if not run from repo, clone and re-run install.ps1 from clone
+if (-not (Test-Path "Cargo.toml") -or -not (Test-Path "install.ps1")) {
+    $RepoUrl = if ($env:TLANG_REPO_URL) { $env:TLANG_REPO_URL } else { "https://github.com/vasuvanka/tlang.git" }
+    $Branch = if ($env:TLANG_BRANCH) { $env:TLANG_BRANCH } else { "main" }
+    $CloneDir = Join-Path $env:TEMP "tlang-install-$PID"
+    Write-Host "=== Tlang single-link install ===" -ForegroundColor Cyan
+    Write-Host "Cloning $RepoUrl (branch: $Branch)..." -ForegroundColor Gray
+    $git = Get-Command git -ErrorAction SilentlyContinue
+    if (-not $git) {
+        Write-Host "Error: git is required. Install Git for Windows and try again." -ForegroundColor Red
+        exit 1
+    }
+    & git clone --depth 1 --branch $Branch $RepoUrl $CloneDir
+    if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+    Set-Location $CloneDir
+    & "$CloneDir\install.ps1" @args
+    exit $LASTEXITCODE
+}
 
 Write-Host "=== Tlang Installation Script ===" -ForegroundColor Cyan
 Write-Host ""

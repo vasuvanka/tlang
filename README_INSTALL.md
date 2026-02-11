@@ -4,11 +4,40 @@
 
 This guide explains how to install Tlang on Linux and Windows.
 
-## Prerequisites
+## Single install (no separate C compiler)
+
+On **Windows**, the install script can **bundle MinGW-w64 (GCC)** so you do not need to install a C compiler separately. Run `./install.sh` (or `install.ps1`); when prompted, allow it to download and bundle GCC. Then `tlang compile`, `tlang run`, and `tlangc compile` will use the bundled compiler automatically.
+
+On **Linux/macOS**, the script uses the system compiler (gcc/clang); install it once (e.g. `apt install build-essential` or `xcode-select --install`).
+
+The **tlangc** and **tlang-build** binaries look for **gcc** in the same directory as the executable first (bundled install layout). If found, they use it and set `PATH` so the compiler can find its internal tools. So a single Tlang install (with bundled GCC on Windows) is enough—no separate C compiler step for end users.
+
+## Single-link installation (any OS)
+
+One URL per platform; the script clones the repo (if needed) and runs the installer. Prerequisites: **Rust**, **C compiler** (or use bundled GCC on Windows), **OpenSSL** dev libs. Base URL used below: `https://raw.githubusercontent.com/vasuvanka/tlang/main`. You can host the same scripts at your own domain (e.g. `https://tlang.dev`) and set `TLANG_REPO_URL` / `TLANG_BRANCH` if needed.
+
+**Linux / macOS / WSL (bash):**
+```bash
+curl -fsSL https://raw.githubusercontent.com/vasuvanka/tlang/main/install.sh | bash
+```
+With options: `curl -fsSL https://raw.githubusercontent.com/vasuvanka/tlang/main/install.sh | bash -s -- --install-method git`
+
+**Windows (PowerShell):**
+```powershell
+iwr -useb https://raw.githubusercontent.com/vasuvanka/tlang/main/install.ps1 | iex
+```
+
+**Windows (CMD):**
+```cmd
+curl -fsSL https://raw.githubusercontent.com/vasuvanka/tlang/main/install.cmd -o install.cmd && install.cmd && del install.cmd
+```
+Or download `install.cmd`, run it, then delete it. To use a custom base URL: `set TLANG_INSTALL_URL=https://your-domain.com` before running.
+
+## Prerequisites (for building Tlang from source)
 
 Tlang requires:
 - **Rust** (for building the compiler)
-- **C compiler** (gcc or clang for Linux, gcc or MSVC for Windows)
+- **C compiler** (gcc or clang for Linux, gcc or MSVC for Windows)—or use the bundled GCC from the install script on Windows
 - **OpenSSL development libraries** (for cryptographic functions)
 
 ### Installing Prerequisites
@@ -40,13 +69,15 @@ brew install openssl pkg-config
 
 ### One-line install (curl, no clone)
 
-Install without cloning the repo (Linux, macOS, WSL). Prerequisites: Rust, C compiler, OpenSSL dev libs (see [Installing Prerequisites](#installing-prerequisites)). Uses HTTPS and TLS 1.2; you can inspect the script at the URL before running.
+Install without cloning the repo (Linux, macOS, WSL). Same as [Single-link installation](#single-link-installation-any-os)—use `install.sh` directly:
 
 ```bash
-curl --proto '=https' --tlsv1.2 -sSf https://raw.githubusercontent.com/vasuvanka/tlang/main/install-curl.sh | sh
+curl -fsSL https://raw.githubusercontent.com/vasuvanka/tlang/main/install.sh | bash
 ```
 
-Then add to PATH if needed: `export PATH="$PATH:$HOME/.local/bin"`. Verify: `tlang --version` or `tlangc --version`. **Windows:** use [Windows Installation](#windows-installation) (install.ps1 or cargo); curl install is for Linux/macOS/WSL only.
+Alternative (legacy): `curl --proto '=https' --tlsv1.2 -sSf https://raw.githubusercontent.com/vasuvanka/tlang/main/install-curl.sh | sh`
+
+Then add to PATH if needed: `export PATH="$PATH:$HOME/.local/bin"`. Verify: `tlang --version` or `tlangc --version`. **Windows:** use [Single-link installation](#single-link-installation-any-os) (PowerShell or CMD) or [Windows Installation](#windows-installation).
 
 ### Quick Install (clone then script)
 
@@ -219,3 +250,7 @@ cargo build --release
 ```
 
 You can run the compiler from that path (e.g. `./target/release/tlangc --version`). Optionally, copy the binary to a directory in your PATH or run the install script (see [Manual Installation](#manual-installation) above).
+
+---
+
+© VasuVanka

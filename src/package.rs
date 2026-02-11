@@ -127,7 +127,7 @@ impl PackageResolver {
             return Err(format!("Package '{}' not found (use std/<name> for standard library, e.g. #dhimpu(\"std/fmt\"))", import_path));
         }
         
-        // Handle relative imports (e.g., "./utils", "../common")
+        // Handle relative imports (e.g., "./utils", "../common", "../libs/x/express")
         if import_path.starts_with("./") || import_path.starts_with("../") {
             let relative_path = self.current_dir.join(import_path);
             if relative_path.exists() && relative_path.is_file() {
@@ -137,6 +137,13 @@ impl PackageResolver {
             let with_ext = relative_path.with_extension("tl");
             if with_ext.exists() {
                 return Ok(with_ext);
+            }
+            // Try as directory with mod.tl
+            if relative_path.is_dir() {
+                let mod_path = relative_path.join("mod.tl");
+                if mod_path.exists() {
+                    return Ok(mod_path);
+                }
             }
             return Err(format!("File not found: {}", relative_path.display()));
         }

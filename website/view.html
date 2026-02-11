@@ -38,6 +38,7 @@
   <footer class="site-footer">
     <div class="wrap">
       <p><a href="docs.html">Docs</a> · <a href="index.html">Home</a></p>
+      <p class="muted">© VasuVanka</p>
     </div>
   </footer>
 
@@ -51,7 +52,7 @@
 
       function getLang() {
         const params = new URLSearchParams(window.location.search);
-        return params.get('lang') || 'te';
+        return params.get('lang') || 'en';
       }
 
       function getDocParam() {

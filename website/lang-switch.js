@@ -1,13 +1,13 @@
 (function() {
   function getLang() {
     var params = new URLSearchParams(window.location.search);
-    return params.get('lang') || 'te';
+    return params.get('lang') || 'en';
   }
   function buildUrl(lang) {
     var path = window.location.pathname;
     var page = path.split('/').pop() || 'index.html';
     var params = new URLSearchParams(window.location.search);
-    if (lang === 'te') params.delete('lang');
+    if (lang === 'en') params.delete('lang');
     else params.set('lang', lang);
     var q = params.toString();
     return page + (q ? '?' + q : '');

@@ -36,6 +36,21 @@ pub fn generate_strings_lib() -> String {
     code.push_str("    return pos ? (int)(pos - s) : -1;\n");
     code.push_str("}\n\n");
     
+    // Substring - Returns s[start:end] (end exclusive). Uses static buffer, max 4096 chars.
+    code.push_str("// strings.Substring - Returns substring from start to end (end exclusive)\n");
+    code.push_str("char* strings_Substring(const char* s, int start, int end) {\n");
+    code.push_str("    static char buffer[4096];\n");
+    code.push_str("    if (!s || start < 0 || end <= start) { buffer[0] = '\\0'; return buffer; }\n");
+    code.push_str("    size_t len = strlen(s);\n");
+    code.push_str("    if ((size_t)start >= len) { buffer[0] = '\\0'; return buffer; }\n");
+    code.push_str("    if ((size_t)end > len) end = (int)len;\n");
+    code.push_str("    int n = end - start;\n");
+    code.push_str("    if (n >= 4096) n = 4095;\n");
+    code.push_str("    strncpy(buffer, s + start, n);\n");
+    code.push_str("    buffer[n] = '\\0';\n");
+    code.push_str("    return buffer;\n");
+    code.push_str("}\n\n");
+    
     // ToUpper
     code.push_str("// strings.ToUpper - Converts to uppercase\n");
     code.push_str("char* strings_ToUpper(const char* s) {\n");
