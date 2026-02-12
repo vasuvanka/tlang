@@ -7,15 +7,16 @@
   <link rel="stylesheet" href="styles.css">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 </head>
 <body>
   <header class="site-header">
     <div class="wrap">
       <a href="index.html" class="logo"><img src="tlang-logo.png" alt="Tlang (అ)" class="logo-img">Tlang</a>
       <nav>
-        <a href="index.html">Home</a>
+        <a href="index.html#why-tlang">Why Tlang</a>
         <a href="index.html#install">Install</a>
+        <a href="cli.html">CLI</a>
         <a href="playground.html">Playground</a>
         <a href="docs.html">Docs</a>
         <span class="lang-switch"><a class="lang-en" href="index.html">EN</a><span class="lang-sep">|</span><a class="lang-te" href="index.html?lang=te">తెలుగు</a></span>
@@ -27,12 +28,90 @@
   <main>
     <section class="hero">
       <div class="wrap">
-        <h1>A compiled language for Telugu, inspired by Go</h1>
-        <p class="tagline">Simple, explicit, and fast. Telugu keywords with a full standard library. Compiles to C.</p>
+        <img src="tlang-logo.png" alt="Tlang (అ)" class="hero-logo">
+        <h1>Tlang</h1>
+        <p class="tagline">A compiled language for Telugu, inspired by Go. Simple, explicit, and fast. Compiles to C.</p>
         <div class="hero-actions">
           <a href="playground.html" class="btn btn-primary">Try Playground</a>
           <a href="docs.html" class="btn btn-secondary">Documentation</a>
         </div>
+      </div>
+    </section>
+
+    <section class="why-tlang" id="why-tlang">
+      <div class="wrap">
+        <h2>Why Tlang</h2>
+        <p class="why-intro">Go-like simplicity. Rust-like control. C output. Script-native keywords.</p>
+
+        <h3>Tlang vs Go</h3>
+        <table class="compare-table">
+          <thead>
+            <tr>
+              <th>Aspect</th>
+              <th>Go</th>
+              <th>Tlang</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><strong>Memory</strong></td>
+              <td>Garbage collected</td>
+              <td><strong>No GC</strong> — borrow checker, explicit ownership</td>
+            </tr>
+            <tr>
+              <td><strong>Compilation</strong></td>
+              <td>Go toolchain → native binary</td>
+              <td><strong>Compiles to C</strong> → any C compiler (gcc, clang, MSVC)</td>
+            </tr>
+            <tr>
+              <td><strong>Binary size</strong></td>
+              <td>Runtime included (~2–10 MB)</td>
+              <td><strong>Small binaries</strong> — no runtime, static linking</td>
+            </tr>
+            <tr>
+              <td><strong>Concurrency</strong></td>
+              <td>Goroutines, channels, select</td>
+              <td>1:1 threads, channels, spawn</td>
+            </tr>
+            <tr>
+              <td><strong>Error handling</strong></td>
+              <td><code>(T, error)</code>, <code>?</code></td>
+              <td><code>(T, error)</code>, <code>?</code> — same pattern</td>
+            </tr>
+            <tr>
+              <td><strong>Immutability</strong></td>
+              <td>Mutable by default</td>
+              <td><strong>Immutable by default</strong> — <code>@x</code> vs <code>@!x</code></td>
+            </tr>
+            <tr>
+              <td><strong>Syntax</strong></td>
+              <td>English keywords</td>
+              <td><strong>Telugu keywords</strong> — <code>okavela</code>, <code>malli</code>, <code>mallinchu</code></td>
+            </tr>
+          </tbody>
+        </table>
+
+        <div class="why-columns">
+          <div class="why-col">
+            <h3>When to use Tlang</h3>
+            <ul>
+              <li><strong>Small binaries</strong> — CLI, IoT, embedded</li>
+              <li><strong>No GC pauses</strong> — predictable latency</li>
+              <li><strong>C interop</strong> — any C library, any toolchain</li>
+              <li><strong>Script-native</strong> — Telugu keywords, education</li>
+              <li><strong>Go-like ergonomics</strong> — without GC</li>
+            </ul>
+          </div>
+          <div class="why-col">
+            <h3>When to use Go</h3>
+            <ul>
+              <li>Larger ecosystem (Kubernetes, Docker)</li>
+              <li>Goroutines for massive concurrency</li>
+              <li>Team already on Go</li>
+            </ul>
+          </div>
+        </div>
+        <p class="why-tldr"><strong>TL;DR</strong> — Tlang = Go-like simplicity + Rust-like memory control + C output + Telugu keywords.</p>
       </div>
     </section>
 
@@ -74,45 +153,53 @@
     <section class="quick-start" id="quick-start">
       <div class="wrap">
         <h2>Quick Start</h2>
-        <p>Your first program: <code>#dhimpu</code> imports a package, <code>#prarambham</code> is the entry point (like <code>main</code>).</p>
         <pre class="code-block"><code>@fmt = #dhimpu("std/fmt");
 
 #prarambham() {
     fmt.Printf("Hello, Tlang!\n");
 }</code></pre>
-        <p>Save as <code>hello.tl</code>, then:</p>
-        <pre class="code-block code-block--small"><code>tlang run hello.tl
-# or compile to executable
-tlang compile hello.tl hello && ./hello</code></pre>
-        <p><strong>New to Tlang?</strong> <a href="docs.html#getting-started">Getting Started</a> · <a href="view.html?doc=tutorial&lang=en">Tutorial</a></p>
+        <p>Save as <code>hello.tl</code>, then: <code>tlang run hello.tl</code> or <code>tlang compile hello.tl hello && ./hello</code></p>
+        <p><a href="docs.html#getting-started">Getting Started</a> · <a href="view.html?doc=tutorial&lang=en">Tutorial</a> · <a href="playground.html">Playground</a></p>
       </div>
     </section>
 
-    <section class="features">
+    <section class="cli-section" id="cli">
       <div class="wrap">
-        <h2>Why Tlang</h2>
-        <ul class="feature-grid">
-          <li>
-            <strong>Telugu keywords</strong>
-            <span>Readable syntax: <code>okavela</code>, <code>lekapothe</code>, <code>malli</code>, <code>mallinchu</code></span>
-          </li>
-          <li>
-            <strong>Compiles to C</strong>
-            <span>Portable binaries, no runtime. Use any C compiler and platform.</span>
-          </li>
-          <li>
-            <strong>Standard library</strong>
-            <span>fmt, strings, json, http, crypto, testing, and 30+ modules.</span>
-          </li>
-          <li>
-            <strong>Go-like design</strong>
-            <span>Immutability by default, explicit imports, clear error handling.</span>
-          </li>
-        </ul>
+        <h2>CLI</h2>
+        <p class="cli-intro">All commands go through <code>tlang</code>. Run <code>tlang help</code> for full usage.</p>
+        <div class="cli-grid">
+          <div class="cli-card">
+            <h3>Build & Run</h3>
+            <ul>
+              <li><code>tlang run [file.tl] [args]</code> — Compile and run (auto-detects entry file)</li>
+              <li><code>tlang compile &lt;file.tl&gt; [output]</code> — Compile to executable</li>
+              <li><code>tlang build [dir]</code> — Build project</li>
+              <li><code>tlang test &lt;file.tl&gt;</code> — Run tests</li>
+            </ul>
+          </div>
+          <div class="cli-card">
+            <h3>Porting & Deps</h3>
+            <ul>
+              <li><code>tlang port &lt;url/file&gt; [dest]</code> — Convert Go/Rust to Tlang</li>
+              <li><code>tlang get &lt;url&gt; [dir]</code> — Fetch package from Git/URL</li>
+              <li><code>tlang add &lt;pkg&gt;@&lt;ver&gt; [dir]</code> — Add dependency</li>
+              <li><code>tlang remove &lt;pkg&gt;</code> · <code>tlang upgrade .</code></li>
+            </ul>
+          </div>
+          <div class="cli-card">
+            <h3>Project</h3>
+            <ul>
+              <li><code>tlang init [app_name] [dir]</code> — New project</li>
+              <li><code>tlang clean [dir]</code> — Build artifacts</li>
+              <li><code>tlang version</code> · <code>tlang help</code></li>
+            </ul>
+          </div>
+        </div>
+        <p><a href="cli.html">Full CLI Reference →</a></p>
       </div>
     </section>
 
-    <section class="philosophy">
+    <section class="philosophy-removed" style="display:none">
       <div class="wrap">
         <h2>Philosophy</h2>
         <p>Tlang follows Go’s principles: <strong>simplicity</strong> (one clear way), <strong>explicitness</strong> (readable code), <strong>compile-time safety</strong>, and <strong>fast compilation</strong>.</p>

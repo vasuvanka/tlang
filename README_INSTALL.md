@@ -65,6 +65,10 @@ brew install openssl pkg-config
 - Or use vcpkg: `vcpkg install openssl:x64-windows`
 - Install a C compiler: MinGW-w64 or Visual Studio Build Tools
 
+The install script uses pre-bundled MinGW from `deps/windows/mingw/` if present (copy from `C:\MinGW`; see [docs/MINGW_BUNDLE_COPY.md](docs/MINGW_BUNDLE_COPY.md)). Otherwise it requires system GCC in PATH. For custom MinGW locations, set `TLANG_MINGW_PATH` before running the bundle script:
+  - **PowerShell:** `$env:TLANG_MINGW_PATH = "D:\tools\mingw"`
+  - **Git Bash:** `export TLANG_MINGW_PATH=/d/tools/mingw`
+
 ## Linux/Unix Installation
 
 ### One-line install (curl, no clone)

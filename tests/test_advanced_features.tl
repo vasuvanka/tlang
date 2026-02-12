@@ -1,5 +1,5 @@
 // Comprehensive test suite for advanced features
-// Tests: JSON serialization, Interfaces, Packages, Memory management
+// Tests: JSON serialization, Struct methods, Packages, Memory management
 
 @fmt = #dhimpu("std/fmt");
 @testing = #dhimpu("std/testing");
@@ -65,13 +65,8 @@ nirmanam User {
 }
 
 // ============================================
-// Test 4: Interfaces
+// Test 4: Struct Methods
 // ============================================
-interface Shape {
-    area() float;
-    perimeter() float;
-}
-
 nirmanam Rectangle {
     width float;
     height float;

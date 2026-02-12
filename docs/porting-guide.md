@@ -14,11 +14,39 @@ cargo build --bin tlang-port
 ## Usage
 
 ```bash
-tlang-port [--from go|rust] <input_file> [output_file]
+tlang-port [--from go|rust] <input_file | dir | url | pkg.go.dev url> [output]
 tlang-port [--from go|rust] <input_directory> [output_directory]
 ```
 
-### Convert Single File
+Input can be a **local path** (file or directory), a **URL** (HTTP/HTTPS or GitHub), or a **pkg.go.dev / Go package path** (fetches the module from the Go proxy and ports the package into a folder).
+
+### pkg.go.dev / Go module (fetch and port package into folder)
+
+For a Go package URL or import path, the tool fetches the module from `proxy.golang.org`, extracts the requested package, and converts all `.go` files into the given output directory (default: package name).
+
+```bash
+# Port the mongo package into a local "mongo" folder
+tlang-port https://pkg.go.dev/go.mongodb.org/mongo-driver/v2/mongo mongo
+
+# Same using bare import path (no output = folder named "mongo")
+tlang-port go.mongodb.org/mongo-driver/v2/mongo
+```
+
+The tool resolves the latest module version from the proxy, downloads the module zip, and converts only the requested subpath (e.g. `mongo` and its subpackages like `mongo/options`).
+
+### URL input (single file)
+
+```bash
+# GitHub blob URL (auto-converted to raw content)
+tlang-port https://github.com/user/repo/blob/main/cmd/main.go
+tlang-port https://github.com/user/repo/blob/main/src/lib.rs out.tl
+
+# Raw URL
+tlang-port https://raw.githubusercontent.com/user/repo/main/file.go
+tlang-port https://example.com/code.go my.tl
+```
+
+### Convert Single File (local)
 
 ```bash
 # Go: convert main.go to main.tl

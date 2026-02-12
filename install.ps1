@@ -191,26 +191,24 @@ $LibDir = "$InstallDir\tlang\lib"
 $BundleTempDir = ".\bundled-openssl-temp"
 $GccBundleTempDir = ".\bundled-gcc-temp"
 
-# Bundle GCC (MinGW-w64) - Critical for Windows
+# Bundle GCC (MinGW) - Windows only. Uses deps\windows\mingw from repo (no lookup/download).
 Write-Host "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━" -ForegroundColor Cyan
-Write-Host "Step 1/6: Bundling GCC (MinGW-w64) compiler..." -ForegroundColor Cyan
+Write-Host "Step 1/6: Bundling GCC (MinGW) compiler..." -ForegroundColor Cyan
 Write-Host "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━" -ForegroundColor Cyan
 $bundledGCC = $false
-if (Test-Path "scripts\bundle-gcc.ps1") {
-    try {
-        & powershell -ExecutionPolicy Bypass -File "scripts\bundle-gcc.ps1" -BundleDir $GccBundleTempDir
-        if ($LASTEXITCODE -eq 0 -and (Test-Path "$GccBundleTempDir\bin\gcc.exe")) {
-            Write-Host "✓ GCC compiler bundled successfully" -ForegroundColor Green
-            $bundledGCC = $true
-        } else {
-            Write-Host "Warning: GCC bundling failed. Will require system GCC." -ForegroundColor Yellow
-        }
-    } catch {
-        Write-Host "Warning: Could not bundle GCC. Will require system GCC." -ForegroundColor Yellow
-        Write-Host "  Error: $_" -ForegroundColor Yellow
+$depsMingw = "deps\windows\mingw"
+if (Test-Path "$depsMingw\bin\gcc.exe") {
+    Write-Host "  Using prebuilt MinGW from $depsMingw" -ForegroundColor Gray
+    New-Item -ItemType Directory -Force -Path $GccBundleTempDir | Out-Null
+    Copy-Item -Path "$depsMingw\*" -Destination $GccBundleTempDir -Recurse -Force -ErrorAction SilentlyContinue
+    if (Test-Path "$GccBundleTempDir\bin\gcc.exe") {
+        Write-Host "✓ GCC compiler bundled from deps" -ForegroundColor Green
+        $bundledGCC = $true
     }
-} else {
-    Write-Host "Warning: bundle-gcc.ps1 script not found. Skipping GCC bundling." -ForegroundColor Yellow
+}
+if (-not $bundledGCC) {
+    Write-Host "  No deps\windows\mingw found. Copy from C:\MinGW to deps\windows\mingw (see docs\MINGW_BUNDLE_COPY.md)" -ForegroundColor Yellow
+    Write-Host "  Will require system GCC in PATH." -ForegroundColor Yellow
 }
 
 # Bundle OpenSSL
@@ -262,17 +260,8 @@ foreach ($path in $opensslPaths) {
 }
 
 if (-not $opensslFound) {
-    Write-Host "OpenSSL not found. Please install OpenSSL:" -ForegroundColor Yellow
-    Write-Host "  1. Download from: https://slproweb.com/products/Win32OpenSSL.html" -ForegroundColor Yellow
-    Write-Host "  2. Install to default location (C:\OpenSSL-Win64)" -ForegroundColor Yellow
-    Write-Host "  3. Or use vcpkg: vcpkg install openssl:x64-windows" -ForegroundColor Yellow
-    Write-Host ""
-    $response = Read-Host "Continue anyway? (y/n)"
-    if ($response -ne "y" -and $response -ne "Y") {
-        Write-Host "Installation cancelled." -ForegroundColor Yellow
-        exit 1
-    }
-    Write-Host "Continuing without OpenSSL (some features may not work)" -ForegroundColor Yellow
+    Write-Host "OpenSSL not found. Continuing without OpenSSL (some features may not work)" -ForegroundColor Yellow
+    Write-Host "  Install from: https://slproweb.com/products/Win32OpenSSL.html or vcpkg install openssl:x64-windows" -ForegroundColor Gray
     Write-Host ""
 }
 
@@ -287,6 +276,28 @@ Write-Host "Step 4/6: Building Tlang compiler from source..." -ForegroundColor C
 Write-Host "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━" -ForegroundColor Cyan
 Write-Host "This may take a few minutes (downloading Rust dependencies and compiling)..." -ForegroundColor Yellow
 Write-Host ""
+
+# Ensure Rust/Cargo is available (auto-install if missing, no prompts)
+if (-not (Get-Command cargo -ErrorAction SilentlyContinue)) {
+    Write-Host "Rust not found. Installing rustup (non-interactive)..." -ForegroundColor Gray
+    try {
+        $rustupExe = "$env:TEMP\rustup-init.exe"
+        Invoke-WebRequest -Uri "https://win.rustup.rs/x86_64" -OutFile $rustupExe -UseBasicParsing -ErrorAction Stop
+        & $rustupExe -y -q --default-toolchain stable 2>$null
+        $env:Path = "$env:USERPROFILE\.cargo\bin;$env:Path"
+    } catch {
+        Write-Host "Error: Rust required. Install from https://rustup.rs" -ForegroundColor Red
+        exit 1
+    }
+}
+if (-not (Get-Command cargo -ErrorAction SilentlyContinue)) {
+    $env:Path = "$env:USERPROFILE\.cargo\bin;$env:Path"
+}
+if (-not (Get-Command cargo -ErrorAction SilentlyContinue)) {
+    Write-Host "Error: Rust/cargo not found. Add to PATH: `$env:USERPROFILE\.cargo\bin" -ForegroundColor Red
+    exit 1
+}
+
 # Use cargo with verbose output to show progress
 $ProgressPreference = 'Continue'  # Show progress
 cargo build --release
@@ -388,7 +399,7 @@ Write-Host "    ✓ tlang-port installed to $TlangBinDir" -ForegroundColor Green
 Write-Host "  Creating tlang wrapper script..." -ForegroundColor Gray
 $wrapperScript = @'
 # Tlang wrapper script for Windows
-# Usage: tlang <command> [options]
+# Usage: tlang [command] [options]
 
 param(
     [Parameter(Position=0)]
@@ -399,19 +410,22 @@ param(
 )
 
 if (-not $Command) {
-    Write-Host "Usage: tlang <command> [options]" -ForegroundColor Yellow
+    Write-Host "Usage: tlang [command] [options]" -ForegroundColor Yellow
     Write-Host ""
     Write-Host "Commands:"
-    Write-Host "  compile <file.tl> [output.c]  - Compile Tlang file to C"
-    Write-Host "  run [file.tl]                 - Compile and run Tlang file (auto-detects adhi.tl/main.tl if not specified)"
-    Write-Host "  test <file.tl>                - Run tests in Tlang file"
+    Write-Host "  compile [file.tl] [output]     - Compile Tlang file to executable binary"
+    Write-Host "  run [file.tl] [args]          - Compile and run Tlang file (auto-detects adhi.tl/main.tl if not specified)"
+    Write-Host "  test [file.tl]                - Run tests in Tlang file"
     Write-Host "  build [dir]                   - Build project (compile once, run anywhere)"
     Write-Host "  init [app_name] [dir]         - Initialize new project with config.toml"
     Write-Host "  clean [dir]                   - Clean build artifacts"
-    Write-Host "  add <package>@<version> [dir] - Add a package dependency"
-    Write-Host "  remove <package> [dir]        - Remove a package dependency"
-    Write-Host "  upgrade <package|.|*> [dir]   - Upgrade package(s) to latest version"
+    Write-Host "  add [package]@[version] [dir]  - Add a package dependency"
+    Write-Host "  get [git|url] [dir]           - Fetch package from Git or URL and add to project"
+    Write-Host "  remove [package] [dir]        - Remove a package dependency"
+    Write-Host "  upgrade [package|.|*] [dir]   - Upgrade package(s) to latest version"
+    Write-Host "  port [url|package|file] [dest]- Convert Go/Rust to Tlang"
     Write-Host "  version                       - Show installed version"
+    Write-Host "  help [command]                - Show help (optionally for a command)"
     Write-Host ""
     Write-Host "Flags:"
     Write-Host "  --version, -v                - Show version"
@@ -932,7 +946,7 @@ switch ($Command) {
         # Add package - package@version [directory]
         if ($Arguments.Count -eq 0) {
             Write-Host "Error: Package name required" -ForegroundColor Red
-            Write-Host "Usage: tlang add <package>@<version> [directory]" -ForegroundColor Yellow
+            Write-Host "Usage: tlang add [package]@[version] [directory]" -ForegroundColor Yellow
             exit 1
         }
         $packageSpec = $Arguments[0]
@@ -948,11 +962,32 @@ switch ($Command) {
             Pop-Location
         }
     }
+    "get" {
+        # Fetch package from Git or URL and add to project - url [directory]
+        if ($Arguments.Count -eq 0) {
+            Write-Host "Error: URL required" -ForegroundColor Red
+            Write-Host "Usage: tlang get [git|url] [directory]" -ForegroundColor Yellow
+            Write-Host "  Example: tlang get https://github.com/user/repo" -ForegroundColor Gray
+            exit 1
+        }
+        $packageUrl = $Arguments[0]
+        $projectDir = if ($Arguments.Count -gt 1) { $Arguments[1] } else { "." }
+        if (-not (Test-Path $projectDir -PathType Container)) {
+            Write-Host "Error: Directory not found: $projectDir" -ForegroundColor Red
+            exit 1
+        }
+        Push-Location $projectDir
+        try {
+            & $tlangBuild add $packageUrl
+        } finally {
+            Pop-Location
+        }
+    }
     "remove" {
         # Remove package - package [directory]
         if ($Arguments.Count -eq 0) {
             Write-Host "Error: Package name required" -ForegroundColor Red
-            Write-Host "Usage: tlang remove <package> [directory]" -ForegroundColor Yellow
+            Write-Host "Usage: tlang remove [package] [directory]" -ForegroundColor Yellow
             exit 1
         }
         $packageName = $Arguments[0]
@@ -972,7 +1007,7 @@ switch ($Command) {
         # Upgrade package - package|.|* [directory]
         if ($Arguments.Count -eq 0) {
             Write-Host "Error: Package name required (use '.' or '*' for all packages)" -ForegroundColor Red
-            Write-Host "Usage: tlang upgrade <package|.|*> [directory]" -ForegroundColor Yellow
+            Write-Host "Usage: tlang upgrade [package|.|*] [directory]" -ForegroundColor Yellow
             exit 1
         }
         $packageSpec = $Arguments[0]
@@ -1142,16 +1177,18 @@ Write-Host "All executables are in: $TlangBinDir" -ForegroundColor Cyan
 Write-Host ""
 Write-Host ""
 Write-Host "Usage:" -ForegroundColor Cyan
-Write-Host "  tlang compile <file.tl>     - Compile Tlang file to executable (like 'go build')"
+Write-Host "  tlang compile [file.tl]     - Compile Tlang file to executable (like 'go build')"
 Write-Host "  tlang run [file.tl] [args]   - Compile and run in one step (like 'go run')"
 Write-Host "                                  Auto-detects entry file if not specified"
-Write-Host "  tlang test <file.tl>        - Run tests"
+Write-Host "  tlang test [file.tl]        - Run tests"
 Write-Host "  tlang build [dir]           - Build project"
 Write-Host "  tlang init [app_name] [dir] - Initialize project"
 Write-Host "  tlang clean [dir]            - Clean build artifacts"
 Write-Host "  tlang add <pkg>@<ver> [dir] - Add package dependency"
-Write-Host "  tlang remove <pkg> [dir]    - Remove package dependency"
-Write-Host "  tlang upgrade <pkg|.|*> [dir] - Upgrade package(s)"
-Write-Host "  tlang version               - Show installed version"
-Write-Host "  tlang port <go_file>         - Convert Go file to Tlang"
+Write-Host "  tlang get [url] [dir]      - Fetch package from Git/URL and add to project"
+Write-Host "  tlang remove [pkg] [dir]   - Remove package dependency"
+Write-Host "  tlang upgrade [pkg|.|*] [dir] - Upgrade package(s)"
+Write-Host "  tlang version              - Show installed version"
+Write-Host "  tlang port [url|file] [dest]- Convert Go/Rust to Tlang"
+Write-Host "  tlang help [command]       - Show help"
 Write-Host ""

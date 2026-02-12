@@ -143,6 +143,97 @@ One or more producers send on a channel; one or more consumers receive. Bounded 
 
 - “Wait on multiple channels; proceed on the first ready.” Very useful for servers and timeouts. Requires a `select` primitive in the runtime (e.g. poll multiple queues/events). Can be Phase B or a follow-up.
 
+### 3.7 Cancellation and Timeouts (Without Go-Style Context)
+
+Go’s `context.Context` does three things: **cancellation** (propagate “stop”), **deadlines/timeouts**, and **request-scoped values**. Tlang can get the same behavior without a type named “context” in two ways.
+
+#### Option A: Explicit parameters (no context type)
+
+Pass cancellation and timeout explicitly to every function that needs them:
+
+- **Timeout:** Pass a duration (e.g. `timeoutMs int` or `deadline int` as Unix ms). Inside the function, check elapsed time before or after blocking; return an error or sentinel if exceeded.
+- **Cancellation:** Pass a **done channel** (`channel[int]` or `channel[struct{}]`). The caller closes it when the operation should stop. The callee uses **select** (when available) to “receive from done OR from the real result”; if done fires first, return “cancelled.” Without select, the callee can check a shared “cancelled” flag between steps (less responsive but still works).
+- **Request-scoped values (e.g. request ID):** Pass a small **request/operation struct** that holds whatever you need (e.g. `requestID string`, `traceID string`). No global or thread-local state; everything is in the call chain.
+
+Example-style API:
+
+```tl
+// Timeout: pass duration; function checks elapsed time and returns if exceeded
+#Ping(sockfd int, timeoutMs int) int { ... }
+
+// Cancellation: pass a "done" channel; caller closes it to cancel
+#DoWork(done channel[int], sockfd int) int {
+    // When select exists: proceed when either done receives or work completes
+    // Without select: check a "cancelled" flag between blocking steps
+}
+
+// Request-scoped data: pass a struct
+#HandleRequest(req Request, sockfd int) { ... }  // req has ID, deadline, etc.
+```
+
+Libraries (e.g. MongoDB, HTTP client) take `timeoutMs` and/or `done channel[...]` and optionally a `Request` (or similar) struct instead of `context.Context`.
+
+#### Option B: Operation / Request handle (context by another name)
+
+Introduce a single type that carries cancellation, deadline, and optional key–value data—same idea as context, different name (e.g. `Operation` or `Request`):
+
+- **Fields:** `done channel[...]` (or “cancelled” flag), `deadlineMs int`, optional map for values.
+- **Methods:** `Cancel()`, `Done() channel`, `Deadline() (int, int)`, `Value(key) any` (if you need request-scoped data).
+- **Propagation:** Create a “child” operation from a parent (child is cancelled when parent is cancelled or when its own deadline passes). Functions take `op Operation` instead of `ctx context.Context`.
+
+So “without context” can mean: **no type called Context**, but you can still have an **Operation** or **Request** type that does the same job. API stays explicit (every function that can be cancelled or timed out receives that handle).
+
+#### Option C: Full context in Tlang (Go-equivalent)
+
+If Tlang implements a **context** type with the same capabilities as Go’s `context.Context`, then all cancellation, deadlines, and request-scoped values are handled by one standard API. That gives:
+
+- **Single idiom** for libraries (MongoDB, HTTP, RPC, etc.): every call takes `ctx context` (or `ctx Context`).
+- **Composability:** WithCancel, WithDeadline, WithTimeout, WithValue all return a child context; when the parent is done, the child is done; when you call the cancel function, the child (and its descendants) are done.
+- **Same mental model as Go** for developers porting code or writing cross-language services.
+
+**Go context API (reference):**
+
+| Capability | Go | Tlang equivalent (sketch) |
+|------------|-----|---------------------------|
+| Root | `context.Background()` | `#Background() Context` |
+| Placeholder | `context.TODO()` | `#TODO() Context` |
+| Done signal | `ctx.Done() <-chan struct{}` | `#Done(ctx) channel[...]` (closed when cancelled) |
+| Error after done | `ctx.Err() error` | `#Err(ctx) string` or `#Err(ctx) int` (e.g. 0=ok, 1=cancelled, 2=deadline) |
+| Deadline | `ctx.Deadline() (time.Time, bool)` | `#Deadline(ctx) (deadlineMs int, ok int)` |
+| Request-scoped value | `ctx.Value(key) any` | `#Value(ctx, key) any` (or typed if Tlang has generics) |
+| With cancel | `context.WithCancel(parent)` → (ctx, cancel) | `#WithCancel(parent) (Context, #cancel())` |
+| With deadline | `context.WithDeadline(parent, t)` | `#WithDeadline(parent, deadlineMs)` → (Context, cancel) |
+| With timeout | `context.WithTimeout(parent, d)` | `#WithTimeout(parent, timeoutMs)` → (Context, cancel) |
+| With value | `context.WithValue(parent, key, val)` | `#WithValue(parent, key, val)` → Context |
+
+**What Tlang needs to implement this:**
+
+1. **Channels** — Done() returns a channel that is closed when the context is cancelled (or deadline exceeded). So context implementation must create a channel per (cancelable) context and close it on cancel.
+2. **Select (recommended)** — So that callers can “wait on ctx.Done() OR on the real result.” Without select, libraries can still check `Err(ctx)` or “receive from Done() in a separate goroutine” and signal the main path (more cumbersome).
+3. **Time** — For WithDeadline/WithTimeout: either a timer that calls cancel when it fires, or a thread/task that sleeps then cancels. Requires a way to get current time (ms since epoch or monotonic) and to schedule “call cancel after N ms.”
+4. **Optional: generics or any** — Value(key) in Go uses `any`. Tlang can use a single “any” or a small set of allowed value types; or a generic `Context[V]` if the language supports it. Otherwise `#Value(ctx, key) any` with a fixed key type (e.g. string or int) is enough for request ID, trace ID, etc.
+5. **Struct + functions** — Context can be a struct (or opaque handle) holding: parent reference, done channel, cancel func, deadline, value map. WithCancel/WithDeadline/WithTimeout/WithValue all allocate a new struct, set parent, and optionally start a timer; cancel closes done and propagates to children if desired.
+
+**Example usage (Tlang with full context):**
+
+```tl
+@ctx Context = context.Background();
+@ctx2, cancel = context.WithTimeout(ctx, 5000);   // 5 s timeout
+// pass ctx2 to MongoDB FindOne, HTTP Get, etc.
+...
+cancel();   // or let timeout fire
+```
+
+**Summary:** If Tlang implements context with the same capabilities as Go (Done channel, Err, Deadline, WithCancel/WithDeadline/WithTimeout/WithValue), then it *has* context in the same sense as Go. The only “without context” design choice is whether to *name* it “context” and match the Go API, or to use a different name (Option B). Option C is “yes, implement it; same name and capabilities as Go.”
+
+**Implemented:** Tlang provides **Sandarbham** (సందర్భం, "context" in Telugu) as `std/sandarbham`. Import: `@sandarbham = #dhimpu("std/sandarbham");`. It implements Background, TODO, Done, Err, Deadline_ms/Deadline_ok, WithCancel, Cancel, WithDeadline, WithTimeout, WithValue, and Value. See `libs/std/sandarbham/README.md`.
+
+#### Recommendation
+
+- **Short term:** Use **explicit parameters** (`timeoutMs`, `done` channel, and optionally a request struct). No new type; easy to implement and understand; fits the current Tlang stdlib (e.g. `net` with timeouts).
+- **If you want Go parity:** Implement **full context** (Option C): a `context` module with Background, TODO, Done, Err, Deadline, Value, WithCancel, WithDeadline, WithTimeout, WithValue. Requires channels and a way to do time-based cancellation (timer or timeout thread). Then all libraries take `ctx Context` as the first argument, same as Go.
+- **Alternative:** Option B (Operation/Request by another name) gives the same power without the name “context”; Option C standardizes on the Go name and API for familiarity and easier porting.
+
 ---
 
 ## 4. Safety and Borrow Checker
@@ -168,6 +259,7 @@ One or more producers send on a channel; one or more consumers receive. Bounded 
 | **Model (first)** | 1:1 OS threads + channels (CSP) |
 | **Later (optional)** | M:N lightweight tasks, same channel API |
 | **Primitives** | Channels (unbuffered + buffered), spawn (tlang), close, WaitGroup (Add/Done/Wait) |
+| **Context (optional)** | Full Go-style context: Background, Done, Err, Deadline, Value, WithCancel/WithDeadline/WithTimeout/WithValue; requires channels + time |
 | **Patterns** | Producer–consumer, worker pool, pipeline, request–response, fan-out/fan-in |
 | **Safety** | Ownership/move across channels; no shared mutable across threads by default |
 | **C codegen** | pthreads + small channel struct (queue + mutex + cond) |

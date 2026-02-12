@@ -79,6 +79,7 @@ impl PackageResolver {
         "regexp", "rand", "log", "testing", "args", "flag", "bytes", "sort",
         "json", "unicode", "csv", "xml", "url", "neturl", "bufio", "benchmark",
         "doc", "reflect", "crypto", "hex", "base64", "http", "errors", "net", "protobuf",
+        "sandarbham",
     ];
 
     /// Check if import is a built-in standard library. Use `std/<name>` in source (e.g. `#dhimpu("std/fmt")`).

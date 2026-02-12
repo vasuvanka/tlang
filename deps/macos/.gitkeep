@@ -1,0 +1,3 @@
+# macOS dependencies (optional)
+# Use system: xcode-select --install, brew install openssl
+# Or add pre-bundled libs here if needed later.

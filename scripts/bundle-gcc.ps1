@@ -25,15 +25,24 @@ New-Item -ItemType Directory -Force -Path $libDir | Out-Null
 New-Item -ItemType Directory -Force -Path $includeDir | Out-Null
 New-Item -ItemType Directory -Force -Path $libexecDir | Out-Null
 
-# Check for MinGW-w64 in common locations
+# Check for MinGW/MinGW-w64 in common locations
+# C:\MinGW\bin contains gcc.exe, g++.exe, etc.
 $mingwPaths = @(
+    "C:\MinGW",
+    "C:\mingw",
     "C:\mingw64",
     "C:\msys64\mingw64",
     "C:\Program Files\mingw-w64",
+    "C:\Program Files\MinGW",
     "$env:ProgramFiles\mingw-w64",
+    "$env:ProgramFiles\MinGW",
     "$env:LOCALAPPDATA\Programs\mingw-w64",
     "C:\tools\mingw64"
 )
+# Optional: TLANG_MINGW_PATH env var overrides search (e.g. $env:TLANG_MINGW_PATH = "D:\tools\mingw")
+if ($env:TLANG_MINGW_PATH -and (Test-Path "$env:TLANG_MINGW_PATH\bin\gcc.exe")) {
+    $mingwPaths = @($env:TLANG_MINGW_PATH) + $mingwPaths
+}
 
 # Also check if gcc is in PATH and find its location
 $gccInPath = Get-Command gcc -ErrorAction SilentlyContinue

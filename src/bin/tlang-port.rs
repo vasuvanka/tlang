@@ -1,8 +1,10 @@
 // tlang-port - Porting tool to convert Go or Rust to Tlang
-// Converts Go (.go) or Rust (.rs) source code to Tlang syntax
+// Converts Go (.go) or Rust (.rs) source code to Tlang syntax.
+// Input: local file, directory, URL (GitHub blob/raw), or pkg.go.dev / Go module URL (fetches module and ports into folder).
 
 use std::env;
 use std::fs;
+use std::io::Cursor;
 use std::path::{Path, PathBuf};
 use std::collections::HashMap;
 use std::process;
@@ -22,6 +24,246 @@ fn detect_lang(path: &Path) -> Option<SourceLang> {
             "rs" => Some(SourceLang::Rust),
             _ => None,
         })
+}
+
+/// Returns true if input looks like a URL (http(s) or github.com/...).
+fn is_url(s: &str) -> bool {
+    let t = s.trim();
+    t.starts_with("http://") || t.starts_with("https://")
+        || t.starts_with("github.com/")
+        || (t.contains("github.com") && !t.starts_with('/'))
+}
+
+/// Normalize GitHub web URL to raw content URL.
+/// e.g. https://github.com/owner/repo/blob/main/path/file.go -> https://raw.githubusercontent.com/owner/repo/main/path/file.go
+fn normalize_github_url(s: &str) -> String {
+    let t = s.trim();
+    // Already raw or non-GitHub
+    if t.contains("raw.githubusercontent.com") {
+        return t.to_string();
+    }
+    if !t.contains("github.com") {
+        return t.to_string();
+    }
+    // Ensure scheme so we have https://github.com/...
+    let with_scheme = if t.starts_with("http://") || t.starts_with("https://") {
+        t.to_string()
+    } else {
+        format!("https://{}", t)
+    };
+    // blob URL: .../blob/<branch>/path -> raw.../owner/repo/<branch>/path
+    if with_scheme.contains("/blob/") {
+        let re = Regex::new(r"(?i)github\.com/([^/]+)/([^/]+)/blob/([^/]+)/(.*)").unwrap();
+        if let Some(caps) = re.captures(&with_scheme) {
+            let owner = &caps[1];
+            let repo = &caps[2];
+            let branch = &caps[3];
+            let path = &caps[4];
+            return format!(
+                "https://raw.githubusercontent.com/{}/{}/{}/{}",
+                owner, repo, branch, path
+            );
+        }
+    }
+    with_scheme
+}
+
+/// Detect language from URL path (e.g. .go or .rs).
+fn detect_lang_from_url(url: &str) -> Option<SourceLang> {
+    if url.ends_with(".go") {
+        return Some(SourceLang::Go);
+    }
+    if url.ends_with(".rs") {
+        return Some(SourceLang::Rust);
+    }
+    if let Some(path) = url.split('?').next() {
+        if path.ends_with(".go") {
+            return Some(SourceLang::Go);
+        }
+        if path.ends_with(".rs") {
+            return Some(SourceLang::Rust);
+        }
+    }
+    None
+}
+
+/// Suggest output filename from URL (e.g. file.go -> file.tl).
+fn output_filename_from_url(url: &str) -> String {
+    let path = url.split('?').next().unwrap_or(url);
+    let file = path.split('/').last().unwrap_or("output");
+    if file.ends_with(".go") {
+        file.replacen(".go", ".tl", 1)
+    } else if file.ends_with(".rs") {
+        file.replacen(".rs", ".tl", 1)
+    } else {
+        format!("{}.tl", file)
+    }
+}
+
+/// Fetch URL body as string (blocking).
+fn fetch_url(url: &str) -> Result<String, Box<dyn std::error::Error>> {
+    let resp = reqwest::blocking::get(url)?;
+    if !resp.status().is_success() {
+        return Err(format!("HTTP {}: {}", resp.status(), url).into());
+    }
+    let body = resp.text()?;
+    Ok(body)
+}
+
+/// Fetch URL body as bytes (blocking).
+fn fetch_url_bytes(url: &str) -> Result<Vec<u8>, Box<dyn std::error::Error>> {
+    let resp = reqwest::blocking::get(url)?;
+    if !resp.status().is_success() {
+        return Err(format!("HTTP {}: {}", resp.status(), url).into());
+    }
+    let body = resp.bytes()?;
+    Ok(body.to_vec())
+}
+
+/// Returns true if input is a pkg.go.dev URL or a Go package path (e.g. go.mongodb.org/.../mongo).
+fn is_go_package_url(s: &str) -> bool {
+    let t = s.trim();
+    if t.starts_with("https://pkg.go.dev/") || t.starts_with("http://pkg.go.dev/") {
+        return true;
+    }
+    // Bare Go import path: go.mongodb.org/mongo-driver/v2/mongo
+    if t.starts_with("go.") || t.contains("go.mongodb.org") || t.contains("golang.org/") {
+        return t.contains('/') && !t.starts_with("http");
+    }
+    false
+}
+
+/// Parse pkg.go.dev URL or Go package path into (module_path, subpath).
+/// e.g. "https://pkg.go.dev/go.mongodb.org/mongo-driver/v2/mongo" -> ("go.mongodb.org/mongo-driver/v2", "mongo")
+fn parse_go_package_url(s: &str) -> Option<(String, String)> {
+    let t = s.trim();
+    let path = if t.starts_with("https://pkg.go.dev/") {
+        t.trim_start_matches("https://pkg.go.dev/")
+    } else if t.starts_with("http://pkg.go.dev/") {
+        t.trim_start_matches("http://pkg.go.dev/")
+    } else if t.starts_with("http") {
+        return None;
+    } else {
+        t
+    };
+    let path = path.split('?').next().unwrap_or(path).trim_end_matches('/');
+    if path.is_empty() {
+        return None;
+    }
+    let parts: Vec<&str> = path.split('/').collect();
+    if parts.is_empty() {
+        return None;
+    }
+    // Find module boundary: last segment that looks like version (v2, v1, v0.0.1) or use last segment as subpath
+    let mut module_end = parts.len();
+    for (i, &p) in parts.iter().enumerate().rev() {
+        if p.starts_with('v') && p.len() > 1 && p[1..].chars().next().map(|c| c.is_ascii_digit()).unwrap_or(false) {
+            module_end = i + 1;
+            break;
+        }
+    }
+    if module_end >= parts.len() {
+        // No version segment: single package, e.g. github.com/foo/bar -> module github.com/foo, subpath bar
+        if parts.len() < 2 {
+            return None;
+        }
+        let module = parts[..parts.len() - 1].join("/");
+        let subpath = parts[parts.len() - 1].to_string();
+        return Some((module, subpath));
+    }
+    let module = parts[..module_end].join("/");
+    let subpath = parts[module_end..].join("/");
+    if subpath.is_empty() {
+        return None;
+    }
+    Some((module, subpath))
+}
+
+/// Fetch latest version from Go module proxy (e.g. v2.5.0).
+fn fetch_go_module_latest_version(module: &str) -> Result<String, Box<dyn std::error::Error>> {
+    let url = format!("https://proxy.golang.org/{}/@v/list", module);
+    let body = fetch_url(&url)?;
+    let versions: Vec<&str> = body.lines().map(str::trim).filter(|s| !s.is_empty()).collect();
+    // Prefer latest by semver: take lines that look like vX.Y.Z and pick max (simple string compare for same major)
+    let mut best: Option<&str> = None;
+    for v in versions {
+        if v.starts_with('v') && v.len() > 1 {
+            if let Some(b) = best {
+                if v > b {
+                    best = Some(v);
+                }
+            } else {
+                best = Some(v);
+            }
+        }
+    }
+    best.map(|s| s.to_string()).ok_or_else(|| "no version found in list".into())
+}
+
+/// Fetch module zip bytes from Go proxy.
+fn fetch_go_module_zip(module: &str, version: &str) -> Result<Vec<u8>, Box<dyn std::error::Error>> {
+    let url = format!("https://proxy.golang.org/{}/@v/{}.zip", module, version);
+    fetch_url_bytes(&url)
+}
+
+/// Port a Go module package (from zip) into output directory. Zip entries are like "module@version/subpath/file.go".
+fn port_go_module_zip_to_dir(
+    zip_bytes: &[u8],
+    module: &str,
+    subpath: &str,
+    out_dir: &Path,
+    go_to_tlang: &dyn Fn(&str) -> String,
+) -> Result<(), Box<dyn std::error::Error>> {
+    let reader = Cursor::new(zip_bytes);
+    let mut archive = zip::ZipArchive::new(reader)?;
+    let prefix = format!("{}@", module);
+    let subpath_norm = subpath.replace('\\', "/");
+    let subpath_prefix = if subpath_norm.is_empty() {
+        String::new()
+    } else {
+        format!("{}/", subpath_norm)
+    };
+    let mut count = 0u32;
+    for i in 0..archive.len() {
+        let mut file = archive.by_index(i)?;
+        let name = file.name().replace('\\', "/");
+        if !name.starts_with(&prefix) {
+            continue;
+        }
+        // After "module@": "v2.5.0/mongo/client.go" -> skip version segment -> "mongo/client.go"
+        let after_prefix = name.strip_prefix(&prefix).unwrap_or(&name);
+        let rel = match after_prefix.find('/') {
+            Some(pos) => &after_prefix[pos + 1..],
+            None => continue,
+        };
+        if !subpath_prefix.is_empty() && !rel.starts_with(&subpath_prefix) {
+            continue;
+        }
+        if !rel.ends_with(".go") {
+            continue;
+        }
+        // Path within the package (strip subpath prefix so output is out_dir/addr.tl not out_dir/mongo/addr.tl)
+        let rel_in_pkg = if subpath_prefix.is_empty() {
+            rel
+        } else {
+            rel.strip_prefix(&subpath_prefix).unwrap_or(rel)
+        };
+        let mut content = String::new();
+        std::io::Read::read_to_string(&mut file, &mut content)?;
+        let converted = go_to_tlang(&content);
+        let tl_name = rel_in_pkg.replacen(".go", ".tl", 1);
+        let out_path = out_dir.join(&tl_name);
+        if let Some(p) = out_path.parent() {
+            fs::create_dir_all(p)?;
+        }
+        fs::write(&out_path, converted)?;
+        println!("Converted: {} -> {}", rel_in_pkg, out_path.display());
+        count += 1;
+    }
+    if count == 0 {
+        return Err(format!("no .go files found under package {}", subpath).into());
+    }
+    Ok(())
 }
 
 fn main() {
@@ -49,21 +291,101 @@ fn main() {
         }
     }
 
-    if rest.len() < 1 {
-        eprintln!("Usage: tlang-port [--from go|rust] <input_file> [output_file]");
+    if rest.is_empty() {
+        eprintln!("Usage: tlang-port [--from go|rust] <input_file | dir | url | pkg.go.dev url> [output]");
         eprintln!("       tlang-port [--from go|rust] <input_directory> [output_directory]");
         eprintln!("\nConverts Go (.go) or Rust (.rs) source to Tlang (.tl).");
+        eprintln!("Input: local file/dir, GitHub URL, or pkg.go.dev / Go package path (fetches module, ports into folder).");
         eprintln!("Language is auto-detected by extension unless --from is given.");
         eprintln!("\nExamples:");
         eprintln!("  tlang-port main.go main.tl");
         eprintln!("  tlang-port main.rs main.tl");
+        eprintln!("  tlang-port https://github.com/user/repo/blob/main/cmd/main.go");
+        eprintln!("  tlang-port https://pkg.go.dev/go.mongodb.org/mongo-driver/v2/mongo mongo");
         eprintln!("  tlang-port --from rust ./src ./tlang_out");
-        eprintln!("  tlang-port ./go-pkg ./tlang-pkg");
         process::exit(1);
     }
 
-    let input = &rest[0];
-    let output = rest.get(1).map(|s| s.as_str());
+    let input = rest[0].trim();
+    let output = rest.get(1).map(|s| s.as_str().trim());
+
+    // ----- Go package / pkg.go.dev: fetch module zip and port into folder -----
+    if is_go_package_url(input) {
+        let (module, subpath) = match parse_go_package_url(input) {
+            Some(p) => p,
+            None => {
+                eprintln!("Error: Could not parse Go package URL or path: {}", input);
+                process::exit(1);
+            }
+        };
+        let version = match fetch_go_module_latest_version(&module) {
+            Ok(v) => v,
+            Err(e) => {
+                eprintln!("Error fetching module version: {}", e);
+                process::exit(1);
+            }
+        };
+        println!("Using module {} version {}", module, version);
+        let zip_bytes = match fetch_go_module_zip(&module, &version) {
+            Ok(b) => b,
+            Err(e) => {
+                eprintln!("Error fetching module zip: {}", e);
+                process::exit(1);
+            }
+        };
+        let out_dir = output
+            .map(PathBuf::from)
+            .unwrap_or_else(|| PathBuf::from(subpath.split('/').last().unwrap_or("out")));
+        if let Err(e) = port_go_module_zip_to_dir(
+            &zip_bytes,
+            &module,
+            &subpath,
+            &out_dir,
+            &convert_go_to_tlang,
+        ) {
+            eprintln!("Error porting module: {}", e);
+            process::exit(1);
+        }
+        println!("Ported package {} into {}", subpath, out_dir.display());
+        return;
+    }
+
+    // ----- URL path: fetch and convert to memory, then write -----
+    if is_url(input) {
+        let url = normalize_github_url(input);
+        let content = match fetch_url(&url) {
+            Ok(c) => c,
+            Err(e) => {
+                eprintln!("Error fetching URL: {}", e);
+                process::exit(1);
+            }
+        };
+        let lang = if let Some(l) = from_arg {
+            l
+        } else {
+            match detect_lang_from_url(&url) {
+                Some(l) => l,
+                None => {
+                    eprintln!("Error: Could not detect language from URL. Use --from go or --from rust.");
+                    process::exit(1);
+                }
+            }
+        };
+        let converted = match lang {
+            SourceLang::Go => convert_go_to_tlang(&content),
+            SourceLang::Rust => convert_rust_to_tlang(&content),
+        };
+        let out_path = output
+            .map(PathBuf::from)
+            .unwrap_or_else(|| PathBuf::from(output_filename_from_url(&url)));
+        if let Err(e) = fs::write(&out_path, converted) {
+            eprintln!("Error writing output: {}", e);
+            process::exit(1);
+        }
+        println!("Converted {} to {}", url, out_path.display());
+        return;
+    }
+
     let input_path = Path::new(input);
 
     let lang = if let Some(l) = from_arg {

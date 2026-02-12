@@ -39,14 +39,23 @@ mkdir -p "$BUNDLE_DIR/lib"
 mkdir -p "$BUNDLE_DIR/include"
 
 if [ "$IS_WINDOWS" -eq 1 ]; then
-    # Windows: Check for MinGW-w64 in common locations
+    # Windows: Check for MinGW/MinGW-w64 in common locations
+    # C:\MinGW\bin → /c/MinGW (Git Bash), C:\mingw64, MSYS2, etc.
     MINGW_PATHS=(
+        "/c/MinGW"
+        "/c/mingw"
         "/c/mingw64"
         "/c/msys64/mingw64"
         "/c/Program Files/mingw-w64"
         "/c/Program Files (x86)/mingw-w64"
+        "/c/Program Files/MinGW"
+        "/c/Program Files (x86)/MinGW"
         "/usr/local/mingw64"
     )
+    # Optional: TLANG_MINGW_PATH env var overrides search (e.g. export TLANG_MINGW_PATH=/d/tools/mingw)
+    if [ -n "$TLANG_MINGW_PATH" ] && [ -f "$TLANG_MINGW_PATH/bin/gcc.exe" ]; then
+        MINGW_PATHS=("$TLANG_MINGW_PATH" "${MINGW_PATHS[@]}")
+    fi
     
     # Also check if gcc is in PATH
     if command -v gcc &> /dev/null; then
@@ -262,21 +271,20 @@ if [ "$IS_WINDOWS" -eq 1 ]; then
         fi
     done
     
-    # Copy required DLLs
+    # Copy required DLLs (cp with glob is faster than find -exec cp per-file)
     echo "Copying required DLLs..."
     if [ -d "$BIN_SOURCE" ]; then
-        find "$BIN_SOURCE" -maxdepth 1 -name "*.dll" -exec cp {} "$BUNDLE_DIR/bin/" \; 2>/dev/null || true
+        cp "$BIN_SOURCE"/*.dll "$BUNDLE_DIR/bin/" 2>/dev/null || true
         DLL_COUNT=$(find "$BUNDLE_DIR/bin" -maxdepth 1 -name "*.dll" 2>/dev/null | wc -l)
         echo "  - $DLL_COUNT DLLs copied"
     fi
     
-    # Copy essential libraries
+    # Copy essential libraries (batch cp with globs; faster than find -exec cp per-file)
     echo "Copying essential libraries..."
     LIB_SOURCE="$MINGW_PATH/lib"
     if [ -d "$LIB_SOURCE" ]; then
-        # Copy libgcc, libstdc++, and other essential libs
-        for lib in libgcc*.a libstdc++*.a libgcc_s*.dll libstdc++*.dll libwinpthread*.dll libwinpthread*.a; do
-            find "$LIB_SOURCE" -maxdepth 1 -name "$lib" -exec cp {} "$BUNDLE_DIR/lib/" \; 2>/dev/null || true
+        for pattern in libgcc*.a libstdc++*.a libgcc_s*.dll libstdc++*.dll libwinpthread*.dll libwinpthread*.a; do
+            cp "$LIB_SOURCE"/$pattern "$BUNDLE_DIR/lib/" 2>/dev/null || true
         done
         LIB_COUNT=$(find "$BUNDLE_DIR/lib" -maxdepth 1 -type f 2>/dev/null | wc -l)
         echo "  - $LIB_COUNT libraries copied"
@@ -287,13 +295,14 @@ if [ "$IS_WINDOWS" -eq 1 ]; then
     LIBEXEC_SOURCE="$MINGW_PATH/libexec"
     if [ -d "$LIBEXEC_SOURCE" ]; then
         mkdir -p "$BUNDLE_DIR/libexec"
-        # Copy entire libexec/gcc directory structure
-        if [ -d "$LIBEXEC_SOURCE/gcc" ]; then
-            cp -r "$LIBEXEC_SOURCE/gcc" "$BUNDLE_DIR/libexec/" 2>/dev/null || true
-            echo "  - GCC internal tools (cc1.exe, etc.) copied"
+        # Copy entire libexec directory (cp -r is fast; avoid find -exec cp per-file)
+        if command -v rsync &>/dev/null; then
+            rsync -a --quiet "$LIBEXEC_SOURCE/" "$BUNDLE_DIR/libexec/" 2>/dev/null || \
+            cp -r "$LIBEXEC_SOURCE/"* "$BUNDLE_DIR/libexec/" 2>/dev/null || true
+        else
+            cp -r "$LIBEXEC_SOURCE/"* "$BUNDLE_DIR/libexec/" 2>/dev/null || true
         fi
-        # Also copy any other libexec contents
-        find "$LIBEXEC_SOURCE" -type f -exec cp --parents {} "$BUNDLE_DIR/" \; 2>/dev/null || true
+        echo "  - GCC internal tools (cc1.exe, etc.) copied"
     else
         echo "  ⚠ Warning: libexec directory not found. GCC may not work correctly."
         echo "  Trying to find cc1.exe in bin directory..."
@@ -308,27 +317,14 @@ if [ "$IS_WINDOWS" -eq 1 ]; then
     echo "Copying C standard library headers..."
     INCLUDE_SOURCE="$MINGW_PATH/include"
     if [ -d "$INCLUDE_SOURCE" ]; then
-        # Ensure target directory exists
         mkdir -p "$BUNDLE_DIR/include"
-        
-        # Copy entire include directory structure (all headers needed)
-        # This includes stdio.h, stdlib.h, string.h, stdint.h, stddef.h, winsock2.h, etc.
-        # Use multiple methods to ensure all files are copied correctly
-        if command -v rsync &> /dev/null; then
-            rsync -a "$INCLUDE_SOURCE/" "$BUNDLE_DIR/include/" 2>/dev/null || true
-        fi
-        # Always use cp -r as well to ensure everything is copied
-        # Use shopt to handle glob patterns correctly on Windows
-        if [[ "$(uname -s)" =~ ^(MINGW|MSYS|CYGWIN) ]]; then
-            # Windows: use find to copy files individually to avoid path issues
-            find "$INCLUDE_SOURCE" -type f -exec cp --parents {} "$BUNDLE_DIR/" \; 2>/dev/null || true
-            # Also try direct copy
-            cp -r "$INCLUDE_SOURCE"/* "$BUNDLE_DIR/include/" 2>/dev/null || true
+        # Copy entire include directory (rsync or cp -r; avoid slow find -exec cp per-file)
+        if command -v rsync &>/dev/null; then
+            rsync -a --quiet "$INCLUDE_SOURCE/" "$BUNDLE_DIR/include/" 2>/dev/null || \
+            cp -r "$INCLUDE_SOURCE/"* "$BUNDLE_DIR/include/" 2>/dev/null || true
         else
-            # Unix: standard copy
-            cp -r "$INCLUDE_SOURCE"/* "$BUNDLE_DIR/include/" 2>/dev/null || true
+            cp -r "$INCLUDE_SOURCE/"* "$BUNDLE_DIR/include/" 2>/dev/null || true
         fi
-        
         HEADER_COUNT=$(find "$BUNDLE_DIR/include" -type f 2>/dev/null | wc -l)
         echo "  - $HEADER_COUNT headers copied (full C standard library including Windows headers)"
         
@@ -371,23 +367,13 @@ if [ "$IS_WINDOWS" -eq 1 ]; then
             ARCH_NAME=$(basename "$arch_dir")
             if [ -d "$arch_dir/include" ]; then
                 mkdir -p "$BUNDLE_DIR/$ARCH_NAME/include"
-                # Copy entire include directory structure (all files and subdirectories)
-                # This includes mm_malloc.h and other architecture-specific headers
-                # Use multiple methods to ensure all files are copied
-                if command -v rsync &> /dev/null; then
-                    rsync -a "$arch_dir/include/" "$BUNDLE_DIR/$ARCH_NAME/include/" 2>/dev/null || true
-                fi
-                # Also use cp -r as backup to ensure everything is copied
-                if [[ "$(uname -s)" =~ ^(MINGW|MSYS|CYGWIN) ]]; then
-                    # Windows: use find to copy files individually to handle paths correctly
-                    find "$arch_dir/include" -type f -exec sh -c 'mkdir -p "$(dirname "$2")" && cp "$1" "$2"' _ {} "$BUNDLE_DIR/$ARCH_NAME/{}" \; 2>/dev/null || true
-                    # Also try direct copy as fallback
-                    cp -r "$arch_dir/include"/* "$BUNDLE_DIR/$ARCH_NAME/include/" 2>/dev/null || true
+                # Copy entire include directory (rsync or cp -r; avoid slow find -exec cp per-file)
+                if command -v rsync &>/dev/null; then
+                    rsync -a --quiet "$arch_dir/include/" "$BUNDLE_DIR/$ARCH_NAME/include/" 2>/dev/null || \
+                    cp -r "$arch_dir/include/"* "$BUNDLE_DIR/$ARCH_NAME/include/" 2>/dev/null || true
                 else
-                    # Unix: standard copy
-                    cp -r "$arch_dir/include"/* "$BUNDLE_DIR/$ARCH_NAME/include/" 2>/dev/null || true
+                    cp -r "$arch_dir/include/"* "$BUNDLE_DIR/$ARCH_NAME/include/" 2>/dev/null || true
                 fi
-                
                 ARCH_HEADER_COUNT=$(find "$BUNDLE_DIR/$ARCH_NAME/include" -type f 2>/dev/null | wc -l)
                 echo "  - $ARCH_HEADER_COUNT headers copied from $ARCH_NAME/include"
                 

@@ -30,6 +30,7 @@ TESTS=(
     "test_data_structures.tl"
     "test_functions_errors.tl"
     "test_advanced_features.tl"
+    "test_error_propagation.tl"
 )
 
 PASSED=0

@@ -1,0 +1,237 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>CLI Reference — Tlang</title>
+  <link rel="stylesheet" href="styles.css">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+</head>
+<body>
+  <header class="site-header">
+    <div class="wrap">
+      <a href="index.html" class="logo"><img src="tlang-logo.png" alt="Tlang (అ)" class="logo-img">Tlang</a>
+      <nav>
+        <a href="why-tlang.html">Why Tlang</a>
+        <a href="index.html#install">Install</a>
+        <a href="cli.html">CLI</a>
+        <a href="playground.html">Playground</a>
+        <a href="docs.html">Docs</a>
+        <span class="lang-switch"><a class="lang-en" href="cli.html">EN</a><span class="lang-sep">|</span><a class="lang-te" href="cli.html?lang=te">తెలుగు</a></span>
+        <a href="https://github.com/vasuvanka/tlang" target="_blank" rel="noopener">GitHub</a>
+      </nav>
+    </div>
+  </header>
+
+  <main class="cli-page-main">
+    <div class="wrap wrap--wide">
+      <div class="cli-page-header">
+        <a href="docs.html" class="back-link">← Docs</a>
+        <h1>CLI Reference</h1>
+        <p class="cli-page-lead">The <code>tlang</code> command is the unified entry point for all Tlang tooling. Run <code>tlang help</code> for full usage.</p>
+      </div>
+
+      <article class="prose cli-prose">
+        <h2>Commands</h2>
+
+        <h3>Build &amp; Run</h3>
+        <table class="cli-table">
+          <thead>
+            <tr>
+              <th>Command</th>
+              <th>Description</th>
+              <th>Example</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><code>tlang run [file.tl] [args]</code></td>
+              <td>Compile and run. Auto-detects <code>main.tl</code> or <code>adhi.tl</code> if file omitted.</td>
+              <td><code>tlang run main.tl</code></td>
+            </tr>
+            <tr>
+              <td><code>tlang compile &lt;file.tl&gt; [output]</code></td>
+              <td>Compile Tlang file to executable.</td>
+              <td><code>tlang compile main.tl app</code></td>
+            </tr>
+            <tr>
+              <td><code>tlang build [dir]</code></td>
+              <td>Build project (uses config.toml).</td>
+              <td><code>tlang build</code></td>
+            </tr>
+          </tbody>
+        </table>
+
+        <h3>Porting</h3>
+        <table class="cli-table">
+          <thead>
+            <tr>
+              <th>Command</th>
+              <th>Description</th>
+              <th>Example</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><code>tlang port &lt;url | package | file&gt; [destination]</code></td>
+              <td>Convert Go or Rust to Tlang. Input: file, directory, URL, or pkg.go.dev path.</td>
+              <td><code>tlang port main.go main.tl</code></td>
+            </tr>
+            <tr>
+              <td colspan="3" class="cli-example">Or: <code>tlang port https://pkg.go.dev/go.mongodb.org/mongo-driver mongo</code></td>
+            </tr>
+          </tbody>
+        </table>
+
+        <h3>Dependencies</h3>
+        <table class="cli-table">
+          <thead>
+            <tr>
+              <th>Command</th>
+              <th>Description</th>
+              <th>Example</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><code>tlang get &lt;git | url&gt;</code></td>
+              <td>Fetch package from Git or URL and add to project.</td>
+              <td><code>tlang get https://github.com/user/repo</code></td>
+            </tr>
+            <tr>
+              <td><code>tlang add &lt;package&gt;@&lt;version&gt; [dir]</code></td>
+              <td>Add package dependency.</td>
+              <td><code>tlang add github.com/user/pkg@v1.0.0</code></td>
+            </tr>
+            <tr>
+              <td><code>tlang remove &lt;package&gt; [dir]</code></td>
+              <td>Remove package dependency.</td>
+              <td><code>tlang remove my-pkg</code></td>
+            </tr>
+            <tr>
+              <td><code>tlang upgrade [package | . | *] [dir]</code></td>
+              <td>Upgrade package(s).</td>
+              <td><code>tlang upgrade .</code></td>
+            </tr>
+          </tbody>
+        </table>
+
+        <h3>Project</h3>
+        <table class="cli-table">
+          <thead>
+            <tr>
+              <th>Command</th>
+              <th>Description</th>
+              <th>Example</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><code>tlang init [app_name] [dir]</code></td>
+              <td>Initialize new project.</td>
+              <td><code>tlang init myapp</code></td>
+            </tr>
+            <tr>
+              <td><code>tlang clean [dir]</code></td>
+              <td>Remove build artifacts.</td>
+              <td><code>tlang clean</code></td>
+            </tr>
+            <tr>
+              <td><code>tlang test &lt;file.tl&gt;</code></td>
+              <td>Compile and run test file.</td>
+              <td><code>tlang test tests/foo.tl</code></td>
+            </tr>
+          </tbody>
+        </table>
+
+        <h3>Info</h3>
+        <table class="cli-table">
+          <thead>
+            <tr>
+              <th>Command</th>
+              <th>Description</th>
+              <th>Example</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><code>tlang version</code></td>
+              <td>Show Tlang version.</td>
+              <td><code>tlang version</code></td>
+            </tr>
+            <tr>
+              <td><code>tlang help</code></td>
+              <td>Show help.</td>
+              <td><code>tlang help</code></td>
+            </tr>
+            <tr>
+              <td><code>tlang help &lt;command&gt;</code></td>
+              <td>Show help for a command.</td>
+              <td><code>tlang help port</code></td>
+            </tr>
+          </tbody>
+        </table>
+
+        <h3>Flags</h3>
+        <table class="cli-table">
+          <thead>
+            <tr>
+              <th>Flag</th>
+              <th>Description</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><code>--version</code>, <code>-v</code></td>
+              <td>Show version (same as <code>tlang version</code>).</td>
+            </tr>
+          </tbody>
+        </table>
+
+        <hr>
+
+        <h2>Port Command Details</h2>
+        <pre class="cli-syntax"><code>tlang port [--from go|rust] &lt;input&gt; [output]</code></pre>
+        <ul>
+          <li><strong>Input:</strong> File, directory, URL, or pkg.go.dev package path</li>
+          <li><strong>Output:</strong> File or directory (optional; inferred from input if omitted)</li>
+          <li><strong>--from:</strong> Force source language (go or rust) when auto-detection fails</li>
+        </ul>
+        <p><strong>Examples:</strong></p>
+        <pre class="code-block"><code>tlang port main.go main.tl
+tlang port ./src ./tlang_out
+tlang port https://github.com/user/repo/blob/main/cmd/main.go
+tlang port https://pkg.go.dev/go.mongodb.org/mongo-driver/v2/mongo mongo
+tlang port --from rust ./src ./out</code></pre>
+
+        <h2>Get Command Details</h2>
+        <pre class="cli-syntax"><code>tlang get &lt;url&gt;</code></pre>
+        <p>Fetches a package from a Git URL or HTTP URL and adds it to the current project's <code>config.toml</code>.</p>
+        <p><strong>Examples:</strong></p>
+        <pre class="code-block"><code>tlang get https://github.com/vasuvanka/tlang-libs
+tlang get github.com/user/repo</code></pre>
+
+        <h2>Implementation Notes</h2>
+        <ul>
+          <li><strong>tlang</strong> — main entry point (wrapper script or native binary)</li>
+          <li><strong>tlangc</strong> — compiler (run, compile, build)</li>
+          <li><strong>tlang-build</strong> — build system (build, init, add, remove, upgrade, clean)</li>
+          <li><strong>tlang-port</strong> — porting tool (Go/Rust → Tlang)</li>
+        </ul>
+        <p>The wrapper script delegates to these binaries. A future native <code>tlang</code> binary could subsume them.</p>
+
+        <p class="cli-updated"><em>Last updated: February 2026</em></p>
+      </article>
+    </div>
+  </main>
+
+  <footer class="site-footer">
+    <div class="wrap">
+      <p><a href="index.html">Home</a> · <a href="docs.html">Docs</a> · <a href="cli.html">CLI</a> · <a href="https://github.com/vasuvanka/tlang">GitHub</a></p>
+      <p class="muted">© VasuVanka</p>
+    </div>
+  </footer>
+</body>
+</html>

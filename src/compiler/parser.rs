@@ -764,7 +764,7 @@ impl Parser {
             || matches!(self.current_token, Token::BoolType)
             || matches!(self.current_token, Token::ErrorType)
             || matches!(self.current_token, Token::LeftParen) // Tuple type: (int, error)
-            || matches!(self.current_token, Token::Identifier(_)) { // Struct/interface type
+            || matches!(self.current_token, Token::Identifier(_)) { // Struct type
             Some(self.parse_type(false)?)
         } else {
             None

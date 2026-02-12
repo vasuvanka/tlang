@@ -34,6 +34,7 @@ pub mod reflect;
 pub mod base64;
 pub mod errors;
 pub mod protobuf;
+pub mod sandarbham;
 
 pub fn generate_all_libs() -> String {
     let mut all_code = String::new();
@@ -178,6 +179,10 @@ pub fn generate_all_libs() -> String {
     
     all_code.push_str("// ========== protobuf library ==========\n");
     all_code.push_str(&protobuf::generate_protobuf_lib());
+    all_code.push_str("\n");
+    
+    all_code.push_str("// ========== sandarbham (context) library ==========\n");
+    all_code.push_str(&sandarbham::generate_sandarbham_lib());
     all_code.push_str("\n");
     
     all_code

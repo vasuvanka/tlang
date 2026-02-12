@@ -17,7 +17,7 @@ if %ERRORLEVEL% NEQ 0 (
 )
 
 REM Test files
-set TESTS=test_core_features.tl test_control_flow.tl test_data_structures.tl test_functions_errors.tl test_advanced_features.tl
+set TESTS=test_core_features.tl test_control_flow.tl test_data_structures.tl test_functions_errors.tl test_advanced_features.tl test_error_propagation.tl
 
 set PASSED=0
 set FAILED=0

@@ -2,7 +2,7 @@
 
 ## Overview
 
-The compile command compiles Tlang source code to an executable binary in one step. Use `tlang compile` (if you have the `tlang` wrapper) or `tlangc compile`. A single command performs both steps:
+The compile command compiles Tlang source code to an executable binary in one step. Use `tlang compile` (the recommended entry point for all Tlang commands) or `tlangc compile`. A single command performs both steps:
 1. Compiles Tlang → C (intermediate `.c` file)
 2. Compiles C → Executable binary (invokes gcc/clang/MSVC)
 

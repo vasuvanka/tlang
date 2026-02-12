@@ -203,27 +203,54 @@ if [[ "$(uname -s)" =~ ^(MINGW|MSYS|CYGWIN) ]]; then
     IS_WINDOWS=1
 fi
 
-# Bundle GCC (MinGW-w64) - Critical for Windows
+# Bundle GCC (MinGW) - Windows only. Uses deps/windows/mingw from repo (no lookup/download).
 if [ "$IS_WINDOWS" -eq 1 ]; then
     echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
-    echo "Step 1/6: Bundling GCC (MinGW-w64) compiler..."
+    echo "Step 1/6: Bundling GCC (MinGW) compiler..."
     echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
     BUNDLED_GCC=0
-    if [ -f "scripts/bundle-gcc.sh" ]; then
-        chmod +x scripts/bundle-gcc.sh
-        if ./scripts/bundle-gcc.sh "$GCC_BUNDLE_TEMP_DIR" 2>/dev/null; then
-            # Check if bundling was successful
-            if [ -d "$GCC_BUNDLE_TEMP_DIR/bin" ] && [ -f "$GCC_BUNDLE_TEMP_DIR/bin/gcc.exe" ] || [ -f "$GCC_BUNDLE_TEMP_DIR/bin/gcc" ]; then
-                echo "✓ GCC compiler bundled successfully"
-                BUNDLED_GCC=1
-            else
-                echo "Warning: GCC bundling produced no binaries. Will require system GCC."
-            fi
+    DEPS_MINGW="deps/windows/mingw"
+    if [ -d "$DEPS_MINGW" ] && [ -f "$DEPS_MINGW/bin/gcc.exe" ]; then
+        echo "  Using prebuilt MinGW from $DEPS_MINGW"
+        mkdir -p "$GCC_BUNDLE_TEMP_DIR"
+        if command -v rsync &>/dev/null; then
+            rsync -a --quiet "$DEPS_MINGW/" "$GCC_BUNDLE_TEMP_DIR/" 2>/dev/null || cp -r "$DEPS_MINGW"/* "$GCC_BUNDLE_TEMP_DIR/" 2>/dev/null || true
         else
-            echo "Warning: Could not bundle GCC. Will require system GCC."
+            cp -r "$DEPS_MINGW"/* "$GCC_BUNDLE_TEMP_DIR/" 2>/dev/null || true
         fi
-    else
-        echo "Warning: bundle-gcc.sh script not found. Skipping GCC bundling."
+        if [ -f "$GCC_BUNDLE_TEMP_DIR/bin/gcc.exe" ]; then
+            echo "✓ GCC compiler bundled from deps"
+            BUNDLED_GCC=1
+        fi
+    fi
+    if [ "$BUNDLED_GCC" -eq 0 ]; then
+        # Auto-copy from system MinGW to deps (no prompts)
+        MINGW_PATHS=(
+            "/c/MinGW" "/c/mingw" "/c/mingw64" "/c/msys64/mingw64"
+            "/c/Program Files/mingw-w64" "/c/Program Files/MinGW"
+        )
+        [ -n "$TLANG_MINGW_PATH" ] && [ -f "$TLANG_MINGW_PATH/bin/gcc.exe" ] && MINGW_PATHS=("$TLANG_MINGW_PATH" "${MINGW_PATHS[@]}")
+        MINGW_FOUND=""
+        for p in "${MINGW_PATHS[@]}"; do
+            if [ -f "$p/bin/gcc.exe" ]; then
+                MINGW_FOUND="$p"
+                break
+            fi
+        done
+        if [ -n "$MINGW_FOUND" ]; then
+            echo "  Copying MinGW from $MINGW_FOUND to $DEPS_MINGW ..."
+            if [ -f "scripts/copy-mingw-to-deps.ps1" ]; then
+                powershell -ExecutionPolicy Bypass -File "scripts/copy-mingw-to-deps.ps1" "$MINGW_FOUND" 2>/dev/null || true
+            fi
+            if [ -f "$DEPS_MINGW/bin/gcc.exe" ]; then
+                mkdir -p "$GCC_BUNDLE_TEMP_DIR"
+                cp -r "$DEPS_MINGW"/* "$GCC_BUNDLE_TEMP_DIR/" 2>/dev/null || true
+                [ -f "$GCC_BUNDLE_TEMP_DIR/bin/gcc.exe" ] && BUNDLED_GCC=1 && echo "✓ GCC compiler copied to deps and bundled"
+            fi
+        fi
+    fi
+    if [ "$BUNDLED_GCC" -eq 0 ]; then
+        echo "  No MinGW found. Will require system GCC in PATH."
     fi
     echo ""
 fi
@@ -286,15 +313,7 @@ if ! command -v openssl &> /dev/null && [ -z "$BUNDLED_OPENSSL" ]; then
         echo "  - Arch: sudo pacman -S openssl pkg-config"
         echo "  - macOS: brew install openssl pkg-config"
         echo ""
-        if [ -n "$TLANG_NONINTERACTIVE" ]; then
-            echo "Non-interactive mode: continuing (install may fail without OpenSSL)."
-        else
-            read -p "Continue anyway? (y/n) " -n 1 -r
-            echo
-            if [[ ! $REPLY =~ ^[Yy]$ ]]; then
-                exit 1
-            fi
-        fi
+        echo "Continuing without OpenSSL (some features may not work)."
     fi
 else
     echo "OpenSSL found: $(openssl version)"
@@ -322,6 +341,27 @@ echo "Step 4/6: Building Tlang compiler from source..."
 echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
 echo "This may take a few minutes (downloading Rust dependencies and compiling)..."
 echo ""
+
+# Ensure Rust/Cargo is available (auto-install if missing, no prompts)
+if ! command -v cargo &>/dev/null; then
+    echo "Rust not found. Installing rustup (non-interactive)..."
+    if command -v curl &>/dev/null; then
+        curl -sSf https://sh.rustup.rs | sh -s -- -y -q --default-toolchain stable 2>/dev/null || true
+    elif command -v wget &>/dev/null; then
+        wget -qO- https://sh.rustup.rs | sh -s -- -y -q --default-toolchain stable 2>/dev/null || true
+    else
+        echo "Error: Rust required. Install from https://rustup.rs"
+        exit 1
+    fi
+    if [ -f "$HOME/.cargo/env" ]; then
+        . "$HOME/.cargo/env"
+    fi
+fi
+if ! command -v cargo &>/dev/null; then
+    echo "Error: Rust/cargo not found after install. Add to PATH: export PATH=\"\$HOME/.cargo/bin:\$PATH\""
+    exit 1
+fi
+
 # Build with progress indicators - cargo automatically shows progress for downloads and compilation
 # Build with proper environment for Windows
 echo "Building Tlang compiler (this may take a few minutes)..."
@@ -451,14 +491,23 @@ if [ "$IS_WINDOWS" -eq 1 ] && [ "$BUNDLED_GCC" -eq 1 ] && [ -d "$GCC_BUNDLE_TEMP
     $SUDO mkdir -p "$GCC_LIB_DIR"
     $SUDO mkdir -p "$GCC_INCLUDE_DIR"
     
-    # Copy GCC binaries
-    $SUDO cp -r "$GCC_BUNDLE_TEMP_DIR/bin/"* "$GCC_BIN_DIR/" 2>/dev/null || true
-    if [ -d "$GCC_BUNDLE_TEMP_DIR/lib" ]; then
-        $SUDO cp -r "$GCC_BUNDLE_TEMP_DIR/lib/"* "$GCC_LIB_DIR/" 2>/dev/null || true
-    fi
-    if [ -d "$GCC_BUNDLE_TEMP_DIR/include" ]; then
-        $SUDO cp -r "$GCC_BUNDLE_TEMP_DIR/include/"* "$GCC_INCLUDE_DIR/" 2>/dev/null || true
-        echo "  ✓ GCC headers copied"
+    # Copy GCC binaries, lib, include (use rsync when available for speed)
+    if command -v rsync &>/dev/null; then
+        $SUDO rsync -a --quiet "$GCC_BUNDLE_TEMP_DIR/bin/" "$GCC_BIN_DIR/" 2>/dev/null || $SUDO cp -r "$GCC_BUNDLE_TEMP_DIR/bin/"* "$GCC_BIN_DIR/" 2>/dev/null || true
+        if [ -d "$GCC_BUNDLE_TEMP_DIR/lib" ]; then
+            $SUDO rsync -a --quiet "$GCC_BUNDLE_TEMP_DIR/lib/" "$GCC_LIB_DIR/" 2>/dev/null || $SUDO cp -r "$GCC_BUNDLE_TEMP_DIR/lib/"* "$GCC_LIB_DIR/" 2>/dev/null || true
+        fi
+        if [ -d "$GCC_BUNDLE_TEMP_DIR/include" ]; then
+            $SUDO rsync -a --quiet "$GCC_BUNDLE_TEMP_DIR/include/" "$GCC_INCLUDE_DIR/" 2>/dev/null || $SUDO cp -r "$GCC_BUNDLE_TEMP_DIR/include/"* "$GCC_INCLUDE_DIR/" 2>/dev/null || true
+            echo "  ✓ GCC headers copied"
+        fi
+    else
+        $SUDO cp -r "$GCC_BUNDLE_TEMP_DIR/bin/"* "$GCC_BIN_DIR/" 2>/dev/null || true
+        [ -d "$GCC_BUNDLE_TEMP_DIR/lib" ] && $SUDO cp -r "$GCC_BUNDLE_TEMP_DIR/lib/"* "$GCC_LIB_DIR/" 2>/dev/null || true
+        if [ -d "$GCC_BUNDLE_TEMP_DIR/include" ]; then
+            $SUDO cp -r "$GCC_BUNDLE_TEMP_DIR/include/"* "$GCC_INCLUDE_DIR/" 2>/dev/null || true
+            echo "  ✓ GCC headers copied"
+        fi
     fi
     # Copy architecture-specific include directories if they exist (e.g., x86_64-w64-mingw32/include)
     ARCH_DIRS=$(find "$GCC_BUNDLE_TEMP_DIR" -maxdepth 1 -type d -name "*-w64-mingw32" 2>/dev/null)
@@ -467,12 +516,13 @@ if [ "$IS_WINDOWS" -eq 1 ] && [ "$BUNDLED_GCC" -eq 1 ] && [ -d "$GCC_BUNDLE_TEMP
             ARCH_NAME=$(basename "$arch_dir")
             if [ -d "$arch_dir/include" ]; then
                 $SUDO mkdir -p "$GCC_DIR/$ARCH_NAME/include"
-                # Copy entire include directory structure (all files and subdirectories)
-                # Use multiple methods to ensure all files are copied, including mm_malloc.h
-                $SUDO cp -r "$arch_dir/include/"* "$GCC_DIR/$ARCH_NAME/include/" 2>/dev/null || true
-                # Also use find to copy any files that might have been missed
-                find "$arch_dir/include" -type f -exec $SUDO cp --parents {} "$GCC_DIR/$ARCH_NAME/" \; 2>/dev/null || true
-                
+                # Copy entire include directory (cp -r is fast; avoid find -exec cp per-file)
+                if command -v rsync &>/dev/null; then
+                    $SUDO rsync -a --quiet "$arch_dir/include/" "$GCC_DIR/$ARCH_NAME/include/" 2>/dev/null || \
+                    $SUDO cp -r "$arch_dir/include/"* "$GCC_DIR/$ARCH_NAME/include/" 2>/dev/null || true
+                else
+                    $SUDO cp -r "$arch_dir/include/"* "$GCC_DIR/$ARCH_NAME/include/" 2>/dev/null || true
+                fi
                 echo "  ✓ Architecture-specific headers ($ARCH_NAME) copied"
                 
                 # Verify critical headers were copied
@@ -511,7 +561,11 @@ MM_MALLOC_EOF
     GCC_LIBEXEC_DIR="$GCC_DIR/libexec"
     if [ -d "$GCC_BUNDLE_TEMP_DIR/libexec" ]; then
         $SUDO mkdir -p "$GCC_LIBEXEC_DIR"
-        $SUDO cp -r "$GCC_BUNDLE_TEMP_DIR/libexec/"* "$GCC_LIBEXEC_DIR/" 2>/dev/null || true
+        if command -v rsync &>/dev/null; then
+            $SUDO rsync -a --quiet "$GCC_BUNDLE_TEMP_DIR/libexec/" "$GCC_LIBEXEC_DIR/" 2>/dev/null || $SUDO cp -r "$GCC_BUNDLE_TEMP_DIR/libexec/"* "$GCC_LIBEXEC_DIR/" 2>/dev/null || true
+        else
+            $SUDO cp -r "$GCC_BUNDLE_TEMP_DIR/libexec/"* "$GCC_LIBEXEC_DIR/" 2>/dev/null || true
+        fi
         echo "  ✓ GCC internal tools (libexec) copied"
     fi
     
@@ -705,15 +759,18 @@ if [ $# -eq 0 ]; then
     echo ""
     echo "Commands:"
     echo "  compile <file.tl> [output]     - Compile Tlang file to executable binary"
-    echo "  run [file.tl]                 - Compile and run Tlang file (auto-detects adhi.tl/main.tl if not specified)"
+    echo "  run [file.tl] [args]          - Compile and run Tlang file (auto-detects adhi.tl/main.tl if not specified)"
     echo "  test <file.tl>                - Run tests in Tlang file"
     echo "  build [dir]                   - Build project (compile once, run anywhere)"
     echo "  init [app_name] [dir]         - Initialize new project with config.toml"
     echo "  clean [dir]                   - Clean build artifacts"
-    echo "  add <package>@<version> [dir] - Add a package dependency"
+    echo "  add <package>@<version> [dir]  - Add a package dependency"
+    echo "  get <git|url> [dir]           - Fetch package from Git or URL and add to project"
     echo "  remove <package> [dir]        - Remove a package dependency"
-    echo "  upgrade <package|.|*> [dir]  - Upgrade package(s) to latest version"
+    echo "  upgrade <package|.|*> [dir]   - Upgrade package(s) to latest version"
+    echo "  port <url|package|file> [dest]- Convert Go/Rust to Tlang"
     echo "  version                      - Show installed version"
+    echo "  help [command]                - Show help (optionally for a command)"
     echo ""
     echo "Flags:"
     echo "  --version, -v                - Show version"
@@ -1201,6 +1258,28 @@ case "$COMMAND" in
         fi
         (cd "$PROJECT_DIR" && "$BUILD_BIN" add "$PACKAGE_SPEC")
         ;;
+    get)
+        # Fetch package from Git or URL and add to project - url [directory]
+        if [ $# -eq 0 ]; then
+            echo "Error: URL required"
+            echo "Usage: tlang get <git|url> [directory]"
+            echo "  Example: tlang get https://github.com/user/repo"
+            exit 1
+        fi
+        PACKAGE_URL="$1"
+        shift
+        PROJECT_DIR="${1:-.}"
+        if [ ! -d "$PROJECT_DIR" ]; then
+            echo "Error: Directory not found: $PROJECT_DIR"
+            exit 1
+        fi
+        BUILD_BIN=$(find_binary "tlang-build")
+        if [ -z "$BUILD_BIN" ]; then
+            echo "Error: tlang-build binary not found" >&2
+            exit 1
+        fi
+        (cd "$PROJECT_DIR" && "$BUILD_BIN" add "$PACKAGE_URL")
+        ;;
     remove)
         # Remove package - package [directory]
         if [ $# -eq 0 ]; then
@@ -1242,6 +1321,46 @@ case "$COMMAND" in
             exit 1
         fi
         (cd "$PROJECT_DIR" && "$BUILD_BIN" upgrade "$PACKAGE_SPEC")
+        ;;
+    help)
+        if [ $# -ge 1 ]; then
+            case "$1" in
+                compile) echo "tlang compile <file.tl> [output] - Compile Tlang file to executable binary"; exit 0 ;;
+                run) echo "tlang run [file.tl] [args] - Compile and run (auto-detects adhi.tl/main.tl)" ; exit 0 ;;
+                test) echo "tlang test <file.tl> - Run tests in Tlang file"; exit 0 ;;
+                build) echo "tlang build [dir] - Build project"; exit 0 ;;
+                init) echo "tlang init [app_name] [dir] - Initialize new project"; exit 0 ;;
+                clean) echo "tlang clean [dir] - Clean build artifacts"; exit 0 ;;
+                add) echo "tlang add <package>@<version> [dir] - Add package dependency"; exit 0 ;;
+                get) echo "tlang get <git|url> [dir] - Fetch package from Git/URL and add to project"; exit 0 ;;
+                remove) echo "tlang remove <package> [dir] - Remove package dependency"; exit 0 ;;
+                upgrade) echo "tlang upgrade <package|.|*> [dir] - Upgrade package(s)"; exit 0 ;;
+                port) echo "tlang port <url|package|file> [dest] - Convert Go/Rust to Tlang"; exit 0 ;;
+                version) echo "tlang version - Show installed version"; exit 0 ;;
+                *) echo "Unknown command: $1"; exit 1 ;;
+            esac
+        fi
+        # No args: show full help (handled by initial block above, but we reach here if user ran "tlang help")
+        echo "Usage: tlang <command> [options]"
+        echo ""
+        echo "Commands:"
+        echo "  compile <file.tl> [output]     - Compile Tlang file to executable binary"
+        echo "  run [file.tl] [args]          - Compile and run Tlang file (auto-detects adhi.tl/main.tl if not specified)"
+        echo "  test <file.tl>                - Run tests in Tlang file"
+        echo "  build [dir]                   - Build project (compile once, run anywhere)"
+        echo "  init [app_name] [dir]         - Initialize new project with config.toml"
+        echo "  clean [dir]                   - Clean build artifacts"
+        echo "  add <package>@<version> [dir]  - Add a package dependency"
+        echo "  get <git|url> [dir]           - Fetch package from Git or URL and add to project"
+        echo "  remove <package> [dir]        - Remove a package dependency"
+        echo "  upgrade <package|.|*> [dir]   - Upgrade package(s) to latest version"
+        echo "  port <url|package|file> [dest]- Convert Go/Rust to Tlang"
+        echo "  version                      - Show installed version"
+        echo "  help [command]                - Show help (optionally for a command)"
+        echo ""
+        echo "Flags:"
+        echo "  --version, -v                - Show version"
+        exit 0
         ;;
     version)
         # Show version (handled above, but keep for consistency)
@@ -1403,16 +1522,17 @@ echo "All executables are in: $TLANG_BIN_DIR"
 echo ""
 echo ""
 echo "Usage:"
-echo "  tlang compile <file.tl>     - Compile Tlang file to executable (like 'go build')"
-echo "  tlang port <go_file>         - Convert Go file to Tlang"
-echo "  tlang run [file.tl] [args]   - Compile and run in one step (like 'go run')"
-echo "                                  Auto-detects entry file if not specified"
+echo "  tlang run [file.tl] [args]   - Compile and run (like 'go run'), auto-detects entry file"
+echo "  tlang compile <file.tl> [output] - Compile to executable (like 'go build')"
+echo "  tlang port <url|file> [dest] - Convert Go/Rust to Tlang"
+echo "  tlang get <url> [dir]       - Fetch package from Git/URL and add to project"
 echo "  tlang test <file.tl>        - Run tests"
 echo "  tlang build [dir]           - Build project"
 echo "  tlang init [app_name] [dir] - Initialize project"
-echo "  tlang clean [dir]            - Clean build artifacts"
+echo "  tlang clean [dir]           - Clean build artifacts"
 echo "  tlang add <pkg>@<ver> [dir] - Add package dependency"
 echo "  tlang remove <pkg> [dir]    - Remove package dependency"
 echo "  tlang upgrade <pkg|.|*> [dir] - Upgrade package(s)"
-echo "  tlang version               - Show installed version"
+echo "  tlang version              - Show installed version"
+echo "  tlang help [command]       - Show help"
 echo ""

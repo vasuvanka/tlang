@@ -101,6 +101,9 @@ See [Porting Guide](porting-guide.md) for details.
 - **[Best Practices](best-practices.md)** - Coding conventions and tips
 - **[Porting Guide](porting-guide.md)** - Convert Go packages to Tlang
 
+### CLI & Tools
+- **[CLI Specification](CLI_SPEC.md)** - Full reference for `tlang` commands (run, compile, port, get, build, etc.)
+
 ### Developer Tools
 - **[VS Code / Cursor Extension](vscode-extension.md)** - Install and configure the Tlang extension for VS Code and Cursor
 - **[Installing MinGW](install-mingw.md)** - Install C compiler for binary compilation

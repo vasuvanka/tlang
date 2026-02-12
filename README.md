@@ -41,6 +41,21 @@ For clone-and-install, manual install, and prerequisites by platform, see **[REA
 
 Save as `hello.tl`, then: `tlang run hello.tl` or `tlang compile hello.tl hello && ./hello`.
 
+## CLI
+
+All commands go through `tlang`:
+
+| Command | Example |
+|---------|---------|
+| `tlang run [file.tl] [args]` | `tlang run main.tl` |
+| `tlang compile <file.tl> [output]` | `tlang compile main.tl app` |
+| `tlang port <url/file> [dest]` | `tlang port main.go main.tl` |
+| `tlang get <url> [dir]` | `tlang get https://github.com/user/repo` |
+| `tlang build`, `tlang init`, `tlang clean`, `tlang add`, `tlang remove`, `tlang upgrade` | |
+| `tlang version`, `tlang help` | |
+
+See [docs/CLI_SPEC.md](docs/CLI_SPEC.md) for full reference.
+
 ## Links
 
 - **Docs:** [Getting Started](docs/getting-started.md), [Language Reference](docs/language-reference.md), [Standard Library](docs/standard-library.md)

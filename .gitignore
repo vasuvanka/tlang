@@ -20,3 +20,8 @@ vscode-extensions/tlang*.vsix
 __pycache__/
 _bmad-output/
 _bmad/
+
+# OS-specific deps: copy from C:\MinGW to deps/windows/mingw (see docs/MINGW_BUNDLE_COPY.md)
+# Allow committing prebuilt bundle (override *.exe, *.dll for this folder):
+!deps/windows/mingw/
+!deps/windows/mingw/**

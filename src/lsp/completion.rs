@@ -81,6 +81,19 @@ impl CompletionProvider {
             // time library
             self.create_completion("time.Now", SymbolKind::FUNCTION, "time.Now() -> long"),
             self.create_completion("time.Sleep", SymbolKind::FUNCTION, "time.Sleep(seconds int)"),
+            // sandarbham (context) library
+            self.create_completion("sandarbham.Background", SymbolKind::FUNCTION, "sandarbham.Background() -> context"),
+            self.create_completion("sandarbham.TODO", SymbolKind::FUNCTION, "sandarbham.TODO() -> context"),
+            self.create_completion("sandarbham.Done", SymbolKind::FUNCTION, "sandarbham.Done(ctx) -> channel"),
+            self.create_completion("sandarbham.Err", SymbolKind::FUNCTION, "sandarbham.Err(ctx) -> int (0=ok, 1=cancelled, 2=deadline)"),
+            self.create_completion("sandarbham.Deadline_ms", SymbolKind::FUNCTION, "sandarbham.Deadline_ms(ctx) -> long"),
+            self.create_completion("sandarbham.Deadline_ok", SymbolKind::FUNCTION, "sandarbham.Deadline_ok(ctx) -> int"),
+            self.create_completion("sandarbham.WithCancel", SymbolKind::FUNCTION, "sandarbham.WithCancel(parent) -> context"),
+            self.create_completion("sandarbham.Cancel", SymbolKind::FUNCTION, "sandarbham.Cancel(ctx)"),
+            self.create_completion("sandarbham.WithDeadline", SymbolKind::FUNCTION, "sandarbham.WithDeadline(parent, deadline_ms) -> context"),
+            self.create_completion("sandarbham.WithTimeout", SymbolKind::FUNCTION, "sandarbham.WithTimeout(parent, timeout_ms) -> context"),
+            self.create_completion("sandarbham.WithValue", SymbolKind::FUNCTION, "sandarbham.WithValue(parent, key, value) -> context"),
+            self.create_completion("sandarbham.Value", SymbolKind::FUNCTION, "sandarbham.Value(ctx, key) -> value"),
         ]
     }
     

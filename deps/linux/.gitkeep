@@ -1,0 +1,3 @@
+# Linux dependencies (optional)
+# Use system packages: apt install build-essential libssl-dev
+# Or add pre-bundled libs here if needed later.

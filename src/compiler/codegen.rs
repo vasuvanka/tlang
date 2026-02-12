@@ -1338,7 +1338,7 @@ impl CodeGenerator {
                         if self.current_function_return_type.as_ref().map(|t| matches!(t, crate::ast::Type::Tuple { .. })).unwrap_or(false) {
                             self.write_return_error_tuple("_err_prop_tmp.field1");
                         } else {
-                            self.writeln("return _err_prop_tmp.field1;");
+                            self.writeln("return;");
                         }
                         self.writeln(&format!("{} {} = _err_prop_tmp.field0;", var_type, name));
                         return;

@@ -7,9 +7,10 @@ This guide will help you get started with Tlang, from installation to writing yo
 1. [Installation](#installation)
 2. [Your First Program](#your-first-program)
 3. [Compiling and Running](#compiling-and-running)
-4. [Understanding the Basics](#understanding-the-basics)
-5. [Packages and Dependencies](#packages-and-dependencies)
-6. [Next Steps](#next-steps)
+4. [CLI Reference](#cli-reference)
+5. [Understanding the Basics](#understanding-the-basics)
+6. [Packages and Dependencies](#packages-and-dependencies)
+7. [Next Steps](#next-steps)
 
 ## Installation
 
@@ -159,6 +160,28 @@ tlang test
 ```
 
 **Run vs compile-then-run:** Use `tlang run` for quick development (compile + build + run in one step; no permanent binary by default). Use `tlang compile` when you want a persistent executable or to distribute it. Both commands automatically fetch remote dependencies from `config.toml` if present. The produced binary runs on the same platform where you built it (Linux, Windows, or macOS); see [Compile Command – Supported platforms](compile-command.md#supported-platforms) for details.
+
+## CLI Reference
+
+The `tlang` command is the unified entry point for all Tlang tooling. Key commands:
+
+| Command | Description | Example |
+|---------|-------------|---------|
+| `tlang run [file.tl] [args]` | Compile and run. Auto-detects `main.tl` or `adhi.tl` if file omitted. | `tlang run main.tl` |
+| `tlang compile <file.tl> [output]` | Compile Tlang file to executable. | `tlang compile main.tl app` |
+| `tlang port <url/file> [dest]` | Convert Go or Rust to Tlang. | `tlang port main.go main.tl` |
+| `tlang get <url> [dir]` | Fetch package from Git/URL and add to project. | `tlang get https://github.com/user/repo` |
+| `tlang build [dir]` | Build project (uses config.toml). | `tlang build` |
+| `tlang init [app_name] [dir]` | Initialize new project. | `tlang init myapp` |
+| `tlang clean [dir]` | Remove build artifacts. | `tlang clean` |
+| `tlang add <pkg>@<ver> [dir]` | Add package dependency. | `tlang add github.com/user/pkg@v1.0` |
+| `tlang remove <pkg> [dir]` | Remove package dependency. | `tlang remove my-pkg` |
+| `tlang upgrade <pkg\|.\|*> [dir]` | Upgrade package(s). | `tlang upgrade .` |
+| `tlang test <file.tl>` | Compile and run test file. | `tlang test tests/foo.tl` |
+| `tlang version` | Show Tlang version. | `tlang version` |
+| `tlang help [command]` | Show help. | `tlang help port` |
+
+For full details, examples, and flags, see the **[CLI Specification](CLI_SPEC.md)**.
 
 ## Understanding the Basics
 
