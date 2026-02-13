@@ -29,6 +29,13 @@ Then add the install directory to your PATH if needed (e.g. `~/.local/bin` or `%
 
 For clone-and-install, manual install, and prerequisites by platform, see **[README_INSTALL.md](README_INSTALL.md)**.
 
+### VS Code Extension (single click)
+
+- Website install section: https://vasuvanka.github.io/tlang/#install
+- Install in VS Code: `vscode:extension/vasuvanka.tlang`
+- Marketplace page: https://marketplace.visualstudio.com/items?itemName=vasuvanka.tlang
+- CLI: `code --install-extension vasuvanka.tlang`
+
 ## Quick start
 
 ```tl

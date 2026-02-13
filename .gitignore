@@ -25,3 +25,6 @@ _bmad/
 # Allow committing prebuilt bundle (override *.exe, *.dll for this folder):
 !deps/windows/mingw/
 !deps/windows/mingw/**
+
+# Generated docs artifact from examples/doc_example.tl
+examples/doc_example.md
