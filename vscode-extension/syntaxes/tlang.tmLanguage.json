@@ -36,7 +36,7 @@
         {
           "comment": "Control flow - loops",
           "name": "keyword.control.loop.tlang",
-          "match": "\\b(malli|varasa)\\b"
+          "match": "\\b(malli)\\b"
         },
         {
           "comment": "Control flow - break/continue",
@@ -57,6 +57,11 @@
           "comment": "Entry point name",
           "name": "keyword.control.entry.tlang",
           "match": "\\b(prarambham)\\b"
+        },
+        {
+          "comment": "Special identifier used in map loops: malli key := varasa map",
+          "name": "variable.language.special.varasa.tlang",
+          "match": "\\b(varasa)\\b"
         },
         {
           "comment": "Struct definition",
@@ -81,17 +86,12 @@
         {
           "comment": "Boolean true",
           "name": "constant.language.boolean.true.tlang",
-          "match": "\\b(true|nijam)\\b"
+          "match": "\\b(true)\\b"
         },
         {
           "comment": "Boolean false",
           "name": "constant.language.boolean.false.tlang",
-          "match": "\\b(false|asathyam)\\b"
-        },
-        {
-          "comment": "Memory - mut keyword",
-          "name": "storage.modifier.mut.tlang",
-          "match": "\\b(mut)\\b"
+          "match": "\\b(false)\\b"
         }
       ]
     },
@@ -107,7 +107,7 @@
         },
         {
           "comment": "Variable declaration with @ followed by name and type",
-          "match": "(@)(\\w+)\\s+(int|float|string|bool|void|byte|rune|error|WaitGroup)",
+          "match": "(@)(\\w+)\\s+(int|float|string|bool|byte|rune|error|channel|WaitGroup)",
           "captures": {
             "1": { "name": "storage.modifier.tlang" },
             "2": { "name": "variable.other.tlang" },
@@ -184,12 +184,12 @@
         {
           "comment": "Built-in primitive types",
           "name": "support.type.primitive.tlang",
-          "match": "\\b(int|float|string|bool|void|byte|rune|error|channel|WaitGroup)\\b"
+          "match": "\\b(int|float|string|bool|byte|rune|error|channel|WaitGroup)\\b"
         },
         {
           "comment": "Pointer type modifier",
           "name": "storage.modifier.pointer.tlang",
-          "match": "\\*(?=\\s*(int|float|string|bool|void|byte|rune|error|channel|WaitGroup|\\w))"
+          "match": "\\*(?=\\s*(int|float|string|bool|byte|rune|error|channel|WaitGroup|\\w))"
         },
         {
           "comment": "Mutable borrow &mut",
@@ -239,6 +239,11 @@
           "match": "(==|!=)"
         },
         {
+          "comment": "Move operator <- (also used for channel send/receive)",
+          "name": "keyword.operator.move.tlang",
+          "match": "<-"
+        },
+        {
           "comment": "Relational operators",
           "name": "keyword.operator.comparison.relational.tlang",
           "match": "(<=|>=|<|>)"
@@ -267,11 +272,6 @@
           "comment": "Arithmetic operators",
           "name": "keyword.operator.arithmetic.tlang",
           "match": "(\\+|\\-|\\*|/|%)"
-        },
-        {
-          "comment": "Move operator <-",
-          "name": "keyword.operator.move.tlang",
-          "match": "<-"
         },
         {
           "comment": "Error propagation ?",
