@@ -16,6 +16,8 @@ output.c
 vscode-extensions/node_modules/
 vscode-extensions/out/
 vscode-extensions/tlang*.vsix
+!vscode-extension/releases/
+!vscode-extension/releases/*.vsix
 
 __pycache__/
 _bmad-output/
