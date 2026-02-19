@@ -1,7 +1,17 @@
 use crate::ast::{Expr, Type};
+use std::collections::HashMap;
 
-/// Infers the type of an expression
+/// Infers the type of an expression (no symbol table).
 pub fn infer_type(expr: &Expr) -> Option<Type> {
+    infer_type_impl(expr, None)
+}
+
+/// Infers the type of an expression using a symbol table (variable/param names -> Type).
+pub fn infer_type_with_context(expr: &Expr, ctx: &HashMap<String, Type>) -> Option<Type> {
+    infer_type_impl(expr, Some(ctx))
+}
+
+fn infer_type_impl(expr: &Expr, ctx: Option<&HashMap<String, Type>>) -> Option<Type> {
     match expr {
         Expr::Number(n) => {
             // Check if it's a whole number (int) or has decimal (float)
@@ -13,15 +23,10 @@ pub fn infer_type(expr: &Expr) -> Option<Type> {
         }
         Expr::String(_) => Some(Type::String),
         Expr::Bool(_) => Some(Type::Bool),
-        Expr::Identifier(_) => {
-            // Can't infer type from identifier alone
-            // This would require a symbol table
-            None
-        }
+        Expr::Identifier(name) => ctx.and_then(|c| c.get(name).cloned()),
         Expr::BinaryOp { op: _, left, right } => {
-            // For binary operations, infer from operands
-            let left_type = infer_type(left);
-            let right_type = infer_type(right);
+            let left_type = infer_type_impl(left, ctx);
+            let right_type = infer_type_impl(right, ctx);
             
             // If both operands have the same type, use that
             if let (Some(l), Some(r)) = (left_type, right_type) {
@@ -42,16 +47,14 @@ pub fn infer_type(expr: &Expr) -> Option<Type> {
             // Can't infer from function call without knowing function signature
             None
         }
-        Expr::Assignment { name: _, value } => infer_type(value),
+        Expr::Assignment { name: _, value } => infer_type_impl(value, ctx),
         Expr::Nil => Some(Type::Error), // nil is error type (NULL)
-        Expr::ErrorCheck { expr } => infer_type(expr),
+        Expr::ErrorCheck { expr } => infer_type_impl(expr, ctx),
         Expr::ArrayLiteral { elements } => {
             if elements.is_empty() {
-                // Empty array - can't infer type
                 None
             } else {
-                // Infer element type from first element
-                if let Some(elem_type) = infer_type(&elements[0]) {
+                if let Some(elem_type) = infer_type_impl(&elements[0], ctx) {
                     Some(Type::Array {
                         size: elements.len(),
                         element_type: Box::new(elem_type),
@@ -62,8 +65,7 @@ pub fn infer_type(expr: &Expr) -> Option<Type> {
             }
         }
         Expr::ArrayIndex { array, index: _ } => {
-            // Array/slice indexing returns element type
-            if let Some(typ) = infer_type(array) {
+            if let Some(typ) = infer_type_impl(array, ctx) {
                 match typ {
                     Type::Array { element_type, .. } => Some(*element_type),
                     Type::Slice { element_type } => Some(*element_type),
@@ -74,8 +76,7 @@ pub fn infer_type(expr: &Expr) -> Option<Type> {
             }
         }
         Expr::SliceExpr { array, start: _, end: _ } => {
-            // Slice expression returns a slice of the same element type
-            if let Some(typ) = infer_type(array) {
+            if let Some(typ) = infer_type_impl(array, ctx) {
                 match typ {
                     Type::Array { element_type, .. } => Some(Type::Slice {
                         element_type: element_type.clone(),
@@ -90,9 +91,7 @@ pub fn infer_type(expr: &Expr) -> Option<Type> {
             }
         }
         Expr::MemberAccess { object, field: _ } => {
-            // Member access returns the type of the field
-            // This is simplified - full implementation would look up struct definition
-            if let Some(obj_type) = infer_type(object) {
+            if let Some(obj_type) = infer_type_impl(object, ctx) {
                 match obj_type {
                     Type::Struct { name: _ } => {
                         // We can't infer the field type without struct definition info
@@ -106,8 +105,7 @@ pub fn infer_type(expr: &Expr) -> Option<Type> {
             }
         }
         Expr::MapIndex { map, key: _ } => {
-            // Map index returns the value type of the map
-            if let Some(map_type) = infer_type(map) {
+            if let Some(map_type) = infer_type_impl(map, ctx) {
                 match map_type {
                     Type::Map { value_type, .. } => {
                         Some(*value_type)
@@ -135,13 +133,9 @@ pub fn infer_type(expr: &Expr) -> Option<Type> {
                 value_type: value_type.clone(),
             })
         }
-        Expr::TypeCast { target_type, expr: _ } => {
-            // Type cast returns the target type
-            Some(target_type.clone())
-        }
+        Expr::TypeCast { target_type, expr: _ } => Some(target_type.clone()),
         Expr::Borrow { expr, mutable } => {
-            // Borrow returns a reference type
-            if let Some(inner_type) = infer_type(expr) {
+            if let Some(inner_type) = infer_type_impl(expr, ctx) {
                 Some(Type::Reference {
                     inner: Box::new(inner_type),
                     mutable: *mutable,
@@ -151,8 +145,7 @@ pub fn infer_type(expr: &Expr) -> Option<Type> {
             }
         }
         Expr::Deref { expr } => {
-            // Dereference returns the inner type of a reference/pointer
-            if let Some(ref_type) = infer_type(expr) {
+            if let Some(ref_type) = infer_type_impl(expr, ctx) {
                 match ref_type {
                     Type::Reference { inner, .. } => Some(*inner),
                     Type::Pointer(inner) => Some(*inner),
@@ -163,20 +156,17 @@ pub fn infer_type(expr: &Expr) -> Option<Type> {
             }
         }
         Expr::ChannelRecv { channel } => {
-            // <- ch returns the channel's element type
-            if let Some(crate::ast::Type::Channel { element_type }) = infer_type(channel) {
+            if let Some(crate::ast::Type::Channel { element_type }) = infer_type_impl(channel, ctx) {
                 Some(*element_type)
             } else {
-                // Move: same type as the source expression
-                infer_type(channel)
+                infer_type_impl(channel, ctx)
             }
         }
-        Expr::ChannelSend { channel: _, value } => infer_type(value), // statement-like; type is unit/ignored
-        Expr::Spawn { name: _, args: _ } => None, // spawn returns void for now
+        Expr::ChannelSend { channel: _, value } => infer_type_impl(value, ctx),
+        Expr::Spawn { name: _, args: _ } => None,
         Expr::TupleLiteral { elements } => {
-            // Tuple literal returns a tuple type with inferred element types
             let types: Vec<Type> = elements.iter()
-                .filter_map(infer_type)
+                .filter_map(|e| infer_type_impl(e, ctx))
                 .collect();
             if types.len() == elements.len() {
                 Some(Type::Tuple { types })
@@ -185,19 +175,15 @@ pub fn infer_type(expr: &Expr) -> Option<Type> {
             }
         }
         Expr::ErrorPropagate { expr } => {
-            // ? unwraps (value, error) to just value for assignment
-            if let Some(crate::ast::Type::Tuple { types }) = infer_type(expr) {
+            if let Some(crate::ast::Type::Tuple { types }) = infer_type_impl(expr, ctx) {
                 if types.len() >= 2 {
                     return Some(types[0].clone());
                 }
             }
-            infer_type(expr)
+            infer_type_impl(expr, ctx)
         }
-        Expr::SunyamFree { expr: _ } => None, // sunyam(ptr) is void (free)
-        Expr::MemberAssignment { object: _, field: _, value } => {
-            // Member assignment returns the type of the assigned value
-            infer_type(value)
-        }
+        Expr::SunyamFree { expr: _ } => None,
+        Expr::MemberAssignment { object: _, field: _, value } => infer_type_impl(value, ctx),
     }
 }
 

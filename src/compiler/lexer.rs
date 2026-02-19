@@ -68,6 +68,7 @@ pub enum Token {
     Backtick,        // ` (tags in structs)
     
     // Special
+    Invalid(String),
     EOF,
     Newline,
 }
@@ -158,32 +159,32 @@ impl Lexer {
         ident
     }
     
-    fn read_string(&mut self) -> String {
+    fn read_string(&mut self) -> (String, bool) {
         let mut s = String::new();
         self.advance(); // Skip opening quote
         while let Some(ch) = self.current_char {
             if ch == '"' {
                 self.advance();
-                break;
+                return (s, true);
             }
             s.push(ch);
             self.advance();
         }
-        s
+        (s, false)
     }
     
-    fn read_tag(&mut self) -> String {
+    fn read_tag(&mut self) -> (String, bool) {
         let mut s = String::new();
         self.advance(); // Skip opening backtick
         while let Some(ch) = self.current_char {
             if ch == '`' {
                 self.advance();
-                break;
+                return (s, true);
             }
             s.push(ch);
             self.advance();
         }
-        s
+        (s, false)
     }
     
     pub fn next_token(&mut self) -> Token {
@@ -238,10 +239,11 @@ impl Lexer {
                         }
                     }
                     if !found_end {
-                        eprintln!("Warning: Unterminated multi-line comment");
+                        Token::Invalid("Unterminated multi-line comment. Add closing '*/'.".to_string())
+                    } else {
+                        // Recursively get next token (skip the comment)
+                        self.next_token()
                     }
-                    // Recursively get next token (skip the comment)
-                    self.next_token()
                 } else {
                     Token::Divide
                 }
@@ -308,8 +310,7 @@ impl Lexer {
                     self.advance();
                     Token::NotEqual
                 } else {
-                    // Error case, but continue
-                    Token::EOF
+                    Token::Invalid("Unexpected '!'. Use '!=' for comparison or '@!name' for mutable variable declaration.".to_string())
                 }
             }
             Some('<') => {
@@ -427,14 +428,20 @@ impl Lexer {
                 }
             }
             Some('"') => {
-                Token::String(self.read_string())
+                let (value, terminated) = self.read_string();
+                if terminated {
+                    Token::String(value)
+                } else {
+                    Token::Invalid("Unterminated string literal. Add closing '\"'.".to_string())
+                }
             }
             Some('`') => {
-                // Read tag content - return Backtick token first, then tag content as String
-                // Actually, we need to read the tag and return it as a special token
-                // For now, read tag content and return as String token
-                let tag_content = self.read_tag();
-                Token::String(tag_content) // Tag content as string
+                let (tag_content, terminated) = self.read_tag();
+                if terminated {
+                    Token::String(tag_content) // Tag content as string
+                } else {
+                    Token::Invalid("Unterminated tag literal. Add closing '`'.".to_string())
+                }
             }
             Some(ch) if ch.is_ascii_digit() => {
                 Token::Number(self.read_number())
@@ -464,9 +471,13 @@ impl Lexer {
                 }
             }
             Some(ch) => {
-                eprintln!("Unexpected character: {}", ch);
+                let suggestion = match ch {
+                    '“' | '”' => " Use regular double quotes (\").",
+                    '‘' | '’' => " Use regular single quotes (').",
+                    _ => "",
+                };
                 self.advance();
-                Token::EOF
+                Token::Invalid(format!("Unexpected character '{}'.{}", ch, suggestion))
             }
         };
         

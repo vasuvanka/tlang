@@ -98,9 +98,14 @@ impl Parser {
             let location = self.get_location();
             let expected_str = format!("{:?}", expected);
             let got_str = format!("{:?}", self.current_token);
+            let hint = Self::token_hint(&self.current_token);
             let context = self.context_stack.clone();
             Err(CompileError::parser_with_context(
-                format!("Expected {}, but found {}", expected_str, got_str),
+                if hint.is_empty() {
+                    format!("Expected {}, but found {}", expected_str, got_str)
+                } else {
+                    format!("Expected {}, but found {}. {}", expected_str, got_str, hint)
+                },
                 location,
                 context,
             ))
@@ -112,12 +117,44 @@ impl Parser {
         let context = self.context_stack.clone();
         CompileError::parser_with_context(message, location, context)
     }
+
+    fn token_hint(token: &Token) -> &'static str {
+        match token {
+            Token::Invalid(_) => "Fix the lexer error shown above and try again.",
+            Token::RightBrace => "This often means an extra '}' or a missing statement before it.",
+            Token::Semicolon => "Semicolons are optional in many places; check for malformed statement boundaries.",
+            Token::AtIdentifier(name) if name.is_empty() => "Use '@name' for immutable variables.",
+            Token::AtMutIdentifier(name) if name.is_empty() => "Use '@!name' for mutable variables.",
+            Token::HashIdentifier(name) if name.is_empty() => "Use '#functionName(...)' for function declarations.",
+            _ => "",
+        }
+    }
+
+    fn synchronize_statement(&mut self) {
+        while self.current_token != Token::EOF {
+            match self.current_token {
+                Token::Semicolon | Token::Newline => {
+                    self.advance();
+                    break;
+                }
+                // Consume stray closing brace to make forward progress after malformed blocks.
+                Token::RightBrace => {
+                    self.advance();
+                    break;
+                }
+                _ => self.advance(),
+            }
+        }
+    }
     
     pub fn parse(&mut self) -> CompileResult<Program> {
         let mut imports: Vec<crate::ast::ImportInfo> = Vec::new();
         let mut statements = Vec::new();
         
         while self.current_token != Token::EOF {
+            if let Token::Invalid(msg) = &self.current_token {
+                return Err(self.error(format!("Lexical error: {}", msg)));
+            }
             // Skip newlines between statements
             if matches!(self.current_token, Token::Newline) {
                 self.advance();
@@ -147,8 +184,54 @@ impl Parser {
             statements,
         })
     }
+
+    /// Parse while collecting recoverable statement-level errors.
+    /// Intended for editor diagnostics so users can see multiple errors in one pass.
+    pub fn parse_collect_errors(&mut self) -> (Program, Vec<CompileError>) {
+        let mut imports: Vec<crate::ast::ImportInfo> = Vec::new();
+        let mut statements = Vec::new();
+        let mut errors = Vec::new();
+
+        while self.current_token != Token::EOF {
+            if matches!(self.current_token, Token::Newline) {
+                self.advance();
+                continue;
+            }
+
+            if let Token::Invalid(msg) = &self.current_token {
+                errors.push(self.error(format!("Lexical error: {}", msg)));
+                self.synchronize_statement();
+                continue;
+            }
+
+            let parsed = if matches!(&self.current_token, Token::HashIdentifier(s) if s == "dhimpu") {
+                self.parse_import_dhimpu()
+            } else {
+                self.parse_statement()
+            };
+
+            match parsed {
+                Ok(stmt) => {
+                    if let Stmt::Import { path, alias } = stmt {
+                        imports.push(crate::ast::ImportInfo { path, alias });
+                    } else {
+                        statements.push(stmt);
+                    }
+                }
+                Err(err) => {
+                    errors.push(err);
+                    self.synchronize_statement();
+                }
+            }
+        }
+
+        (Program { imports, statements }, errors)
+    }
     
     fn parse_statement(&mut self) -> CompileResult<Stmt> {
+        if let Token::Invalid(msg) = &self.current_token {
+            return Err(self.error(format!("Lexical error: {}", msg)));
+        }
         match &self.current_token {
             Token::AtIdentifier(_) | Token::AtMutIdentifier(_) => self.parse_variable_decl(),
             Token::HashIdentifier(name) if name == "dhimpu" => self.parse_import_dhimpu(),
@@ -173,6 +256,7 @@ impl Parser {
             Token::Nirmanam => self.parse_struct_def(),
             Token::LeftBrace => self.parse_block(),
             Token::Identifier(ident) if ident.as_str() == "tlang" => self.parse_spawn(),
+            Token::RightBrace => Err(self.error("Unexpected '}'. This often means an extra closing brace or a missing statement.".to_string())),
             _ => {
                 let expr = self.parse_expression()?;
                 if matches!(self.current_token, Token::Semicolon) {
@@ -1154,6 +1238,9 @@ impl Parser {
     }
     
     fn parse_primary(&mut self) -> CompileResult<Expr> {
+        if let Token::Invalid(msg) = &self.current_token {
+            return Err(self.error(format!("Lexical error: {}", msg)));
+        }
         // Check for tuple literal: (expr1, expr2, ...)
         if matches!(self.current_token, Token::LeftParen) {
             self.advance(); // Skip (
@@ -1417,9 +1504,23 @@ impl Parser {
             }
             Token::Semicolon | Token::Newline | Token::EOF => {
                 // These are statement terminators, not part of expressions
-                Err(self.error(format!("Unexpected token: {:?}", self.current_token)))
+                let hint = Self::token_hint(&self.current_token);
+                let msg = if hint.is_empty() {
+                    format!("Unexpected token in expression: {:?}", self.current_token)
+                } else {
+                    format!("Unexpected token in expression: {:?}. {}", self.current_token, hint)
+                };
+                Err(self.error(msg))
             }
-            _ => Err(self.error(format!("Unexpected token: {:?}", self.current_token))),
+            _ => {
+                let hint = Self::token_hint(&self.current_token);
+                let msg = if hint.is_empty() {
+                    format!("Unexpected token in expression: {:?}", self.current_token)
+                } else {
+                    format!("Unexpected token in expression: {:?}. {}", self.current_token, hint)
+                };
+                Err(self.error(msg))
+            }
         }
     }
     
@@ -1626,5 +1727,23 @@ mod tests {
     fn test_parse_rejects_duplicate_variable_in_scope() {
         let result = parse_source("@x int = 1\n@x int = 2");
         assert!(result.is_err());
+    }
+
+    #[test]
+    fn test_parse_collect_errors_recovers_and_reports_multiple() {
+        let source = r#"
+@x int = 1
+!
+@!count int = 0
+@
+@y int = 3
+"#;
+        let lexer = Lexer::new_with_filename(source, "test.tl".to_string());
+        let mut parser = Parser::new(lexer);
+        let (_program, errors) = parser.parse_collect_errors();
+
+        assert!(errors.len() >= 2, "expected multiple collected errors, got {}", errors.len());
+        assert!(errors.iter().any(|e| e.to_string().contains("Unexpected '!'")));
+        assert!(errors.iter().any(|e| e.to_string().contains("Expected variable name after '@'")));
     }
 }

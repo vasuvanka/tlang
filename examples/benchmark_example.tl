@@ -36,7 +36,7 @@
     
     // Get duration without stopping
     benchmark.Start("test_benchmark");
-    @i int = 0;
+    @!i int = 0;
     malli i < 1000; i = i + 1 {
         @sum int = i + i;
     }
@@ -45,31 +45,3 @@
     @final_duration float = benchmark.Stop("test_benchmark");
     fmt.Printf("Final duration: %.6f seconds\n", final_duration);
 }
-
-//
-
-//
-
-//
-
-//
-
-//
-
-// === OUTPUT ===
-// ERROR: Execution failed
-// COMPILATION ERROR:
-//
-//     Finished `dev` profile [unoptimized + debuginfo] target(s) in 0.30s
-//      Running `target\debug\tlangc.exe compile C:\Users\vanka\github.com\vasuvanka\tlang\examples\benchmark_example.tl`
-//
-// Parser Error at C:\Users\vanka\github.com\vasuvanka\tlang\examples\benchmark_example.tl:42:24: Cannot assign to variable 'i': variables are immutable by default. Use '@!i' to declare a mutable variable, or use a new variable declaration instead.
-//
-// Context (most recent call last):
-//   1: while parsing function declaration
-//
-//
-//   42 |     malli i < 1000; i = i + 1 {
-//    |    ^^^^^^^^^^^^^^^^^^^^^^^^
-// error: process didn't exit successfully: `target\debug\tlangc.exe compile C:\Users\vanka\github.com\vasuvanka\tlang\examples\benchmark_example.tl` (exit code: 1)
-//

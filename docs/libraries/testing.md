@@ -110,6 +110,47 @@ The `testing` library provides a testing framework similar to Go's testing packa
 }
 ```
 
+### Test fixtures (setup / teardown)
+
+**`testing.RegisterSetup(fn)`** - Run a function before each test
+
+- `fn`: A function with no parameters and no return value (e.g. `#mySetup()`)
+- Use for initializing shared state, opening resources, or resetting globals before every test
+
+**`testing.RegisterTeardown(fn)`** - Run a function after each test
+
+- `fn`: A function with no parameters and no return value (e.g. `#myTeardown()`)
+- Use for cleaning up resources or resetting state after every test
+
+Setup runs before each `testing.Run(...)` and teardown runs after. Only one setup and one teardown can be registered; calling Register again overwrites.
+
+**Example:**
+```tl
+@!shared_count int = 0;
+
+#setupFixture() {
+    shared_count = 0;
+}
+
+#teardownFixture() {
+    shared_count = 0;  // optional cleanup
+}
+
+#testOne() {
+    testing.AssertEqual(0, shared_count, "setup reset");
+    shared_count = shared_count + 1;
+}
+
+#prarambham() {
+    testing.RegisterSetup(setupFixture);
+    testing.RegisterTeardown(teardownFixture);
+    testing.Run("testOne", testOne);
+    testing.Summary();
+}
+```
+
+See `tests/test_fixtures_example.tl` for a full example.
+
 ### Logging
 
 **`testing.Log(message)`** - Log test message
@@ -123,6 +164,27 @@ The `testing` library provides a testing framework similar to Go's testing packa
     testing.Log("Testing addition");
     @result int = add(2, 3);
     testing.AssertEqual(5, result);
+}
+```
+
+### Output format (TAP, dot, default)
+
+**`testing.EnableTAP(on)`** - Use TAP (Test Anything Protocol) output
+
+- `on`: 1 to enable, 0 for default. When enabled, prints `TAP version 13`, then `ok N - name` / `not ok N - name` per test, then `1..N` in Summary. Failure details are printed as `#` diagnostic lines. Useful for CI/parsing.
+
+**`testing.SetDotMode(on)`** - Use dot output (compact)
+
+- `on`: 1 to enable, 0 for default. When enabled, prints only `.` for each pass and `F` for each fail (no RUN/PASS/FAIL lines). Summary still prints at the end.
+
+**Default format:** RUN / PASS / FAIL lines and structured failure output (e.g. `--- FAIL: testname`, then `message:`, `expected:`, `got:` on separate lines for AssertEqual).
+
+**Example (TAP):**
+```tl
+#prarambham() {
+    testing.EnableTAP(1);
+    testing.Run("testFoo", testFoo);
+    testing.Summary();  // prints 1..N
 }
 ```
 
@@ -213,6 +275,31 @@ Test functions should start with `test`:
 3. **Test edge cases** - Empty strings, zero values, etc.
 4. **Use appropriate assertions** - `AssertEqualFloat` for floats
 5. **Log context** - Use `testing.Log()` for debugging
+
+## Running tests and benchmarks together
+
+From the `tests/` directory you can run:
+
+- **Tests only:** `./run_all_tests.sh` (Bash) or `run_all_tests.bat` (Windows)
+- **Benchmarks only:** `./run_benchmarks.sh` or `run_benchmarks.bat` — runs programs that use `std/benchmark` (e.g. `bench_math.tl`, `examples/benchmark_example.tl`)
+- **Tests then benchmarks:** `./run_tests_and_benchmarks.sh` or `run_tests_and_benchmarks.bat`
+
+So `tlang test <file.tl>` runs a single file; the scripts above run the full test suite and/or benchmark suite.
+
+## Test coverage
+
+You can run the test suite with **line coverage** (gcov). The compiler emits `#line` directives so coverage reports can map back to `.tl` source.
+
+- **Linux/macOS (Bash):** from the `tests/` directory run:
+  ```bash
+  ./run_tests_with_coverage.sh
+  ```
+- **Windows (CMD):** from the `tests/` directory run:
+  ```bat
+  run_tests_with_coverage.bat
+  ```
+
+Requirements: `gcc` with gcov (same as for normal builds). Output is written to `tests/coverage_out/`: `.gcov` files and a short summary (lines executed). Use `gcov` or `lcov`/`genhtml` for detailed or HTML reports.
 
 ## See Also
 

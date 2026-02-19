@@ -5,5 +5,6 @@ pub mod error;
 pub mod ast;
 pub mod parser;
 pub mod type_inference;
+pub mod type_check;
 pub mod codegen;
 pub mod borrow_checker;

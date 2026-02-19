@@ -9,6 +9,18 @@ use tlang::codegen::CodeGenerator;
 use tlang::package::PackageResolver;
 use tlang::build::{fetch, config::ProjectConfig};
 
+fn print_error_with_source_context(source: &str, error: &tlang::error::CompileError) {
+    eprintln!("\n{}", error);
+    let location = error.get_location();
+    if let Some(line) = source.lines().nth(location.line.saturating_sub(1)) {
+        let col = location.column.max(1);
+        eprintln!("  --> {}:{}:{}", location.filename, location.line, col);
+        eprintln!("   |");
+        eprintln!("{:>3} | {}", location.line, line);
+        eprintln!("   | {:>width$}^", "", width = col.saturating_sub(1));
+    }
+}
+
 fn main() {
     let args: Vec<String> = env::args().collect();
     
@@ -84,15 +96,17 @@ fn main() {
     let program = match parser.parse() {
         Ok(prog) => prog,
         Err(e) => {
-            eprintln!("\n{}", e);
-            // Print source context if available
-            if let Some(line) = source.lines().nth(e.get_location().line.saturating_sub(1)) {
-                eprintln!("\n  {} | {}", e.get_location().line, line);
-                eprintln!("  {} | {:>width$}", "", "^".repeat(e.get_location().column), width = e.get_location().column + 3);
-            }
+            print_error_with_source_context(&source, &e);
             process::exit(1);
         }
     };
+
+    // Type check
+    let mut type_checker = tlang::compiler::type_check::TypeChecker::new(filename.clone());
+    if let Err(e) = type_checker.check_program(&program) {
+        print_error_with_source_context(&source, &e);
+        process::exit(1);
+    }
     
     // Resolve packages (include dependencies/ when config.toml was used)
     let mut resolver = PackageResolver::new(filename);

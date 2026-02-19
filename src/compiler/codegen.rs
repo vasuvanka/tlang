@@ -1,6 +1,15 @@
 use crate::ast::*;
 use std::collections::{HashMap, HashSet};
 
+#[derive(Default, Clone)]
+struct RuntimeUsage {
+    uses_slice: bool,
+    uses_map: bool,
+    uses_channel: bool,
+    uses_waitgroup: bool,
+    used_stdlibs: HashSet<String>,
+}
+
 pub struct CodeGenerator {
     output: String,
     indent_level: usize,
@@ -12,6 +21,9 @@ pub struct CodeGenerator {
     struct_definitions: HashMap<String, Vec<(String, crate::ast::Type)>>, // Track struct definitions: struct_name -> fields
     /// Functions spawned via tlang #fn(args) -> their param (name, type) for pthread wrapper generation
     spawn_targets: HashMap<String, Vec<(String, crate::ast::Type)>>,
+    runtime_usage: RuntimeUsage,
+    temp_var_counter: usize,
+    emitted_tuple_structs: HashSet<String>,
 }
 
 impl CodeGenerator {
@@ -26,6 +38,9 @@ impl CodeGenerator {
             variable_types: HashMap::new(),
             struct_definitions: HashMap::new(),
             spawn_targets: HashMap::new(),
+            runtime_usage: RuntimeUsage::default(),
+            temp_var_counter: 0,
+            emitted_tuple_structs: HashSet::new(),
         }
     }
     
@@ -65,12 +80,239 @@ impl CodeGenerator {
         self.write(s);
         self.write("\n");
     }
+
+    fn next_temp(&mut self, prefix: &str) -> String {
+        let name = format!("__tlang_{}_{}", prefix, self.temp_var_counter);
+        self.temp_var_counter += 1;
+        name
+    }
+
+    fn canonical_stdlib_name(path_or_name: &str) -> Option<String> {
+        let short = path_or_name.strip_prefix("std/").unwrap_or(path_or_name);
+        if crate::package::PackageResolver::STDLIB_NAMES.contains(&short) {
+            Some(short.to_string())
+        } else {
+            None
+        }
+    }
+
+    fn register_type_usage(&mut self, typ: &crate::ast::Type) {
+        match typ {
+            crate::ast::Type::Slice { element_type } => {
+                self.runtime_usage.uses_slice = true;
+                self.register_type_usage(element_type);
+            }
+            crate::ast::Type::Map { key_type, value_type } => {
+                self.runtime_usage.uses_map = true;
+                self.register_type_usage(key_type);
+                self.register_type_usage(value_type);
+            }
+            crate::ast::Type::Channel { element_type } => {
+                self.runtime_usage.uses_channel = true;
+                self.register_type_usage(element_type);
+            }
+            crate::ast::Type::WaitGroup => {
+                self.runtime_usage.uses_waitgroup = true;
+            }
+            crate::ast::Type::Array { element_type, .. }
+            | crate::ast::Type::Pointer(element_type)
+            | crate::ast::Type::Owned { inner: element_type, .. } => self.register_type_usage(element_type),
+            crate::ast::Type::Reference { inner, .. } => self.register_type_usage(inner),
+            crate::ast::Type::Tuple { types } => {
+                for t in types {
+                    self.register_type_usage(t);
+                }
+            }
+            _ => {}
+        }
+    }
+
+    fn collect_usage_in_expr(&mut self, expr: &Expr, stdlib_alias_map: &HashMap<String, String>) {
+        match expr {
+            Expr::FunctionCall { name, args } => {
+                if let Some((alias, _func)) = name.split_once('.') {
+                    if let Some(std) = stdlib_alias_map.get(alias) {
+                        self.runtime_usage.used_stdlibs.insert(std.clone());
+                    }
+                } else if let Some((prefix, _rest)) = name.split_once('_') {
+                    if let Some(std) = Self::canonical_stdlib_name(prefix) {
+                        self.runtime_usage.used_stdlibs.insert(std);
+                    }
+                }
+                if matches!(name.as_str(), "append" | "cap") {
+                    self.runtime_usage.uses_slice = true;
+                } else if name == "len" || name == "delete" {
+                    // `len`/`delete` can target map or slice depending on inferred type;
+                    // keep runtimes available for safe lowering.
+                    self.runtime_usage.uses_slice = true;
+                    self.runtime_usage.uses_map = true;
+                }
+                for arg in args {
+                    self.collect_usage_in_expr(arg, stdlib_alias_map);
+                }
+            }
+            Expr::MapLiteral { key_type, value_type, entries } => {
+                self.runtime_usage.uses_map = true;
+                self.register_type_usage(key_type);
+                self.register_type_usage(value_type);
+                for (k, v) in entries {
+                    self.collect_usage_in_expr(k, stdlib_alias_map);
+                    self.collect_usage_in_expr(v, stdlib_alias_map);
+                }
+            }
+            Expr::SliceExpr { array, start, end } => {
+                self.runtime_usage.uses_slice = true;
+                self.collect_usage_in_expr(array, stdlib_alias_map);
+                if let Some(s) = start {
+                    self.collect_usage_in_expr(s, stdlib_alias_map);
+                }
+                if let Some(e) = end {
+                    self.collect_usage_in_expr(e, stdlib_alias_map);
+                }
+            }
+            Expr::MapIndex { map, key } => {
+                self.runtime_usage.uses_map = true;
+                self.collect_usage_in_expr(map, stdlib_alias_map);
+                self.collect_usage_in_expr(key, stdlib_alias_map);
+            }
+            Expr::ChannelSend { channel, value } => {
+                self.runtime_usage.uses_channel = true;
+                self.collect_usage_in_expr(channel, stdlib_alias_map);
+                self.collect_usage_in_expr(value, stdlib_alias_map);
+            }
+            Expr::ChannelRecv { channel } => {
+                self.runtime_usage.uses_channel = true;
+                self.collect_usage_in_expr(channel, stdlib_alias_map);
+            }
+            Expr::Spawn { args, .. } => {
+                for arg in args {
+                    self.collect_usage_in_expr(arg, stdlib_alias_map);
+                }
+            }
+            Expr::BinaryOp { left, right, .. } => {
+                self.collect_usage_in_expr(left, stdlib_alias_map);
+                self.collect_usage_in_expr(right, stdlib_alias_map);
+            }
+            Expr::UnaryOp { expr, .. }
+            | Expr::ErrorCheck { expr }
+            | Expr::TypeCast { expr, .. }
+            | Expr::Borrow { expr, .. }
+            | Expr::Deref { expr }
+            | Expr::ErrorPropagate { expr }
+            | Expr::SunyamFree { expr } => self.collect_usage_in_expr(expr, stdlib_alias_map),
+            Expr::Assignment { value, .. } => self.collect_usage_in_expr(value, stdlib_alias_map),
+            Expr::MemberAssignment { object, value, .. } => {
+                self.collect_usage_in_expr(object, stdlib_alias_map);
+                self.collect_usage_in_expr(value, stdlib_alias_map);
+            }
+            Expr::ArrayIndex { array, index } => {
+                self.collect_usage_in_expr(array, stdlib_alias_map);
+                self.collect_usage_in_expr(index, stdlib_alias_map);
+            }
+            Expr::ArrayLiteral { elements } | Expr::TupleLiteral { elements } => {
+                for e in elements {
+                    self.collect_usage_in_expr(e, stdlib_alias_map);
+                }
+            }
+            Expr::MemberAccess { object, .. } => self.collect_usage_in_expr(object, stdlib_alias_map),
+            Expr::StructLiteral { fields, .. } => {
+                for (_name, e) in fields {
+                    self.collect_usage_in_expr(e, stdlib_alias_map);
+                }
+            }
+            Expr::Kotha { target_type } => self.register_type_usage(target_type),
+            Expr::Nil | Expr::Identifier(_) | Expr::Number(_) | Expr::String(_) | Expr::Bool(_) => {}
+        }
+    }
+
+    fn collect_usage_in_stmt(&mut self, stmt: &Stmt, stdlib_alias_map: &HashMap<String, String>) {
+        match stmt {
+            Stmt::Expression(expr) => self.collect_usage_in_expr(expr, stdlib_alias_map),
+            Stmt::VariableDecl { type_annot, value, .. } => {
+                if let Some(t) = type_annot {
+                    self.register_type_usage(t);
+                }
+                if let Some(v) = value {
+                    self.collect_usage_in_expr(v, stdlib_alias_map);
+                }
+            }
+            Stmt::Assignment { value, .. } => self.collect_usage_in_expr(value, stdlib_alias_map),
+            Stmt::MultiAssignment { value, .. } => self.collect_usage_in_expr(value, stdlib_alias_map),
+            Stmt::If { condition, then_block, else_block } => {
+                self.collect_usage_in_expr(condition, stdlib_alias_map);
+                for s in then_block {
+                    self.collect_usage_in_stmt(s, stdlib_alias_map);
+                }
+                if let Some(block) = else_block {
+                    for s in block {
+                        self.collect_usage_in_stmt(s, stdlib_alias_map);
+                    }
+                }
+            }
+            Stmt::For { init, condition, update, body } => {
+                if let Some(s) = init {
+                    self.collect_usage_in_stmt(s, stdlib_alias_map);
+                }
+                if let Some(e) = condition {
+                    self.collect_usage_in_expr(e, stdlib_alias_map);
+                }
+                if let Some(s) = update {
+                    self.collect_usage_in_stmt(s, stdlib_alias_map);
+                }
+                for s in body {
+                    self.collect_usage_in_stmt(s, stdlib_alias_map);
+                }
+            }
+            Stmt::ForRange { iterable, body, .. } => {
+                self.runtime_usage.uses_map = true;
+                self.collect_usage_in_expr(iterable, stdlib_alias_map);
+                for s in body {
+                    self.collect_usage_in_stmt(s, stdlib_alias_map);
+                }
+            }
+            Stmt::Return(Some(expr)) => self.collect_usage_in_expr(expr, stdlib_alias_map),
+            Stmt::Return(None) | Stmt::Break | Stmt::Continue | Stmt::Import { .. } => {}
+            Stmt::Function { params, return_type, body, .. } => {
+                for (_name, typ) in params {
+                    self.register_type_usage(typ);
+                }
+                if let Some(ret) = return_type {
+                    self.register_type_usage(ret);
+                }
+                for s in body {
+                    self.collect_usage_in_stmt(s, stdlib_alias_map);
+                }
+            }
+            Stmt::Block(statements) => {
+                for s in statements {
+                    self.collect_usage_in_stmt(s, stdlib_alias_map);
+                }
+            }
+            Stmt::StructDef { fields, .. } => {
+                for (_name, typ, _tag) in fields {
+                    self.register_type_usage(typ);
+                }
+                self.runtime_usage.used_stdlibs.insert("json".to_string());
+                self.runtime_usage.used_stdlibs.insert("protobuf".to_string());
+            }
+        }
+    }
     
     pub fn generate(&mut self, program: &Program) -> String {
         self.generate_with_packages(program, &[])
     }
     
     pub fn generate_with_packages(&mut self, program: &Program, imported_packages: &[crate::package::PackageInfo]) -> String {
+        self.output.clear();
+        self.indent_level = 0;
+        self.current_line = 1;
+        self.variable_types.clear();
+        self.struct_definitions.clear();
+        self.spawn_targets.clear();
+        self.temp_var_counter = 0;
+        self.emitted_tuple_structs.clear();
+        self.runtime_usage = RuntimeUsage::default();
+
         // Emit initial #line directive if source filename is set
         if self.source_filename.is_some() {
             self.emit_line_directive(1);
@@ -93,6 +335,28 @@ impl CodeGenerator {
             
             // Map alias to package name for function call resolution
             self.import_aliases.insert(alias, package_name);
+        }
+
+        // Pre-compute stdlib aliases and runtime requirements before emitting C.
+        let mut stdlib_alias_map: HashMap<String, String> = HashMap::new();
+        for import_info in &program.imports {
+            if let Some(std_name) = Self::canonical_stdlib_name(&import_info.path) {
+                let alias = import_info.alias.as_ref()
+                    .map(|a| a.clone())
+                    .unwrap_or_else(|| std_name.clone());
+                stdlib_alias_map.insert(alias, std_name.clone());
+                self.runtime_usage.used_stdlibs.insert(std_name);
+            }
+        }
+        // `main()` always calls args_Init.
+        self.runtime_usage.used_stdlibs.insert("args".to_string());
+        for stmt in &program.statements {
+            self.collect_usage_in_stmt(stmt, &stdlib_alias_map);
+        }
+        for pkg in imported_packages {
+            for stmt in &pkg.program.statements {
+                self.collect_usage_in_stmt(stmt, &stdlib_alias_map);
+            }
         }
         // Generate C code as target (can be changed to assembly or LLVM IR later)
         self.write("#ifdef _WIN32\n");
@@ -123,16 +387,18 @@ impl CodeGenerator {
         // Generate forward declarations for types used by runtime functions
         self.generate_forward_declarations();
         
-        // Generate slice runtime (before stdlib/runtime functions that use it)
-        self.generate_slice_runtime();
-        
-        // Generate map runtime (before stdlib/runtime functions that use it)
-        self.generate_map_runtime();
-
-        // Generate channel runtime (for concurrency)
-        self.generate_channel_runtime();
-        // Generate WaitGroup runtime (wait until N tasks finish)
-        self.generate_waitgroup_runtime();
+        if self.runtime_usage.uses_slice {
+            self.generate_slice_runtime();
+        }
+        if self.runtime_usage.uses_map {
+            self.generate_map_runtime();
+        }
+        if self.runtime_usage.uses_channel {
+            self.generate_channel_runtime();
+        }
+        if self.runtime_usage.uses_waitgroup {
+            self.generate_waitgroup_runtime();
+        }
 
         // Collect which functions are spawned (tlang #fn) so we can emit pthread wrappers
         self.collect_spawn_targets(program);
@@ -879,12 +1145,16 @@ impl CodeGenerator {
     fn generate_runtime(&mut self) {
         // Generate standard library functions
         self.writeln("// ========== Standard Library ==========");
-        self.write(&self.generate_stdlib());
+        self.write(&self.generate_stdlib(&self.runtime_usage.used_stdlibs));
     }
     
-    fn generate_stdlib(&self) -> String {
-        // Use the libs module to generate all standard library functions
-        crate::libs::generate_all_libs()
+    fn generate_stdlib(&self, used_stdlibs: &HashSet<String>) -> String {
+        if used_stdlibs.is_empty() {
+            return String::new();
+        }
+        let mut selected: Vec<&str> = used_stdlibs.iter().map(|s| s.as_str()).collect();
+        selected.sort_unstable();
+        crate::libs::generate_selected_libs(&selected)
     }
     
     #[allow(dead_code)]
@@ -1232,14 +1502,15 @@ impl CodeGenerator {
                     self.generate_spawn_statement(name, args);
                 } else if let Expr::ErrorPropagate { expr: inner_expr } = expr {
                     let expr_str = self.generate_expression(inner_expr);
+                    let tmp = self.next_temp("err_prop");
                     if let Some(crate::ast::Type::Tuple { types }) = &self.current_function_return_type {
                         let error_field = types.len() - 1;
-                        self.writeln(&format!("auto _err_prop_tmp = {};", expr_str));
-                        self.writeln(&format!("if (_err_prop_tmp.field{} != NULL)", error_field));
-                        self.write_return_error_tuple(&format!("_err_prop_tmp.field{}", error_field));
+                        self.writeln(&format!("auto {} = {};", tmp, expr_str));
+                        self.writeln(&format!("if ({}.field{} != NULL)", tmp, error_field));
+                        self.write_return_error_tuple(&format!("{}.field{}", tmp, error_field));
                     } else {
-                        self.writeln(&format!("auto _err_prop_tmp = {};", expr_str));
-                        self.writeln("if (_err_prop_tmp != NULL) return _err_prop_tmp;");
+                        self.writeln(&format!("auto {} = {};", tmp, expr_str));
+                        self.writeln(&format!("if ({} != NULL) return {};", tmp, tmp));
                     }
                 } else {
                     let expr_str = self.generate_expression(expr);
@@ -1333,14 +1604,15 @@ impl CodeGenerator {
                     // Single-variable with ?: @data = readFile(path)?
                     if let Expr::ErrorPropagate { expr: inner_expr } = val {
                         let inner_str = self.generate_expression(inner_expr);
-                        self.writeln(&format!("auto _err_prop_tmp = {};", inner_str));
-                        self.writeln("if (_err_prop_tmp.field1 != NULL)");
+                        let tmp = self.next_temp("err_prop");
+                        self.writeln(&format!("auto {} = {};", tmp, inner_str));
+                        self.writeln(&format!("if ({}.field1 != NULL)", tmp));
                         if self.current_function_return_type.as_ref().map(|t| matches!(t, crate::ast::Type::Tuple { .. })).unwrap_or(false) {
-                            self.write_return_error_tuple("_err_prop_tmp.field1");
+                            self.write_return_error_tuple(&format!("{}.field1", tmp));
                         } else {
                             self.writeln("return;");
                         }
-                        self.writeln(&format!("{} {} = _err_prop_tmp.field0;", var_type, name));
+                        self.writeln(&format!("{} {} = {}.field0;", var_type, name, tmp));
                         return;
                     }
                     // Check if this is a slice with array literal
@@ -1721,24 +1993,7 @@ impl CodeGenerator {
                 
                 // Handle tuple return type - generate struct
                 if let Some(crate::ast::Type::Tuple { types }) = return_type {
-                    // Generate tuple struct
-                    let struct_name = format!("Tuple_{}", types.iter()
-                        .map(|t| {
-                            let t_str = self.type_to_c_string(t, false);
-                            t_str.replace("*", "ptr").replace(" ", "_")
-                        })
-                        .collect::<Vec<_>>()
-                        .join("_"));
-                    
-                    self.write(&format!("typedef struct {} {{\n", struct_name));
-                    self.indent();
-                    for (i, typ) in types.iter().enumerate() {
-                        let field_type = self.type_to_c_string(typ, false);
-                        self.writeln(&format!("{} field{};", field_type, i));
-                    }
-                    self.dedent();
-                    self.writeln(&format!("}} {};", struct_name));
-                    self.write("\n");
+                    let struct_name = self.emit_tuple_struct_if_needed(types);
                     
                     // Generate function with tuple return
                     self.write(&format!("{} {}(", struct_name, name));
@@ -1888,11 +2143,7 @@ impl CodeGenerator {
             crate::ast::Type::Tuple { types } => {
                 // Tuple type - generate struct name
                 let type_names: Vec<String> = types.iter()
-                    .map(|t| {
-                        let t_str = self.type_to_c_string(t, false);
-                        // Sanitize type name for struct field (remove *, spaces, etc.)
-                        t_str.replace("*", "ptr").replace(" ", "_")
-                    })
+                    .map(|t| self.sanitize_type_fragment(t))
                     .collect();
                 format!("{}Tuple_{}", const_prefix, type_names.join("_"))
             }
@@ -1969,14 +2220,32 @@ impl CodeGenerator {
     }
     
     /// Returns the C struct name for a tuple type (e.g. Tuple_char_ptr_char_ptr for (string, error)).
+    fn sanitize_type_fragment(&self, t: &crate::ast::Type) -> String {
+        let t_str = self.type_to_c_string(t, false);
+        t_str.replace('*', "ptr").replace(' ', "_")
+    }
+
     fn tuple_struct_name(&self, types: &[crate::ast::Type]) -> String {
         format!("Tuple_{}", types.iter()
-            .map(|t| {
-                let t_str = self.type_to_c_string(t, false);
-                t_str.replace("*", "ptr").replace(" ", "_")
-            })
+            .map(|t| self.sanitize_type_fragment(t))
             .collect::<Vec<_>>()
             .join("_"))
+    }
+
+    fn emit_tuple_struct_if_needed(&mut self, types: &[crate::ast::Type]) -> String {
+        let struct_name = self.tuple_struct_name(types);
+        if self.emitted_tuple_structs.insert(struct_name.clone()) {
+            self.write(&format!("typedef struct {} {{\n", struct_name));
+            self.indent();
+            for (i, typ) in types.iter().enumerate() {
+                let field_type = self.type_to_c_string(typ, false);
+                self.writeln(&format!("{} field{};", field_type, i));
+            }
+            self.dedent();
+            self.writeln(&format!("}} {};", struct_name));
+            self.write("\n");
+        }
+        struct_name
     }
     
     /// Emits `return (Tuple_X){ .field0 = default0, ..., .fieldN = error_expr };` for error propagation.
@@ -2388,14 +2657,7 @@ impl CodeGenerator {
                 // Use current function's return type to determine struct name
                 if let Some(crate::ast::Type::Tuple { types }) = &self.current_function_return_type {
                     if elements.len() == types.len() {
-                        // Generate struct name from types
-                        let struct_name = format!("Tuple_{}", types.iter()
-                            .map(|t| {
-                                let t_str = self.type_to_c_string(t, false);
-                                t_str.replace("*", "ptr").replace(" ", "_")
-                            })
-                            .collect::<Vec<_>>()
-                            .join("_"));
+                        let struct_name = self.tuple_struct_name(types);
                         
                         let field_strs: Vec<String> = elements.iter()
                             .enumerate()

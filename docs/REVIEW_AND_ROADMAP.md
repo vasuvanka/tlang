@@ -486,11 +486,17 @@ Interface support was removed (was partially implemented). See [interface-analys
 **Priority**: LOW  
 **Estimated Effort**: Low (1 week)
 
+**Current state:** `std/testing` provides `testing.Run`, `testing.Assert`, `testing.AssertEqual*`, `testing.Summary`; `std/benchmark` provides `benchmark.Start`, `benchmark.Stop`, `benchmark.Report`. The enhancements below are not yet implemented.
+
 **Implementation Tasks:**
-- [ ] Add test coverage reporting
-- [ ] Add benchmarking integration
-- [ ] Add test fixtures
-- [ ] Improve test output formatting
+- [x] Add test coverage reporting (e.g. line/block coverage when running tests)
+  - `tests/run_tests_with_coverage.sh` and `tests/run_tests_with_coverage.bat` run tests with gcc gcov; summary and .gcov in `tests/coverage_out/`. Compiler #line directives allow mapping back to .tl.
+- [x] Add benchmarking integration (e.g. `tlang test` runs benchmarks or a unified test+bench runner)
+  - `tests/run_benchmarks.sh` and `run_benchmarks.bat` run benchmark programs (e.g. `bench_math.tl`, `examples/benchmark_example.tl`). `run_tests_and_benchmarks.sh` / `.bat` run tests then benchmarks. `tlang test <file.tl>` runs a single file.
+- [x] Add test fixtures (setup/teardown or shared test data helpers)
+  - `testing.RegisterSetup(fn)` and `testing.RegisterTeardown(fn)` run before/after each `testing.Run`. Example: `tests/test_fixtures_example.tl`; doc in `docs/libraries/testing.md`.
+- [x] Improve test output formatting (e.g. TAP, verbose/dot modes, clearer failure output)
+  - `testing.EnableTAP(1)` for TAP version 13 output; `testing.SetDotMode(1)` for `.`/`F` only. Default format now prints `--- FAIL: testname` and separate `expected:`/`got:` lines for AssertEqual*. Doc in `docs/libraries/testing.md`.
 
 ---
 
@@ -579,26 +585,65 @@ The following have been implemented:
 
 ---
 
+## Goal List (Roadmap Snapshot)
+
+### Done
+- Core data structures: arrays/slices, structs (`nirmanam`), maps (`jatha`)
+- Package system + dependency/build tooling
+- LSP + formatter + linter
+- HTTP/HTTPS networking support
+- Concurrency foundation: channels, spawn, close, WaitGroup
+
+### In Progress
+- Concurrency polish and production hardening
+- Documentation refinement for patterns and real-world guidance
+
+### Next
+- `select` over multiple channels
+- Stronger Windows threading/channel runtime support
+- Better cross-thread/channel borrow-checker rules
+- Error handling polish (propagation patterns, better messages)
+
+### Later
+- Generics
+- Debugger/source-mapping improvements
+- Compiler/codegen optimization passes
+- Testing DX upgrades (coverage/reporting/fixtures)
+
+---
+
 ## Technical Debt & Improvements
 
 ### Compiler Improvements
 1. **Error Messages**
-   - [ ] Add source location to all errors
-   - [ ] Improve error message clarity
-   - [ ] Add suggestions for common errors
-   - [ ] Add error recovery
+   - [x] Add source location to all errors
+     - Parser diagnostics surface file/line/column; `tlangc` uses `print_error_with_source_context` for source snippets.
+   - [x] Improve error message clarity
+     - Parser uses `token_hint` and clearer phrasing for malformed expressions and unexpected braces.
+   - [x] Add suggestions for common errors
+     - Lexer/parser hints for invalid tokens (`!` vs `!=`, unterminated strings/comments/tags).
+   - [x] Add error recovery
+     - Statement-level `synchronize_statement`; `parse_collect_errors` for multi-error LSP diagnostics.
 
 2. **Code Generation**
-   - [ ] Optimize generated C code
-   - [ ] Reduce code size
-   - [ ] Improve variable naming
-   - [ ] Add dead code elimination
+   - [x] Optimize generated C code
+     - First pass: generator now emits runtime blocks (slice/map/channel/waitgroup) only when usage is detected from AST.
+   - [x] Reduce code size
+     - First pass: switched stdlib emission from "generate all libs" to "generate selected libs" based on imports/calls.
+   - [x] Improve variable naming
+     - Replaced generic internal temporaries with stable unique names (`__tlang_*`) for clearer generated C.
+   - [x] Add dead code elimination
+     - First pass: compile-time tree-shaking removes unused runtime/stdlib sections from emitted C.
 
 3. **Type System**
-   - [ ] Improve type inference
-   - [ ] Add better type error messages
+   - [x] Improve type inference
+     - `infer_type_with_context(expr, symbol_table)` infers identifiers from declarations; used in type_check.
+   - [x] Add better type error messages
+     - Type checker emits clear messages (e.g. "expected X, got Y", "arithmetic requires numeric types", "if condition must be bool").
    - [ ] Support type narrowing
-   - [ ] Add type checking for all operations
+     - TBD: e.g. narrow after `if x != nil` or type guards.
+   - [x] Add type checking for all operations
+     - type_check module checks binary/unary ops, assignment, return, if/for conditions, multi-assignment; integrated in tlangc pipeline.
 
 ### Standard Library Improvements
 1. **Thread Safety**
@@ -667,7 +712,7 @@ The following have been implemented:
 
 Tlang has an excellent foundation with:
 - ✅ Solid language design
-- ✅ Comprehensive standard library (33 modules)
+- ✅ Comprehensive standard library (34 modules)
 - ✅ Excellent documentation
 - ✅ Modern cryptographic support
 - ✅ Excellent developer tooling (LSP, linter, formatter)

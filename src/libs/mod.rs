@@ -36,7 +36,19 @@ pub mod errors;
 pub mod protobuf;
 pub mod sandarbham;
 
+const ALL_LIBS: &[&str] = &[
+    "fmt", "strings", "math", "strconv", "os", "time", "bytes", "sort",
+    "json", "http", "io", "filepath", "testing", "args", "regexp", "rand",
+    "log", "flag", "crypto", "hex", "url", "unicode", "csv", "xml", "neturl",
+    "bufio", "benchmark", "doc", "reflect", "base64", "errors", "net",
+    "protobuf", "sandarbham",
+];
+
 pub fn generate_all_libs() -> String {
+    generate_selected_libs(ALL_LIBS)
+}
+
+pub fn generate_selected_libs(selected_libs: &[&str]) -> String {
     let mut all_code = String::new();
     
     // Add required headers
@@ -48,142 +60,148 @@ pub fn generate_all_libs() -> String {
     all_code.push_str("#include <math.h>\n");
     all_code.push_str("\n");
     
-    // Generate all libraries
-    all_code.push_str("// ========== fmt library ==========\n");
-    all_code.push_str(&fmt::generate_fmt_lib());
-    all_code.push_str("\n");
-    
-    all_code.push_str("// ========== strings library ==========\n");
-    all_code.push_str(&strings::generate_strings_lib());
-    all_code.push_str("\n");
-    
-    all_code.push_str("// ========== math library ==========\n");
-    all_code.push_str(&math::generate_math_lib());
-    all_code.push_str("\n");
-    
-    all_code.push_str("// ========== strconv library ==========\n");
-    all_code.push_str(&strconv::generate_strconv_lib());
-    all_code.push_str("\n");
-    
-    all_code.push_str("// ========== os library ==========\n");
-    all_code.push_str(&os::generate_os_lib());
-    all_code.push_str("\n");
-    
-    all_code.push_str("// ========== time library ==========\n");
-    all_code.push_str(&time::generate_time_lib());
-    all_code.push_str("\n");
-    
-    all_code.push_str("// ========== bytes library ==========\n");
-    all_code.push_str(&bytes::generate_bytes_lib());
-    all_code.push_str("\n");
-    
-    all_code.push_str("// ========== sort library ==========\n");
-    all_code.push_str(&sort::generate_sort_lib());
-    all_code.push_str("\n");
-    
-    all_code.push_str("// ========== json library ==========\n");
-    all_code.push_str(&json::generate_json_lib());
-    all_code.push_str("\n");
-    
-    all_code.push_str("// ========== http library ==========\n");
-    all_code.push_str(&http::generate_http_lib());
-    all_code.push_str("\n");
-    
-    all_code.push_str("// ========== io library ==========\n");
-    all_code.push_str(&io::generate_io_lib());
-    all_code.push_str("\n");
-    
-    all_code.push_str("// ========== filepath library ==========\n");
-    all_code.push_str(&filepath::generate_filepath_lib());
-    all_code.push_str("\n");
-    
-    all_code.push_str("// ========== testing library ==========\n");
-    all_code.push_str(&testing::generate_testing_lib());
-    all_code.push_str("\n");
-    
-    all_code.push_str("// ========== args library ==========\n");
-    all_code.push_str(&args::generate_args_lib());
-    all_code.push_str("\n");
-    
-    all_code.push_str("// ========== regexp library ==========\n");
-    all_code.push_str(&regexp::generate_regexp_lib());
-    all_code.push_str("\n");
-    
-    all_code.push_str("// ========== rand library ==========\n");
-    all_code.push_str(&rand::generate_rand_lib());
-    all_code.push_str("\n");
-    
-    all_code.push_str("// ========== log library ==========\n");
-    all_code.push_str(&log::generate_log_lib());
-    all_code.push_str("\n");
-    
-    all_code.push_str("// ========== flag library ==========\n");
-    all_code.push_str(&flag::generate_flag_lib());
-    all_code.push_str("\n");
-    
-    all_code.push_str("// ========== crypto/hash library ==========\n");
-    all_code.push_str(&crypto::generate_crypto_lib());
-    all_code.push_str("\n");
-    
-    all_code.push_str("// ========== encoding/hex library ==========\n");
-    all_code.push_str(&hex::generate_hex_lib());
-    all_code.push_str("\n");
-    
-    all_code.push_str("// ========== url library ==========\n");
-    all_code.push_str(&url::generate_url_lib());
-    all_code.push_str("\n");
-    
-    all_code.push_str("// ========== unicode library ==========\n");
-    all_code.push_str(&unicode::generate_unicode_lib());
-    all_code.push_str("\n");
-    
-    all_code.push_str("// ========== encoding/csv library ==========\n");
-    all_code.push_str(&csv::generate_csv_lib());
-    all_code.push_str("\n");
-    
-    all_code.push_str("// ========== encoding/xml library ==========\n");
-    all_code.push_str(&xml::generate_xml_lib());
-    all_code.push_str("\n");
-    
-    all_code.push_str("// ========== net/url library ==========\n");
-    all_code.push_str(&neturl::generate_neturl_lib());
-    all_code.push_str("\n");
-    
-    all_code.push_str("// ========== bufio library ==========\n");
-    all_code.push_str(&bufio::generate_bufio_lib());
-    all_code.push_str("\n");
-    
-    all_code.push_str("// ========== testing/benchmark library ==========\n");
-    all_code.push_str(&benchmark::generate_benchmark_lib());
-    all_code.push_str("\n");
-    
-    all_code.push_str("// ========== doc library ==========\n");
-    all_code.push_str(&doc::generate_doc_lib());
-    all_code.push_str("\n");
-    
-    all_code.push_str("// ========== reflect library ==========\n");
-    all_code.push_str(&reflect::generate_reflect_lib());
-    all_code.push_str("\n");
-    
-    all_code.push_str("// ========== encoding/base64 library ==========\n");
-    all_code.push_str(&base64::generate_base64_lib());
-    all_code.push_str("\n");
-    
-    all_code.push_str("// ========== errors library ==========\n");
-    all_code.push_str(&errors::generate_errors_lib());
-    all_code.push_str("\n");
-    
-    all_code.push_str("// ========== net library ==========\n");
-    all_code.push_str(&net::generate_net_lib());
-    all_code.push_str("\n");
-    
-    all_code.push_str("// ========== protobuf library ==========\n");
-    all_code.push_str(&protobuf::generate_protobuf_lib());
-    all_code.push_str("\n");
-    
-    all_code.push_str("// ========== sandarbham (context) library ==========\n");
-    all_code.push_str(&sandarbham::generate_sandarbham_lib());
-    all_code.push_str("\n");
+    for lib in selected_libs {
+        match *lib {
+            "fmt" => {
+                all_code.push_str("// ========== fmt library ==========\n");
+                all_code.push_str(&fmt::generate_fmt_lib());
+            }
+            "strings" => {
+                all_code.push_str("// ========== strings library ==========\n");
+                all_code.push_str(&strings::generate_strings_lib());
+            }
+            "math" => {
+                all_code.push_str("// ========== math library ==========\n");
+                all_code.push_str(&math::generate_math_lib());
+            }
+            "strconv" => {
+                all_code.push_str("// ========== strconv library ==========\n");
+                all_code.push_str(&strconv::generate_strconv_lib());
+            }
+            "os" => {
+                all_code.push_str("// ========== os library ==========\n");
+                all_code.push_str(&os::generate_os_lib());
+            }
+            "time" => {
+                all_code.push_str("// ========== time library ==========\n");
+                all_code.push_str(&time::generate_time_lib());
+            }
+            "bytes" => {
+                all_code.push_str("// ========== bytes library ==========\n");
+                all_code.push_str(&bytes::generate_bytes_lib());
+            }
+            "sort" => {
+                all_code.push_str("// ========== sort library ==========\n");
+                all_code.push_str(&sort::generate_sort_lib());
+            }
+            "json" => {
+                all_code.push_str("// ========== json library ==========\n");
+                all_code.push_str(&json::generate_json_lib());
+            }
+            "http" => {
+                all_code.push_str("// ========== http library ==========\n");
+                all_code.push_str(&http::generate_http_lib());
+            }
+            "io" => {
+                all_code.push_str("// ========== io library ==========\n");
+                all_code.push_str(&io::generate_io_lib());
+            }
+            "filepath" => {
+                all_code.push_str("// ========== filepath library ==========\n");
+                all_code.push_str(&filepath::generate_filepath_lib());
+            }
+            "testing" => {
+                all_code.push_str("// ========== testing library ==========\n");
+                all_code.push_str(&testing::generate_testing_lib());
+            }
+            "args" => {
+                all_code.push_str("// ========== args library ==========\n");
+                all_code.push_str(&args::generate_args_lib());
+            }
+            "regexp" => {
+                all_code.push_str("// ========== regexp library ==========\n");
+                all_code.push_str(&regexp::generate_regexp_lib());
+            }
+            "rand" => {
+                all_code.push_str("// ========== rand library ==========\n");
+                all_code.push_str(&rand::generate_rand_lib());
+            }
+            "log" => {
+                all_code.push_str("// ========== log library ==========\n");
+                all_code.push_str(&log::generate_log_lib());
+            }
+            "flag" => {
+                all_code.push_str("// ========== flag library ==========\n");
+                all_code.push_str(&flag::generate_flag_lib());
+            }
+            "crypto" => {
+                all_code.push_str("// ========== crypto/hash library ==========\n");
+                all_code.push_str(&crypto::generate_crypto_lib());
+            }
+            "hex" => {
+                all_code.push_str("// ========== encoding/hex library ==========\n");
+                all_code.push_str(&hex::generate_hex_lib());
+            }
+            "url" => {
+                all_code.push_str("// ========== url library ==========\n");
+                all_code.push_str(&url::generate_url_lib());
+            }
+            "unicode" => {
+                all_code.push_str("// ========== unicode library ==========\n");
+                all_code.push_str(&unicode::generate_unicode_lib());
+            }
+            "csv" => {
+                all_code.push_str("// ========== encoding/csv library ==========\n");
+                all_code.push_str(&csv::generate_csv_lib());
+            }
+            "xml" => {
+                all_code.push_str("// ========== encoding/xml library ==========\n");
+                all_code.push_str(&xml::generate_xml_lib());
+            }
+            "neturl" => {
+                all_code.push_str("// ========== net/url library ==========\n");
+                all_code.push_str(&neturl::generate_neturl_lib());
+            }
+            "bufio" => {
+                all_code.push_str("// ========== bufio library ==========\n");
+                all_code.push_str(&bufio::generate_bufio_lib());
+            }
+            "benchmark" => {
+                all_code.push_str("// ========== testing/benchmark library ==========\n");
+                all_code.push_str(&benchmark::generate_benchmark_lib());
+            }
+            "doc" => {
+                all_code.push_str("// ========== doc library ==========\n");
+                all_code.push_str(&doc::generate_doc_lib());
+            }
+            "reflect" => {
+                all_code.push_str("// ========== reflect library ==========\n");
+                all_code.push_str(&reflect::generate_reflect_lib());
+            }
+            "base64" => {
+                all_code.push_str("// ========== encoding/base64 library ==========\n");
+                all_code.push_str(&base64::generate_base64_lib());
+            }
+            "errors" => {
+                all_code.push_str("// ========== errors library ==========\n");
+                all_code.push_str(&errors::generate_errors_lib());
+            }
+            "net" => {
+                all_code.push_str("// ========== net library ==========\n");
+                all_code.push_str(&net::generate_net_lib());
+            }
+            "protobuf" => {
+                all_code.push_str("// ========== protobuf library ==========\n");
+                all_code.push_str(&protobuf::generate_protobuf_lib());
+            }
+            "sandarbham" => {
+                all_code.push_str("// ========== sandarbham (context) library ==========\n");
+                all_code.push_str(&sandarbham::generate_sandarbham_lib());
+            }
+            _ => continue,
+        }
+        all_code.push('\n');
+    }
     
     all_code
 }

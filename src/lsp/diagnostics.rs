@@ -19,18 +19,22 @@ impl DiagnosticsProvider {
         
         let lexer = Lexer::new_with_filename(source, "document.tl".to_string());
         let mut parser = Parser::new(lexer);
-        
-        if let Err(error) = parser.parse() {
+
+        let (_program, errors) = parser.parse_collect_errors();
+        for error in errors {
             let location = error.get_location();
+            let line = location.line.saturating_sub(1) as u32;
+            let start_col = location.column.saturating_sub(1) as u32;
+            let end_col = start_col.saturating_add(1);
             diagnostics.push(Diagnostic {
                 range: Range {
                     start: Position {
-                        line: (location.line - 1) as u32,
-                        character: (location.column - 1) as u32,
+                        line,
+                        character: start_col,
                     },
                     end: Position {
-                        line: (location.line - 1) as u32,
-                        character: (location.column) as u32,
+                        line,
+                        character: end_col,
                     },
                 },
                 severity: Some(DiagnosticSeverity::ERROR),
