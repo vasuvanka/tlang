@@ -291,18 +291,23 @@ fi
 
 # Check for OpenSSL (fallback to system)
 echo ""
+PKG_SUDO=""
+if [ "$EUID" -ne 0 ] && command -v sudo &> /dev/null; then
+    PKG_SUDO="sudo"
+fi
+
 echo "Step 3/6: Checking for OpenSSL..."
 if ! command -v openssl &> /dev/null && [ -z "$BUNDLED_OPENSSL" ]; then
     echo "OpenSSL not found. Installing OpenSSL development libraries..."
     if command -v apt-get &> /dev/null; then
-        $SUDO apt-get update
-        $SUDO apt-get install -y libssl-dev pkg-config
+        $PKG_SUDO apt-get update
+        $PKG_SUDO apt-get install -y libssl-dev pkg-config
     elif command -v yum &> /dev/null; then
-        $SUDO yum install -y openssl-devel pkg-config
+        $PKG_SUDO yum install -y openssl-devel pkg-config
     elif command -v dnf &> /dev/null; then
-        $SUDO dnf install -y openssl-devel pkg-config
+        $PKG_SUDO dnf install -y openssl-devel pkg-config
     elif command -v pacman &> /dev/null; then
-        $SUDO pacman -S --noconfirm openssl pkg-config
+        $PKG_SUDO pacman -S --noconfirm openssl pkg-config
     elif command -v brew &> /dev/null; then
         brew install openssl pkg-config
     else
@@ -323,13 +328,13 @@ fi
 if ! command -v pkg-config &> /dev/null; then
     echo "  pkg-config not found. Installing..."
     if command -v apt-get &> /dev/null; then
-        $SUDO apt-get install -y pkg-config
+        $PKG_SUDO apt-get install -y pkg-config
     elif command -v yum &> /dev/null; then
-        $SUDO yum install -y pkg-config
+        $PKG_SUDO yum install -y pkg-config
     elif command -v dnf &> /dev/null; then
-        $SUDO dnf install -y pkg-config
+        $PKG_SUDO dnf install -y pkg-config
     elif command -v pacman &> /dev/null; then
-        $SUDO pacman -S --noconfirm pkg-config
+        $PKG_SUDO pacman -S --noconfirm pkg-config
     elif command -v brew &> /dev/null; then
         brew install pkg-config
     fi

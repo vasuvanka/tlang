@@ -1,4 +1,4 @@
-# Tlang Installation Script for Windows
+﻿# Tlang Installation Script for Windows
 # Run from repo: powershell -ExecutionPolicy Bypass -File install.ps1
 # Single-link:   iwr -useb https://raw.githubusercontent.com/vasuvanka/tlang/main/install.ps1 | iex
 
