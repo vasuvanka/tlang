@@ -39,6 +39,9 @@ fn is_assignable(expected: &Type, got: &Type) -> bool {
     if expected == got {
         return true;
     }
+    if matches!(expected, Type::Any) || matches!(got, Type::Any) {
+        return true;
+    }
     // int can be used where float is expected (promotion)
     if matches!(expected, Type::Float) && matches!(got, Type::Int) {
         return true;

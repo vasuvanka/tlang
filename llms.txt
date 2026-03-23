@@ -1,0 +1,63 @@
+# Tlang Language Guide for AI Assistants
+
+Tlang is a compiled programming language for Telugu, inspired by Go. It compiles to C and follows a simple, explicit syntax. 
+When asked to write or translate code to Tlang, use the following rules, mappings, and library information.
+
+## Keyword Mappings
+| Tlang Keyword / Symbol | English/Go Equivalent | Usage |
+|------------------------|-----------------------|-------|
+| `@`                    | `var` (immutable)     | Variable declaration (e.g., `@x int = 10;`, `@x = 10;`) |
+| `@!`                   | `var` (mutable)       | Mutable variable declaration |
+| `#`                    | `func`                | Function declaration (e.g., `#add() { }`) |
+| `#prarambham`          | `main`                | Entry point function. ALL programs must have `#prarambham() { }` |
+| `#dhimpu`              | `import`              | Import package (e.g., `@fmt = #dhimpu("std/fmt");`) |
+| `okavela`              | `if`                  | Conditional statement |
+| `lekapothe`            | `else` / `else if`    | Alternative branch (`lekapothe okavela` for else if) |
+| `malli`                | `for` / `while`       | Loop construct (e.g., `malli i < 10 { }`) |
+| `mallinchu`            | `return`              | Return from function |
+| `agu`                  | `break`               | Exit loop |
+| `konasagu`             | `continue`            | Skip to next iteration |
+| `nirmanam`             | `struct`              | Structure type (e.g., `nirmanam Person { name string; }`) |
+| `jatha`                | `map`                 | Map type (e.g., `@scores jatha[string]int;`) |
+| `sunyam`               | `nil`                 | Nil/null value |
+| `int`, `float`, `string`, `bool` | Data Types   | Built-in types |
+
+## Tlang Syntax Rules
+1. **Entry Point**: The program must start with `#prarambham()`.
+2. **Imports**: Done via assignment, e.g., `@fmt = #dhimpu("std/fmt");`. No explicit `import` keyword. Functions are called with dot notation `.`, e.g., `fmt.Printf("Hello\n");`.
+3. **Variables**: Immutable by default (`@`). Mutable uses `@!`. Types can be inferred (`@x = 10;`) or explicit (`@x int = 10;`).
+4. **Visibility**: Like Go, uppercase identifiers are exported (public), lowercase are unexported (private).
+5. **Concurrency**: `tlang #funcName()` spawns a thread. `channel[type]` for channels, `<-` for sending/receiving.
+
+## Standard Library Modules
+Tlang provides the following standard library modules. Import them using `std/<module>`:
+- `fmt`, `strings`, `math`, `strconv`, `os`, `time`, `bytes`, `sort`
+- `json`, `http`, `io`, `filepath`, `testing`, `args`, `regexp`, `rand`
+- `log`, `flag`, `crypto`, `hex`, `url`, `unicode`, `csv`, `xml`
+- `neturl`, `bufio`, `benchmark`, `doc`, `reflect`, `base64`, `errors`
+- `net`, `protobuf`, `sandarbham`, `ai`
+
+## AI Integration (`std/ai`)
+Tlang has a built-in `std/ai` module for interacting with LLM providers natively. Available functions:
+- `ai.GenerateTextGemini(api_key string, prompt string) string`
+- `ai.GenerateTextOpenAI(api_key string, prompt string) string`
+- `ai.GenerateTextClaude(api_key string, prompt string) string`
+
+## Example Tlang Program
+```tl
+@fmt = #dhimpu("std/fmt");
+
+#greet(name string) {
+    fmt.Printf("Namaskaram, %s!\n", name);
+}
+
+#prarambham() {
+    @name string = "World";
+    greet(name);
+    
+    @i int = 0;
+    malli i < 3; i = i + 1 {
+        fmt.Printf("Count: %d\n", i);
+    }
+}
+```

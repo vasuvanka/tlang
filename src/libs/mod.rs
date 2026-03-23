@@ -35,13 +35,14 @@ pub mod base64;
 pub mod errors;
 pub mod protobuf;
 pub mod sandarbham;
+pub mod ai;
 
 const ALL_LIBS: &[&str] = &[
     "fmt", "strings", "math", "strconv", "os", "time", "bytes", "sort",
     "json", "http", "io", "filepath", "testing", "args", "regexp", "rand",
     "log", "flag", "crypto", "hex", "url", "unicode", "csv", "xml", "neturl",
     "bufio", "benchmark", "doc", "reflect", "base64", "errors", "net",
-    "protobuf", "sandarbham",
+    "protobuf", "sandarbham", "ai",
 ];
 
 pub fn generate_all_libs() -> String {
@@ -197,6 +198,10 @@ pub fn generate_selected_libs(selected_libs: &[&str]) -> String {
             "sandarbham" => {
                 all_code.push_str("// ========== sandarbham (context) library ==========\n");
                 all_code.push_str(&sandarbham::generate_sandarbham_lib());
+            }
+            "ai" => {
+                all_code.push_str("// ========== ai library ==========\n");
+                all_code.push_str(&ai::generate_ai_lib());
             }
             _ => continue,
         }

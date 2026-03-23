@@ -133,10 +133,20 @@ impl CodeGenerator {
                 if let Some((alias, _func)) = name.split_once('.') {
                     if let Some(std) = stdlib_alias_map.get(alias) {
                         self.runtime_usage.used_stdlibs.insert(std.clone());
+                        if std == "ai" {
+                            self.runtime_usage.used_stdlibs.insert("json".to_string());
+                            self.runtime_usage.used_stdlibs.insert("http".to_string());
+                            self.runtime_usage.used_stdlibs.insert("net".to_string());
+                        }
                     }
                 } else if let Some((prefix, _rest)) = name.split_once('_') {
                     if let Some(std) = Self::canonical_stdlib_name(prefix) {
-                        self.runtime_usage.used_stdlibs.insert(std);
+                        self.runtime_usage.used_stdlibs.insert(std.clone());
+                        if std == "ai" {
+                            self.runtime_usage.used_stdlibs.insert("json".to_string());
+                            self.runtime_usage.used_stdlibs.insert("http".to_string());
+                            self.runtime_usage.used_stdlibs.insert("net".to_string());
+                        }
                     }
                 }
                 if matches!(name.as_str(), "append" | "cap") {
@@ -345,7 +355,12 @@ impl CodeGenerator {
                     .map(|a| a.clone())
                     .unwrap_or_else(|| std_name.clone());
                 stdlib_alias_map.insert(alias, std_name.clone());
-                self.runtime_usage.used_stdlibs.insert(std_name);
+                self.runtime_usage.used_stdlibs.insert(std_name.clone());
+                if std_name == "ai" {
+                    self.runtime_usage.used_stdlibs.insert("json".to_string());
+                    self.runtime_usage.used_stdlibs.insert("http".to_string());
+                    self.runtime_usage.used_stdlibs.insert("net".to_string());
+                }
             }
         }
         // `main()` always calls args_Init.
@@ -386,6 +401,11 @@ impl CodeGenerator {
         
         // Generate forward declarations for types used by runtime functions
         self.generate_forward_declarations();
+        
+        if self.runtime_usage.used_stdlibs.contains("json") {
+            self.runtime_usage.uses_slice = true;
+            self.runtime_usage.uses_map = true;
+        }
         
         if self.runtime_usage.uses_slice {
             self.generate_slice_runtime();

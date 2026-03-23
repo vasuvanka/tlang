@@ -58,6 +58,10 @@ Tlang provides a comprehensive standard library inspired by Go's standard librar
 22. **[net/url](libraries/neturl.md)** - Network URL utilities
 23. **[http](libraries/http.md)** - HTTP client/server with TLS support
 
+### AI Libraries
+
+24. **[ai](libraries/ai.md)** - AI Model Integration (Gemini, OpenAI)
+
 ### Text Processing Libraries
 
 24. **[unicode](libraries/unicode.md)** - Unicode character utilities
@@ -263,6 +267,13 @@ doc.Write("myfile.md", docs);
 @valueInfo string = reflect.ValueOfInt(42);
 ```
 
+### ai - AI Model Integration
+
+```tl
+@gemini_response string = ai.GenerateTextGemini(api_key, "Explain quantum networking.");
+@openai_response string = ai.GenerateTextOpenAI(api_key, "Write a poem about Tlang.");
+```
+
 ## Library Status
 
 | Library | Status | Functions |
@@ -296,6 +307,7 @@ doc.Write("myfile.md", docs);
 | sort | ✅ Complete | Ints, Float64s, Strings |
 | json | ✅ Complete | Marshal, Unmarshal, auto struct/map serialization |
 | http | ✅ Complete | Get, Post, Request, ListenAndServe with TLS/HTTPS |
+| ai | ✅ Complete | GenerateTextGemini, GenerateTextOpenAI |
 
 ## Usage Pattern
 

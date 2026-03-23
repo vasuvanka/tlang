@@ -9,7 +9,6 @@ pub fn generate_net_lib() -> String {
     code.push_str("    #include <winsock2.h>\n");
     code.push_str("    #include <ws2tcpip.h>\n");
     code.push_str("    #pragma comment(lib, \"ws2_32.lib\")\n");
-    code.push_str("    #define close closesocket\n");
     code.push_str("    #define SHUT_RDWR SD_BOTH\n");
     code.push_str("#else\n");
     code.push_str("    #include <sys/socket.h>\n");
@@ -24,6 +23,13 @@ pub fn generate_net_lib() -> String {
     code.push_str("#include <string.h>\n");
     code.push_str("#include <errno.h>\n");
     code.push_str("\n");
+    code.push_str("static inline void net_sys_close(int sockfd) {\n");
+    code.push_str("#ifdef _WIN32\n");
+    code.push_str("    closesocket(sockfd);\n");
+    code.push_str("#else\n");
+    code.push_str("    close(sockfd);\n");
+    code.push_str("#endif\n");
+    code.push_str("}\n\n");
     code.push_str("// OpenSSL/TLS Support\n");
     code.push_str("#ifdef USE_OPENSSL\n");
     code.push_str("    #include <openssl/ssl.h>\n");
@@ -117,7 +123,7 @@ pub fn generate_net_lib() -> String {
     code.push_str("            break;  // Success\n");
     code.push_str("        }\n");
     code.push_str("        \n");
-    code.push_str("        close(sockfd);\n");
+    code.push_str("        net_sys_close(sockfd);\n");
     code.push_str("        sockfd = -1;\n");
     code.push_str("    }\n");
     code.push_str("    \n");
@@ -146,7 +152,7 @@ pub fn generate_net_lib() -> String {
     code.push_str("// net.Close - Close socket\n");
     code.push_str("void net_Close(int sockfd) {\n");
     code.push_str("    if (sockfd >= 0) {\n");
-    code.push_str("        close(sockfd);\n");
+    code.push_str("        net_sys_close(sockfd);\n");
     code.push_str("    }\n");
     code.push_str("}\n\n");
     
@@ -173,13 +179,13 @@ pub fn generate_net_lib() -> String {
     code.push_str("    addr.sin_port = htons(port);\n");
     code.push_str("    \n");
     code.push_str("    if (bind(sockfd, (struct sockaddr*)&addr, sizeof(addr)) < 0) {\n");
-    code.push_str("        close(sockfd);\n");
+    code.push_str("        net_sys_close(sockfd);\n");
     code.push_str("        return -1;\n");
     code.push_str("    }\n");
     code.push_str("    \n");
     code.push_str("    // Listen\n");
     code.push_str("    if (listen(sockfd, 10) < 0) {\n");
-    code.push_str("        close(sockfd);\n");
+    code.push_str("        net_sys_close(sockfd);\n");
     code.push_str("        return -1;\n");
     code.push_str("    }\n");
     code.push_str("    \n");

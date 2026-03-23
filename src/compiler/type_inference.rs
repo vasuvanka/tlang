@@ -24,16 +24,25 @@ fn infer_type_impl(expr: &Expr, ctx: Option<&HashMap<String, Type>>) -> Option<T
         Expr::String(_) => Some(Type::String),
         Expr::Bool(_) => Some(Type::Bool),
         Expr::Identifier(name) => ctx.and_then(|c| c.get(name).cloned()),
-        Expr::BinaryOp { op: _, left, right } => {
+        Expr::BinaryOp { op, left, right } => {
             let left_type = infer_type_impl(left, ctx);
             let right_type = infer_type_impl(right, ctx);
             
-            // If both operands have the same type, use that
+            use crate::ast::BinaryOperator::*;
+            match op {
+                Equal | NotEqual | LessThan | GreaterThan | LessThanEqual | GreaterThanEqual | And | Or => {
+                    return Some(Type::Bool);
+                }
+                _ => {}
+            }
+            
             if let (Some(l), Some(r)) = (left_type, right_type) {
+                if matches!(l, Type::Any) || matches!(r, Type::Any) {
+                    return Some(Type::Any);
+                }
                 if l == r {
                     return Some(l);
                 }
-                // If one is float and other is int, result is float
                 match (l, r) {
                     (Type::Float, Type::Int) | (Type::Int, Type::Float) => Some(Type::Float),
                     _ => None,
@@ -45,7 +54,8 @@ fn infer_type_impl(expr: &Expr, ctx: Option<&HashMap<String, Type>>) -> Option<T
         Expr::UnaryOp { op: _, expr } => infer_type(expr),
         Expr::FunctionCall { name: _, args: _ } => {
             // Can't infer from function call without knowing function signature
-            None
+            // Return Any to allow assignment to typed variables
+            Some(Type::Any)
         }
         Expr::Assignment { name: _, value } => infer_type_impl(value, ctx),
         Expr::Nil => Some(Type::Error), // nil is error type (NULL)
