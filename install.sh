@@ -292,14 +292,27 @@ fi
 # Check for OpenSSL (fallback to system)
 echo ""
 PKG_SUDO=""
-if [ "$EUID" -ne 0 ] && command -v sudo &> /dev/null; then
-    PKG_SUDO="sudo"
+CAN_USE_SUDO=0
+if [ "$EUID" -eq 0 ]; then
+    CAN_USE_SUDO=1
+elif command -v sudo &> /dev/null; then
+    # If we can run sudo non-interactively
+    if sudo -n true 2>/dev/null; then
+        CAN_USE_SUDO=1
+        PKG_SUDO="sudo"
+    # Or if we have a TTY and it's not a non-interactive installation
+    elif [ -t 0 ] && [ "$TLANG_NONINTERACTIVE" != "1" ]; then
+        CAN_USE_SUDO=1
+        PKG_SUDO="sudo"
+    fi
 fi
 
 echo "Step 3/6: Checking for OpenSSL..."
 if ! command -v openssl &> /dev/null && [ -z "$BUNDLED_OPENSSL" ]; then
-    echo "OpenSSL not found. Installing OpenSSL development libraries..."
-    if command -v apt-get &> /dev/null; then
+    echo "OpenSSL not found. Checking if we can install it..."
+    if [ "$CAN_USE_SUDO" -eq 1 ]; then
+        echo "Installing OpenSSL development libraries..."
+        if command -v apt-get &> /dev/null; then
         $PKG_SUDO apt-get update
         $PKG_SUDO apt-get install -y libssl-dev pkg-config
     elif command -v yum &> /dev/null; then
@@ -320,14 +333,21 @@ if ! command -v openssl &> /dev/null && [ -z "$BUNDLED_OPENSSL" ]; then
         echo ""
         echo "Continuing without OpenSSL (some features may not work)."
     fi
+    else
+        echo "Warning: Cannot install OpenSSL automatically. Please install it manually:"
+        echo "  sudo apt-get install -y libssl-dev pkg-config"
+        echo "Continuing without OpenSSL (some features may not work)."
+    fi
 else
     echo "OpenSSL found: $(openssl version)"
 fi
 
 # Check for pkg-config
 if ! command -v pkg-config &> /dev/null; then
-    echo "  pkg-config not found. Installing..."
-    if command -v apt-get &> /dev/null; then
+    echo "  pkg-config not found. Checking if we can install it..."
+    if [ "$CAN_USE_SUDO" -eq 1 ]; then
+        echo "  Installing pkg-config..."
+        if command -v apt-get &> /dev/null; then
         $PKG_SUDO apt-get install -y pkg-config
     elif command -v yum &> /dev/null; then
         $PKG_SUDO yum install -y pkg-config
@@ -337,6 +357,10 @@ if ! command -v pkg-config &> /dev/null; then
         $PKG_SUDO pacman -S --noconfirm pkg-config
     elif command -v brew &> /dev/null; then
         brew install pkg-config
+    fi
+    else
+        echo "  Warning: Cannot install pkg-config automatically. Please install it manually:"
+        echo "    sudo apt-get install -y pkg-config"
     fi
 fi
 
